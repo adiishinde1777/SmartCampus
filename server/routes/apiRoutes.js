@@ -408,10 +408,11 @@ router.post('/register-student', async (req, res) => {
       const parentId = `par-${studentId}`;
       await query(
         `INSERT INTO users (id, role, name, phone, email, dob, password, parent_id, department_id, department_name, is_verified)
-         VALUES (?, 'parent', ?, ?, ?, ?, ?, ?, ?, ?, TRUE)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE name = VALUES(name), phone = VALUES(phone), dob = VALUES(dob)`,
         [
           parentId,
+          'parent',
           body.parentName || `Parent of ${body.name}`,
           body.parentPhone,
           body.parentEmail || null,
@@ -419,7 +420,8 @@ router.post('/register-student', async (req, res) => {
           body.dob,
           studentId,
           body.departmentId || 'dept-vlsi',
-          body.departmentName || 'Electronic Engineering (VLSI Design And Technology)'
+          body.departmentName || 'Electronic Engineering (VLSI Design And Technology)',
+          true
         ]
       );
     }
