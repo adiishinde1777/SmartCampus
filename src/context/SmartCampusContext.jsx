@@ -364,6 +364,19 @@ export function SmartCampusProvider({ children }) {
       "Attendance"
     );
 
+    // Persist directly into MySQL database & trigger SMS dispatch
+    api.submitAttendance({
+      departmentId,
+      semester,
+      subjectId,
+      sessionType,
+      lectureNum,
+      statusMap,
+      date: date || new Date().toISOString().split('T')[0],
+      time: time || '10:00 AM',
+      markedBy: state.currentUser ? state.currentUser.name : 'Faculty'
+    }).catch((err) => console.warn('[MySQL Attendance Sync Warning]', err.message));
+
     setState((prev) => ({
       ...prev,
       attendance: newAttendance,
