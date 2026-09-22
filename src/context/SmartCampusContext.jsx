@@ -475,6 +475,21 @@ export function SmartCampusProvider({ children }) {
       "Marks"
     );
 
+    // Persist each student marks record to MySQL database
+    marksRecords.forEach((rec) => {
+      api.submitMarks({
+        studentId: rec.studentId,
+        subjectId,
+        examType,
+        category: resolvedCategory,
+        marksObtained: rec.marksObtained,
+        maxMarks,
+        gradedBy: state.currentUser ? state.currentUser.name : 'Faculty',
+        remarks: remarks || '',
+        date: new Date().toISOString().split('T')[0]
+      }).catch((err) => console.warn('[MySQL Marks Sync Warning]', err.message));
+    });
+
     setState((prev) => ({
       ...prev,
       marks: newMarks,
