@@ -208,10 +208,11 @@ router.post('/users', async (req, res) => {
       try {
         await query(
           `INSERT INTO users (id, role, name, phone, email, dob, password, parent_id, department_id, department_name, is_verified)
-           VALUES (?, 'parent', ?, ?, ?, ?, ?, ?, ?, ?, TRUE)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE name = VALUES(name), phone = VALUES(phone), dob = VALUES(dob)`,
           [
             parentId,
+            'parent',
             body.parentName || `Parent of ${body.name}`,
             parentPhoneClean,
             body.parentEmail || null,
@@ -219,7 +220,8 @@ router.post('/users', async (req, res) => {
             body.dob || 'password123',
             id,
             body.departmentId || null,
-            body.departmentName || null
+            body.departmentName || null,
+            true
           ]
         );
       } catch (parentErr) {
