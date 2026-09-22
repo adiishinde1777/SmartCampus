@@ -13,8 +13,8 @@ async function seedSubjects() {
     database: process.env.DB_NAME
   });
 
-  console.log(`Seeding ${INITIAL_SUBJECTS.length} subjects into MySQL smartcampus_db...`);
-  for (const s of INITIAL_SUBJECTS) {
+  console.log(`Seeding ${SUBJECTS.length} subjects into MySQL smartcampus_db...`);
+  for (const s of SUBJECTS) {
     try {
       await conn.query(
         'INSERT INTO subjects (id, name, code, department_id, semester, credits, teacher_id, teacher_name) ' +
