@@ -20,10 +20,10 @@ export default function PrincipalCollegeOverview() {
 
   // Drilldown hierarchy state
   // level: 'college' | 'department' | 'semester' | 'division' | 'subject' | 'student'
-  const [selectedDeptId, setSelectedDeptId] = useState("dept-ce");
+  const [selectedDeptId, setSelectedDeptId] = useState("dept-vlsi");
   const [selectedSemester, setSelectedSemester] = useState(5);
   const [selectedDivision, setSelectedDivision] = useState("A");
-  const [selectedSubjectId, setSelectedSubjectId] = useState("sub-dbms");
+  const [selectedSubjectId, setSelectedSubjectId] = useState("sub-vlsi501");
   const [selectedStudentId, setSelectedStudentId] = useState("stu-1");
   const [viewLevel, setViewLevel] = useState("department"); // start at department level for immediate richness
 
@@ -160,42 +160,70 @@ export default function PrincipalCollegeOverview() {
                   </tr>
                 </thead>
                 <tbody>
-                  {deptStudents.map((stu) => {
-                    const dbmsAtt = attendance[stu.id]?.["sub-dbms"]?.percentage || 80;
-                    const osAtt = attendance[stu.id]?.["sub-os"]?.percentage || 80;
-                    const stuMark = marks.find((m) => m.studentId === stu.id);
+                  {deptStudents.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" style={{ textAlign: "center", padding: "28px", color: "var(--text-muted)" }}>
+                        No enrolled students in this department yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    deptStudents.map((stu) => {
+                      const dbmsAtt = attendance[stu.id]?.["sub-dbms"]?.percentage || 80;
+                      const osAtt = attendance[stu.id]?.["sub-os"]?.percentage || 80;
+                      const stuMark = marks.find((m) => m.studentId === stu.id);
 
-                    return (
-                      <tr key={stu.id}>
-                        <td><Badge variant="gray">{stu.rollNo}</Badge></td>
-                        <td>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <img src={stu.avatar} alt={stu.name} style={{ width: "30px", height: "30px", borderRadius: "50%" }} />
-                            <strong>{stu.name}</strong>
-                          </div>
-                        </td>
-                        <td>
-                          <strong style={{ color: dbmsAtt < threshold ? "var(--danger-solid)" : "var(--success-solid)" }}>
-                            {dbmsAtt}%
-                          </strong>
-                        </td>
-                        <td>
-                          <strong style={{ color: osAtt < threshold ? "var(--danger-solid)" : "var(--success-solid)" }}>
-                            {osAtt}%
-                          </strong>
-                        </td>
-                        <td>{stuMark ? `${stuMark.marksObtained}/25` : "18/25"}</td>
-                        <td>
-                          <button
-                            onClick={() => handleSelectStudent(stu.id)}
-                            className="btn btn-primary btn-sm"
-                          >
-                            Inspect Dossier
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                      return (
+                        <tr key={stu.id}>
+                          <td><Badge variant="gray">{stu.rollNo}</Badge></td>
+                          <td>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                              {stu.avatar ? (
+                                <img src={stu.avatar} alt={stu.name} style={{ width: "30px", height: "30px", borderRadius: "50%" }} />
+                              ) : (
+                                <div
+                                  style={{
+                                    width: "30px",
+                                    height: "30px",
+                                    borderRadius: "50%",
+                                    background: "linear-gradient(135deg, #3b82f6, #1d4ed8)",
+                                    color: "white",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontWeight: "700",
+                                    fontSize: "0.72rem",
+                                    flexShrink: 0
+                                  }}
+                                >
+                                  {stu.name ? stu.name.split(" ").slice(0, 2).map((n) => n[0]).join("") : "ST"}
+                                </div>
+                              )}
+                              <strong>{stu.name}</strong>
+                            </div>
+                          </td>
+                          <td>
+                            <strong style={{ color: dbmsAtt < threshold ? "var(--danger-solid)" : "var(--success-solid)" }}>
+                              {dbmsAtt}%
+                            </strong>
+                          </td>
+                          <td>
+                            <strong style={{ color: osAtt < threshold ? "var(--danger-solid)" : "var(--success-solid)" }}>
+                              {osAtt}%
+                            </strong>
+                          </td>
+                          <td>{stuMark ? `${stuMark.marksObtained}/25` : "18/25"}</td>
+                          <td>
+                            <button
+                              onClick={() => handleSelectStudent(stu.id)}
+                              className="btn btn-primary btn-sm"
+                            >
+                              Inspect Dossier
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
@@ -216,15 +244,35 @@ export default function PrincipalCollegeOverview() {
 
           <div className="card">
             <div style={{ display: "flex", gap: "20px", alignItems: "center", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "20px" }}>
-              <img
-                src={activeStudent.avatar}
-                alt={activeStudent.name}
-                style={{ width: "80px", height: "80px", borderRadius: "16px", objectFit: "cover" }}
-              />
+              {activeStudent.avatar ? (
+                <img
+                  src={activeStudent.avatar}
+                  alt={activeStudent.name}
+                  style={{ width: "80px", height: "80px", borderRadius: "16px", objectFit: "cover" }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: "80px",
+                    height: "80px",
+                    borderRadius: "16px",
+                    background: "linear-gradient(135deg, #1e3a8a, #3b82f6)",
+                    color: "white",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: "800",
+                    fontSize: "1.6rem",
+                    flexShrink: 0
+                  }}
+                >
+                  {activeStudent.name ? activeStudent.name.split(" ").slice(0, 2).map((n) => n[0]).join("") : "ST"}
+                </div>
+              )}
               <div>
                 <h3 style={{ fontSize: "1.4rem", fontWeight: "800" }}>{activeStudent.name}</h3>
                 <div style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
-                  Roll: <strong>{activeStudent.rollNo}</strong> • {activeStudent.departmentName} (Sem {activeStudent.semester} - Div {activeStudent.division})
+                  Roll: <strong>{activeStudent.rollNo}</strong> {activeStudent.prn ? <>• PRN: <strong>{activeStudent.prn}</strong></> : null} • {activeStudent.className || `${activeStudent.departmentName} (3rd Year - Sem ${activeStudent.semester})`}
                 </div>
                 <div style={{ fontSize: "0.82rem", color: "#047857", marginTop: "4px" }}>
                   Guardian: <strong>{activeStudent.parentName}</strong> ({activeStudent.parentPhone})

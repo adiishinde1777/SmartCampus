@@ -8,33 +8,68 @@ import {
   Calculator,
   Filter,
   Clock,
-  ShieldAlert
+  ShieldAlert,
+  Layers,
+  Printer,
+  BookOpen,
+  Award
 } from "lucide-react";
 import { Badge } from "../common/UIPrimitives";
+import PrintHeader, { PrintSignatures } from "../common/PrintHeader";
 
 export default function StudentAttendance() {
-  const { currentUser, attendance, subjects, attendanceLogs, systemSettings } = useSmartCampus();
+  const {
+    currentUser,
+    attendance,
+    subjects,
+    attendanceLogs,
+    systemSettings,
+    getSubjectsForDepartmentAndSemester,
+    switchStudentSemester
+  } = useSmartCampus();
   const [selectedSubject, setSelectedSubject] = useState("all");
+  const [attendanceViewTab, setAttendanceViewTab] = useState("all"); // 'all' | 'theory' | 'practical'
   const [extraLecturesSim, setExtraLecturesSim] = useState(5);
 
   const student = currentUser;
+  const studentSem = Number(student?.semester) || 1;
+  const isFirstYear = student?.year === "First Year" || studentSem <= 2;
   const threshold = systemSettings.attendanceThreshold;
   const studentAtt = attendance[student?.id] || {};
 
+  const rawEnrolledSubjects = getSubjectsForDepartmentAndSemester
+    ? getSubjectsForDepartmentAndSemester(student?.departmentId, studentSem)
+    : (subjects || []).filter((s) => s.semester === studentSem);
+  const enrolledSubjects = Array.isArray(rawEnrolledSubjects) ? rawEnrolledSubjects : [];
+
   let totalClasses = 0;
   let totalAttended = 0;
+  let totalTheoryClasses = 0;
+  let totalTheoryAttended = 0;
+  let totalPracticalClasses = 0;
+  let totalPracticalAttended = 0;
 
-  const subjectRows = subjects.map((sub) => {
+  const subjectRows = (enrolledSubjects || []).map((sub) => {
     const sData = studentAtt[sub.id] || { total: 20, attended: 16, percentage: 80 };
     totalClasses += sData.total;
     totalAttended += sData.attended;
+
+    const thTotal = sData.theoryTotal ?? Math.round(sData.total * 0.7);
+    const thAtt = sData.theoryAttended ?? Math.min(thTotal, Math.round(sData.attended * 0.7));
+    const thPct = thTotal > 0 ? Math.round((thAtt / thTotal) * 1000) / 10 : sData.percentage;
+
+    const prTotal = sData.practicalTotal ?? Math.max(0, sData.total - thTotal);
+    const prAtt = sData.practicalAttended ?? Math.max(0, sData.attended - thAtt);
+    const prPct = prTotal > 0 ? Math.round((prAtt / prTotal) * 1000) / 10 : sData.percentage;
+
+    totalTheoryClasses += thTotal;
+    totalTheoryAttended += thAtt;
+    totalPracticalClasses += prTotal;
+    totalPracticalAttended += prAtt;
+
     const missed = sData.total - sData.attended;
     const isBelow = sData.percentage < threshold;
 
-    // Calculate lectures required to reach threshold
-    // (attended + x) / (total + x) >= threshold / 100
-    // 100*attended + 100x >= threshold*total + threshold*x
-    // (100 - threshold)*x >= threshold*total - 100*attended
     let requiredLectures = 0;
     if (isBelow && threshold < 100) {
       const needed = (threshold * sData.total - 100 * sData.attended) / (100 - threshold);
@@ -45,6 +80,12 @@ export default function StudentAttendance() {
       ...sub,
       total: sData.total,
       attended: sData.attended,
+      theoryTotal: thTotal,
+      theoryAttended: thAtt,
+      theoryPercentage: thPct,
+      practicalTotal: prTotal,
+      practicalAttended: prAtt,
+      practicalPercentage: prPct,
       missed,
       percentage: sData.percentage,
       isBelow,
@@ -53,18 +94,34 @@ export default function StudentAttendance() {
   });
 
   const overallPct = totalClasses > 0 ? Math.round((totalAttended / totalClasses) * 1000) / 10 : 0;
+  const overallTheoryPct = totalTheoryClasses > 0 ? Math.round((totalTheoryAttended / totalTheoryClasses) * 1000) / 10 : overallPct;
+  const overallPracticalPct = totalPracticalClasses > 0 ? Math.round((totalPracticalAttended / totalPracticalClasses) * 1000) / 10 : overallPct;
   const defaulterCount = subjectRows.filter((s) => s.isBelow).length;
 
-  // Filter logs for this student
-  const myLogs = attendanceLogs.filter((log) => {
+  // Filter logs for this student safely
+  const myLogs = (attendanceLogs || []).filter((log) => {
+    if (!log) return false;
     const isMine = log.studentId === student?.id;
     if (!isMine) return false;
     if (selectedSubject !== "all" && log.subjectId !== selectedSubject) return false;
+    if (attendanceViewTab === "theory" && log.sessionType === "Practical") return false;
+    if (attendanceViewTab === "practical" && log.sessionType === "Theory") return false;
     return true;
   });
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      {/* Official College Print Header (Appears only on print) */}
+      <PrintHeader
+        title="STUDENT OFFICIAL ATTENDANCE & COMPLIANCE TRANSCRIPT"
+        subtitle={`Student: ${student?.name} (Roll: ${student?.rollNo || "VL3152"} • PRN: ${student?.prn || "24025331378056"}) • Class: TE VLSI Sem 5`}
+        documentType="ATTENDANCE REGISTER RECORD"
+      />
+
       {/* Page Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
         <div>
@@ -72,19 +129,73 @@ export default function StudentAttendance() {
             Attendance Management & Defaulter Radar
           </h2>
           <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "4px" }}>
-            Real-time lecture tracking with automatic warning evaluation (Configured Threshold: {threshold}%)
+            Real-time tracking of Theory Lectures & Practical Labs with automatic threshold evaluation ({threshold}%)
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: "8px" }}>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
           <Badge variant={overallPct >= threshold ? "success" : "danger"}>
             Overall: {overallPct}%
           </Badge>
-          <Badge variant={defaulterCount > 0 ? "danger" : "success"}>
-            {defaulterCount > 0 ? `${defaulterCount} Defaulter Warnings` : "All Subjects Compliant"}
+          <Badge variant="primary">
+            Theory: {overallTheoryPct}%
           </Badge>
+          <Badge variant="purple">
+            Practical: {overallPracticalPct}%
+          </Badge>
+          <button
+            onClick={handlePrint}
+            className="btn btn-secondary btn-sm"
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+          >
+            <Printer size={15} /> Print Report
+          </button>
         </div>
       </div>
+
+      {/* First Year Common Curriculum Banner */}
+      {isFirstYear && (
+        <div
+          style={{
+            background: "linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.12) 100%)",
+            border: "1px solid rgba(99, 102, 241, 0.3)",
+            borderRadius: "14px",
+            padding: "14px 20px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "12px"
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <Layers size={22} color="#6366f1" />
+            <div>
+              <span style={{ fontWeight: "700", color: "var(--color-text-primary)", fontSize: "0.95rem" }}>
+                First Year Common Curriculum Attendance ({enrolledSubjects.length} Courses)
+              </span>
+              <p style={{ margin: "2px 0 0 0", fontSize: "0.82rem", color: "var(--color-text-secondary)" }}>
+                Displaying Semester {studentSem} subjects common across all engineering branches.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: "6px" }}>
+            <button
+              className={`btn btn-sm ${studentSem === 1 ? "btn-primary" : "btn-secondary"}`}
+              onClick={() => { switchStudentSemester(1); setSelectedSubject("all"); }}
+            >
+              Semester I
+            </button>
+            <button
+              className={`btn btn-sm ${studentSem === 2 ? "btn-primary" : "btn-secondary"}`}
+              onClick={() => { switchStudentSemester(2); setSelectedSubject("all"); }}
+            >
+              Semester II
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Top Banner: Defaulter Risk Overview & Recovery Calculator */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
@@ -200,13 +311,37 @@ export default function StudentAttendance() {
 
       {/* Subject-wise Attendance Table */}
       <div className="card">
-        <div className="card-header">
+        <div className="card-header" style={{ flexWrap: "wrap", gap: "12px" }}>
           <div>
             <div className="card-title">
               <TrendingUp size={18} color="var(--primary-600)" />
-              Subject-wise Attendance Breakdown
+              Subject-wise Theory & Practical Attendance Breakdown
             </div>
-            <div className="card-subtitle">Real-time stats synced with faculty lecture submissions</div>
+            <div className="card-subtitle">Real-time attendance segmented by classroom lectures and laboratory practical sessions</div>
+          </div>
+
+          <div style={{ display: "flex", background: "var(--bg-surface-secondary)", padding: "3px", borderRadius: "8px", gap: "4px" }}>
+            <button
+              onClick={() => setAttendanceViewTab("all")}
+              className={`btn btn-sm ${attendanceViewTab === "all" ? "btn-primary" : "btn-ghost"}`}
+              style={{ fontSize: "0.8rem", padding: "4px 10px", borderRadius: "6px" }}
+            >
+              All Components
+            </button>
+            <button
+              onClick={() => setAttendanceViewTab("theory")}
+              className={`btn btn-sm ${attendanceViewTab === "theory" ? "btn-primary" : "btn-ghost"}`}
+              style={{ fontSize: "0.8rem", padding: "4px 10px", borderRadius: "6px" }}
+            >
+              📘 Theory Only
+            </button>
+            <button
+              onClick={() => setAttendanceViewTab("practical")}
+              className={`btn btn-sm ${attendanceViewTab === "practical" ? "btn-primary" : "btn-ghost"}`}
+              style={{ fontSize: "0.8rem", padding: "4px 10px", borderRadius: "6px" }}
+            >
+              🔬 Practical Only
+            </button>
           </div>
         </div>
 
@@ -215,16 +350,16 @@ export default function StudentAttendance() {
             <thead>
               <tr>
                 <th>Subject Name</th>
-                <th>Subject Code</th>
-                <th>Attended / Total</th>
-                <th>Missed</th>
-                <th>Percentage</th>
-                <th>Status</th>
-                <th>Action / Requirement</th>
+                <th>Code</th>
+                <th>📘 Theory Attendance</th>
+                <th>🔬 Practical Attendance</th>
+                <th>Overall Progress</th>
+                <th>Compliance Status</th>
+                <th>Advisory / Required</th>
               </tr>
             </thead>
             <tbody>
-              {subjectRows.map((row) => (
+              {(subjectRows || []).map((row) => (
                 <tr key={row.id} style={{ background: row.isBelow ? "#fff1f2" : undefined }}>
                   <td>
                     <div style={{ fontWeight: "700", color: row.isBelow ? "#991b1b" : "var(--text-main)" }}>
@@ -237,21 +372,39 @@ export default function StudentAttendance() {
                     </span>
                   </td>
                   <td>
-                    <strong>{row.attended}</strong> / {row.total}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem" }}>
+                        <span>{row.theoryAttended}/{row.theoryTotal}</span>
+                        <strong style={{ color: row.theoryPercentage < threshold ? "#dc2626" : "#2563eb" }}>
+                          {row.theoryPercentage}%
+                        </strong>
+                      </div>
+                      <div style={{ height: "6px", background: "#e2e8f0", borderRadius: "3px", overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${Math.min(100, row.theoryPercentage)}%`, background: "#3b82f6", borderRadius: "3px" }} />
+                      </div>
+                    </div>
                   </td>
                   <td>
-                    <span style={{ color: row.missed > 5 ? "var(--danger-solid)" : "var(--text-muted)", fontWeight: row.missed > 5 ? "700" : "normal" }}>
-                      {row.missed}
-                    </span>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem" }}>
+                        <span>{row.practicalAttended}/{row.practicalTotal}</span>
+                        <strong style={{ color: row.practicalPercentage < threshold ? "#dc2626" : "#059669" }}>
+                          {row.practicalPercentage}%
+                        </strong>
+                      </div>
+                      <div style={{ height: "6px", background: "#e2e8f0", borderRadius: "3px", overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${Math.min(100, row.practicalPercentage)}%`, background: "#10b981", borderRadius: "3px" }} />
+                      </div>
+                    </div>
                   </td>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <div style={{ flex: 1, height: "8px", width: "80px", background: "#e2e8f0", borderRadius: "4px", overflow: "hidden" }}>
+                      <div style={{ flex: 1, height: "8px", width: "70px", background: "#e2e8f0", borderRadius: "4px", overflow: "hidden" }}>
                         <div
                           style={{
                             height: "100%",
                             width: `${Math.min(100, row.percentage)}%`,
-                            background: row.isBelow ? "var(--danger-solid)" : "var(--success-solid)",
+                            background: row.isBelow ? "var(--danger-solid)" : "var(--primary-600)",
                             borderRadius: "4px"
                           }}
                         />
@@ -265,13 +418,13 @@ export default function StudentAttendance() {
                     {row.isBelow ? (
                       <Badge variant="danger" icon={AlertTriangle}>Defaulter (&lt;{threshold}%)</Badge>
                     ) : (
-                      <Badge variant="success" icon={CheckCircle2}>Satisfactory</Badge>
+                      <Badge variant="success" icon={CheckCircle2}>Compliant</Badge>
                     )}
                   </td>
                   <td>
                     {row.isBelow ? (
                       <span style={{ fontSize: "0.78rem", color: "#b91c1c", fontWeight: "700" }}>
-                        ⚠️ Attend next {row.requiredLectures} lectures
+                        ⚠️ Attend next {row.requiredLectures} sessions
                       </span>
                     ) : (
                       <span style={{ fontSize: "0.78rem", color: "var(--success-text)", fontWeight: "500" }}>
@@ -306,7 +459,7 @@ export default function StudentAttendance() {
               onChange={(e) => setSelectedSubject(e.target.value)}
             >
               <option value="all">All Subjects</option>
-              {subjects.map((s) => (
+              {(subjects || []).map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
@@ -325,21 +478,26 @@ export default function StudentAttendance() {
               </tr>
             </thead>
             <tbody>
-              {myLogs.length === 0 ? (
+              {(!myLogs || myLogs.length === 0) ? (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: "center", padding: "24px", color: "var(--text-muted)" }}>
+                  <td colSpan="6" style={{ textAlign: "center", padding: "24px", color: "var(--text-muted)" }}>
                     No lecture attendance records found matching filters.
                   </td>
                 </tr>
               ) : (
-                myLogs.map((log) => (
+                (myLogs || []).map((log) => (
                   <tr key={log.id}>
                     <td>
                       <div style={{ fontWeight: "600" }}>{log.date}</div>
                       <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{log.time}</div>
                     </td>
                     <td>
-                      <Badge variant="gray">Lecture #{log.lectureNum}</Badge>
+                      <Badge variant="gray">Session #{log.lectureNum}</Badge>
+                    </td>
+                    <td>
+                      <span style={{ fontSize: "0.75rem", fontWeight: "700", padding: "2px 6px", borderRadius: "4px", background: log.sessionType === "Practical" ? "rgba(16, 185, 129, 0.15)" : "rgba(37, 99, 235, 0.15)", color: log.sessionType === "Practical" ? "#047857" : "#1d4ed8" }}>
+                        {log.sessionType === "Practical" ? "🔬 Practical" : "📘 Theory"}
+                      </span>
                     </td>
                     <td>
                       <strong>{log.subjectName}</strong>
@@ -359,6 +517,9 @@ export default function StudentAttendance() {
           </table>
         </div>
       </div>
+
+      {/* Official Signatures (Appears only on print) */}
+      <PrintSignatures />
     </div>
   );
 }

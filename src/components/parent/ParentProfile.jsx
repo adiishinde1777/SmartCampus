@@ -101,11 +101,31 @@ export default function ParentProfile() {
           <div style={{ background: "var(--bg-surface-secondary)", padding: "18px", borderRadius: "12px" }}>
             <h4 style={{ fontSize: "1rem", fontWeight: "700", marginBottom: "12px" }}>Enrolled Ward</h4>
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <img
-                src={ward?.avatar}
-                alt={ward?.name}
-                style={{ width: "48px", height: "48px", borderRadius: "50%", objectFit: "cover" }}
-              />
+              {ward?.avatar ? (
+                <img
+                  src={ward.avatar}
+                  alt={ward?.name}
+                  style={{ width: "48px", height: "48px", borderRadius: "50%", objectFit: "cover" }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, #059669, #047857)",
+                    color: "white",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: "800",
+                    fontSize: "1rem",
+                    flexShrink: 0
+                  }}
+                >
+                  {ward?.name ? ward.name.split(" ").slice(0, 2).map((n) => n[0]).join("") : "W"}
+                </div>
+              )}
               <div>
                 <strong style={{ fontSize: "0.95rem" }}>{ward?.name}</strong>
                 <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{ward?.rollNo} • {ward?.departmentName}</div>

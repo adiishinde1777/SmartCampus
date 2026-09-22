@@ -11,7 +11,7 @@ import {
 import { Badge, Modal } from "../common/UIPrimitives";
 
 export default function TeacherNotices() {
-  const { notices, createNotice } = useSmartCampus();
+  const { notices, createNotice, currentUser } = useSmartCampus();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -28,7 +28,7 @@ export default function TeacherNotices() {
       priority,
       content,
       expiryDate,
-      department: "Computer Engineering"
+      department: currentUser?.departmentName || "Computer Science Engineering (CSE)"
     });
     setIsModalOpen(false);
     setTitle("");

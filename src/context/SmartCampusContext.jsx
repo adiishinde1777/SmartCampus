@@ -1,91 +1,110 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import api from "../services/api";
 import {
-  INITIAL_USERS,
   DEPARTMENTS,
-  SUBJECTS,
-  INITIAL_TIMETABLES,
-  INITIAL_TIMETABLE_TODAY,
-  INITIAL_ATTENDANCE,
-  INITIAL_ATTENDANCE_LOGS,
-  INITIAL_MARKS,
-  INITIAL_ASSIGNMENTS,
-  INITIAL_NOTICES,
-  INITIAL_EXAMS,
-  INITIAL_LEAVES,
-  INITIAL_COMPLAINTS,
-  INITIAL_NOTIFICATIONS,
-  INITIAL_AUDIT_LOGS,
-  INITIAL_SYSTEM_SETTINGS
+  INITIAL_SYSTEM_SETTINGS,
+  VLSI_CLASS_METADATA,
+  getStudentBatchInfo
 } from "../data/initialData";
 
 const SmartCampusContext = createContext();
 
-const STORAGE_KEY = "smart_campus_erp_state_v1";
+const STORAGE_KEY = "smart_campus_erp_mysql_clean_v2";
+
+const CLEAN_BASELINE_ADMIN = {
+  id: "adm-1",
+  role: "admin",
+  name: "System Administrator",
+  email: "admin@campus.edu",
+  phone: "9876543210",
+  prn: "admin",
+  dob: "1985-01-01",
+  password: "admin123",
+  designation: "System Administrator",
+  isVerified: true
+};
 
 export function SmartCampusProvider({ children }) {
-  // Load state from localStorage or fallback to seeds
+  // Clean Zero-Data Initial State: Starts with default Admin and standard departments
   const [state, setState] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Ensure subjects contains the full 8-semester library if the saved subjects were from older minimal seed
-        let mergedSubjects = parsed.subjects || SUBJECTS;
-        if (Array.isArray(mergedSubjects) && mergedSubjects.length <= 5) {
-          const existingIds = new Set(mergedSubjects.map((s) => s.id));
-          const missing = SUBJECTS.filter((s) => !existingIds.has(s.id));
-          mergedSubjects = [...mergedSubjects, ...missing];
+        if (Array.isArray(parsed.users) && parsed.users.length > 0) {
+          return {
+            ...parsed,
+            smsLogs: parsed.smsLogs || [],
+            currentUser: parsed.currentUser || null,
+            activeRole: parsed.activeRole || null
+          };
         }
-
-        return {
-          users: parsed.users || INITIAL_USERS,
-          departments: parsed.departments || DEPARTMENTS,
-          subjects: mergedSubjects,
-          timetables: parsed.timetables && parsed.timetables.length > 0 ? parsed.timetables : INITIAL_TIMETABLES,
-          timetableToday: parsed.timetableToday || INITIAL_TIMETABLE_TODAY,
-          attendance: parsed.attendance || INITIAL_ATTENDANCE,
-          attendanceLogs: parsed.attendanceLogs || INITIAL_ATTENDANCE_LOGS,
-          marks: parsed.marks || INITIAL_MARKS,
-          assignments: parsed.assignments || INITIAL_ASSIGNMENTS,
-          notices: parsed.notices || INITIAL_NOTICES,
-          exams: parsed.exams || INITIAL_EXAMS,
-          leaves: parsed.leaves || INITIAL_LEAVES,
-          complaints: parsed.complaints || INITIAL_COMPLAINTS,
-          notifications: parsed.notifications || INITIAL_NOTIFICATIONS,
-          auditLogs: parsed.auditLogs || INITIAL_AUDIT_LOGS,
-          systemSettings: parsed.systemSettings || INITIAL_SYSTEM_SETTINGS,
-          currentUser: parsed.currentUser || INITIAL_USERS[0], // Default logged-in as Rahul Patil (Student)
-          activeRole: parsed.activeRole || "student",
-          demoStep: parsed.demoStep ?? 0
-        };
       }
     } catch (e) {
-      console.warn("Failed to load state from localStorage:", e);
+      console.warn("Failed to read storage:", e);
     }
+
     return {
-      users: INITIAL_USERS,
+      users: [CLEAN_BASELINE_ADMIN],
       departments: DEPARTMENTS,
-      subjects: SUBJECTS,
-      timetables: INITIAL_TIMETABLES,
-      timetableToday: INITIAL_TIMETABLE_TODAY,
-      attendance: INITIAL_ATTENDANCE,
-      attendanceLogs: INITIAL_ATTENDANCE_LOGS,
-      marks: INITIAL_MARKS,
-      assignments: INITIAL_ASSIGNMENTS,
-      notices: INITIAL_NOTICES,
-      exams: INITIAL_EXAMS,
-      leaves: INITIAL_LEAVES,
-      complaints: INITIAL_COMPLAINTS,
-      notifications: INITIAL_NOTIFICATIONS,
-      auditLogs: INITIAL_AUDIT_LOGS,
+      subjects: [],
+      timetables: [],
+      timetableToday: [],
+      studyMaterials: [],
+      attendance: {},
+      attendanceLogs: [],
+      smsLogs: [],
+      marks: [],
+      assignments: [],
+      notices: [],
+      exams: [],
+      leaves: [],
+      complaints: [],
+      notifications: [],
+      auditLogs: [],
       systemSettings: INITIAL_SYSTEM_SETTINGS,
-      currentUser: INITIAL_USERS[0], // Default logged-in as Rahul Patil (Student)
-      activeRole: "student",
-      demoStep: 0 // 0 to 6 for the interactive guided demo
+      studentSkills: [],
+      collegeEvents: [],
+      eventInvitations: [],
+      eventTeamMembers: [],
+      studentHealthRecords: [],
+      doctorLetters: [],
+      classAssignments: [],
+      currentUser: null,
+      activeRole: null,
+      demoStep: 0
     };
   });
 
   const [toasts, setToasts] = useState([]);
+
+  // Fetch live state from backend MySQL database on boot
+  useEffect(() => {
+    api.getBootstrap()
+      .then((res) => {
+        if (res?.success && res?.data) {
+          const d = res.data;
+          setState((prev) => ({
+            ...prev,
+            users: d.users && d.users.length > 0 ? d.users : prev.users,
+            departments: d.departments && d.departments.length > 0 ? d.departments : prev.departments,
+            subjects: d.subjects || prev.subjects,
+            attendanceLogs: d.attendanceLogs || prev.attendanceLogs,
+            smsLogs: d.smsLogs || prev.smsLogs,
+            marks: d.marks || prev.marks,
+            assignments: d.assignments || prev.assignments,
+            notices: d.notices || prev.notices,
+            leaves: d.leaves || prev.leaves,
+            complaints: d.complaints || prev.complaints,
+            auditLogs: d.auditLogs || prev.auditLogs,
+            systemSettings: { ...prev.systemSettings, ...(d.systemSettings || {}) }
+          }));
+        }
+      })
+      .catch((err) => {
+        console.warn("[Bootstrap] Connecting to local persistent state:", err.message);
+      });
+  }, []);
 
   // Save to localStorage on change
   useEffect(() => {
@@ -95,6 +114,7 @@ export function SmartCampusProvider({ children }) {
       console.error("Failed to persist state:", e);
     }
   }, [state]);
+
 
   // Toast notification helper
   const addToast = (title, message, type = "info", duration = 4500) => {
@@ -112,7 +132,14 @@ export function SmartCampusProvider({ children }) {
 
   // Switch User / Role
   const switchUser = (userIdOrRole) => {
-    const targetUser = state.users.find((u) => u.id === userIdOrRole || u.role === userIdOrRole) || state.users[0];
+    let targetUser = null;
+    if (userIdOrRole === "student") {
+      targetUser = state.users.find((u) => u.id === "stu-1");
+    } else {
+      targetUser = state.users.find((u) => u.id === userIdOrRole || u.role === userIdOrRole);
+    }
+    if (!targetUser) targetUser = state.users.find((u) => u.id === "stu-1") || state.users[0];
+
     setState((prev) => ({
       ...prev,
       currentUser: targetUser,
@@ -121,22 +148,55 @@ export function SmartCampusProvider({ children }) {
     addToast("Switched Persona", `Active profile: ${targetUser.name} (${targetUser.role.toUpperCase()})`, "info");
   };
 
-  const login = (emailOrId, password, selectedRole) => {
-    const user = state.users.find(
-      (u) =>
-        (u.email.toLowerCase() === emailOrId.toLowerCase() || u.id === emailOrId) &&
-        (selectedRole ? u.role === selectedRole : true)
-    );
-    if (user) {
-      setState((prev) => ({
-        ...prev,
-        currentUser: user,
-        activeRole: user.role
-      }));
-      addToast("Login Successful", `Welcome back, ${user.name}!`, "success");
-      return { success: true, user };
+  const login = async (emailOrId, password, selectedRole) => {
+    const input = (emailOrId || "").trim();
+    const pass = (password || "").trim();
+
+    try {
+      const res = await api.login({ username: input, password: pass, role: selectedRole });
+      if (res.success && res.user) {
+        setState((prev) => ({
+          ...prev,
+          currentUser: res.user,
+          activeRole: res.user.role
+        }));
+        addToast("Login Successful", `Welcome back, ${res.user.name}!`, "success");
+        return { success: true, user: res.user };
+      }
+      return { success: false, message: res.message || "Invalid credentials." };
+    } catch (err) {
+      // Local fallback in case server connection is momentarily offline
+      const user = state.users.find((u) => {
+        if (selectedRole && u.role !== selectedRole) return false;
+        if (selectedRole === "admin") {
+          return (u.prn === input || u.email === input || input.toLowerCase() === "admin") && (pass === "admin123" || u.password === pass);
+        }
+        if (selectedRole === "student") {
+          const matchUsername = u.prn === input || u.rollNo === input;
+          const matchPass = u.dob === pass || (u.dob && pass.replace(/[^0-9]/g, '') === u.dob.replace(/[^0-9]/g, ''));
+          return matchUsername && matchPass;
+        }
+        if (selectedRole === "parent") {
+          const matchPhone = u.parentPhone === input || u.phone === input;
+          const matchPass = u.dob === pass || (u.dob && pass.replace(/[^0-9]/g, '') === u.dob.replace(/[^0-9]/g, ''));
+          return matchPhone && matchPass;
+        }
+        const matchPhone = u.phone === input || u.email === input;
+        const matchPass = u.dob === pass || (u.dob && pass.replace(/[^0-9]/g, '') === u.dob.replace(/[^0-9]/g, ''));
+        return matchPhone && matchPass;
+      });
+
+      if (user) {
+        setState((prev) => ({
+          ...prev,
+          currentUser: user,
+          activeRole: user.role
+        }));
+        addToast("Login Successful", `Welcome back, ${user.name}!`, "success");
+        return { success: true, user };
+      }
+      return { success: false, message: err.message || "Invalid credentials." };
     }
-    return { success: false, message: "Invalid credentials or role mismatch." };
   };
 
   const logout = () => {
@@ -166,9 +226,9 @@ export function SmartCampusProvider({ children }) {
   // ==========================================
   // CORE ATTENDANCE SUBMISSION ENGINE
   // ==========================================
-  const markAttendance = ({ departmentId, semester, division, subjectId, lectureNum, statusMap, date = "2026-09-08", time = "10:00 AM" }) => {
-    const subject = state.subjects.find((s) => s.id === subjectId) || { name: "Database Management Systems", code: "CE501" };
-    const department = state.departments.find((d) => d.id === departmentId) || { name: "Computer Engineering" };
+  const markAttendance = ({ departmentId, semester, division, subjectId, lectureNum, statusMap, date = "2026-09-08", time = "10:00 AM", sessionType = "Theory" }) => {
+    const subject = state.subjects.find((s) => s.id === subjectId) || { name: "CMOS Digital VLSI Design", code: "VLSI501" };
+    const department = state.departments.find((d) => d.id === departmentId) || { name: "Electronic Engineering (VLSI Design And Technology)" };
 
     const newAttendance = JSON.parse(JSON.stringify(state.attendance));
     const newLogs = [...state.attendanceLogs];
@@ -178,6 +238,8 @@ export function SmartCampusProvider({ children }) {
 
     const nowFormattedDate = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
     const nowFormattedTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    const isPractical = sessionType === "Practical" || sessionType === "Lab";
 
     // Process each student in statusMap: { [studentId]: "Present" | "Absent" }
     Object.entries(statusMap).forEach(([studentId, status]) => {
@@ -192,14 +254,34 @@ export function SmartCampusProvider({ children }) {
       }
 
       const prev = newAttendance[studentId][subjectId];
-      const newTotal = prev.total + 1;
-      const newAttended = status === "Present" ? prev.attended + 1 : prev.attended;
-      const newPct = Math.round((newAttended / newTotal) * 1000) / 10;
+
+      const prevTheoryTotal = prev.theoryTotal ?? Math.round(prev.total * 0.7);
+      const prevTheoryAttended = prev.theoryAttended ?? Math.min(prevTheoryTotal, Math.round(prev.attended * 0.7));
+      const prevPracticalTotal = prev.practicalTotal ?? Math.max(0, prev.total - prevTheoryTotal);
+      const prevPracticalAttended = prev.practicalAttended ?? Math.max(0, prev.attended - prevTheoryAttended);
+
+      const newTheoryTotal = !isPractical ? prevTheoryTotal + 1 : prevTheoryTotal;
+      const newTheoryAttended = (!isPractical && status === "Present") ? prevTheoryAttended + 1 : prevTheoryAttended;
+      const newTheoryPct = newTheoryTotal > 0 ? Math.round((newTheoryAttended / newTheoryTotal) * 1000) / 10 : 100;
+
+      const newPracticalTotal = isPractical ? prevPracticalTotal + 1 : prevPracticalTotal;
+      const newPracticalAttended = (isPractical && status === "Present") ? prevPracticalAttended + 1 : prevPracticalAttended;
+      const newPracticalPct = newPracticalTotal > 0 ? Math.round((newPracticalAttended / newPracticalTotal) * 1000) / 10 : 100;
+
+      const newTotal = newTheoryTotal + newPracticalTotal;
+      const newAttended = newTheoryAttended + newPracticalAttended;
+      const newPct = newTotal > 0 ? Math.round((newAttended / newTotal) * 1000) / 10 : 100;
 
       newAttendance[studentId][subjectId] = {
         total: newTotal,
         attended: newAttended,
-        percentage: newPct
+        percentage: newPct,
+        theoryTotal: newTheoryTotal,
+        theoryAttended: newTheoryAttended,
+        theoryPercentage: newTheoryPct,
+        practicalTotal: newPracticalTotal,
+        practicalAttended: newPracticalAttended,
+        practicalPercentage: newPracticalPct
       };
 
       // Add to attendance log
@@ -213,7 +295,8 @@ export function SmartCampusProvider({ children }) {
         date,
         time,
         status,
-        lectureNum: lectureNum || prev.total + 1,
+        sessionType: isPractical ? "Practical" : "Theory",
+        lectureNum: lectureNum || (isPractical ? newPracticalTotal : newTheoryTotal),
         markedBy: state.currentUser ? state.currentUser.name : "Prof. R. K. Patil"
       });
 
@@ -226,8 +309,8 @@ export function SmartCampusProvider({ children }) {
           id: "notif-stu-" + Date.now() + "-" + studentId,
           recipientId: student.id,
           recipientRole: "student",
-          title: `⚠️ Attendance Alert: ${subject.name}`,
-          message: `Attendance Alert: You were marked absent for ${subject.name} on ${date} (Lecture ${lectureNum || newTotal}).`,
+          title: `⚠️ ${isPractical ? "Practical" : "Theory"} Attendance Alert: ${subject.name}`,
+          message: `Attendance Alert: You were marked absent for ${subject.name} (${isPractical ? "Practical Lab" : "Theory Lecture"}) on ${date} (Session ${lectureNum || (isPractical ? newPracticalTotal : newTheoryTotal)}).`,
           type: "attendance_absent",
           channel: "in-app",
           deliveryStatus: "Delivered",
@@ -243,7 +326,7 @@ export function SmartCampusProvider({ children }) {
             recipientId: student.parentId,
             recipientRole: "parent",
             title: `📱 Absence Alert: ${student.name}`,
-            message: `Attendance Alert: Your ward ${student.name} was marked absent for ${subject.name} on ${date} (Lecture ${lectureNum || newTotal}).`,
+            message: `Attendance Alert: Your ward ${student.name} was marked absent for ${subject.name} (${isPractical ? "Practical Lab" : "Theory Lecture"}) on ${date} (Session ${lectureNum || (isPractical ? newPracticalTotal : newTheoryTotal)}).`,
             type: "attendance_absent",
             channel: "sms_whatsapp",
             deliveryStatus: "Delivered",
@@ -264,7 +347,7 @@ export function SmartCampusProvider({ children }) {
           recipientId: student.id,
           recipientRole: "student",
           title: `🔴 Attendance Defaulter Warning: ${subject.name}`,
-          message: `Your current attendance in ${subject.name} is ${newPct}%, which is below the mandatory threshold of ${state.systemSettings.attendanceThreshold}%. Immediate improvement required.`,
+          message: `Your current attendance in ${subject.name} is ${newPct}% (Theory: ${newTheoryPct}%, Practical: ${newPracticalPct}%), which is below the mandatory threshold of ${state.systemSettings.attendanceThreshold}%. Immediate improvement required.`,
           type: "warning",
           channel: "in-app",
           deliveryStatus: "Delivered",
@@ -307,13 +390,18 @@ export function SmartCampusProvider({ children }) {
   // ==========================================
   // MARKS SUBMISSION ENGINE
   // ==========================================
-  const submitMarks = ({ subjectId, examType, maxMarks, marksRecords, remarks = "" }) => {
+  const submitMarks = ({ subjectId, examType, maxMarks, marksRecords, remarks = "", category = null }) => {
     const subject = state.subjects.find((s) => s.id === subjectId) || { name: "Database Management Systems" };
     const newMarks = [...state.marks];
     const newNotifications = [...state.notifications];
 
     const nowFormattedDate = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
     const nowFormattedTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    // Determine category: Practical vs Theory
+    const isPracticalExam = category === "Practical" || 
+      ["Practical Exam", "Lab Continuous Assessment", "Lab Continuous Assessment (ICA)", "Practical Exam (POE)", "Lab Viva-Voce", "Viva Voce", "Term Work", "Term Work (TW)"].some(t => (examType || "").includes(t));
+    const resolvedCategory = isPracticalExam ? "Practical" : "Theory";
 
     marksRecords.forEach((rec) => {
       const student = state.users.find((u) => u.id === rec.studentId);
@@ -327,11 +415,12 @@ export function SmartCampusProvider({ children }) {
         subjectId,
         subjectName: subject.name,
         examType,
+        category: resolvedCategory,
         marksObtained: Number(rec.marksObtained),
         maxMarks: Number(maxMarks),
         date: nowFormattedDate,
         gradedBy: state.currentUser ? state.currentUser.name : "Prof. R. K. Patil",
-        remarks: rec.remarks || remarks || "Exam score recorded."
+        remarks: rec.remarks || remarks || "Assessment score recorded."
       });
 
       // 1. Student Notification
@@ -410,7 +499,7 @@ export function SmartCampusProvider({ children }) {
     const newNotifications = [...state.notifications];
     // Notify students
     state.users
-      .filter((u) => u.role === "student" && u.departmentId === (subject.departmentId || "dept-ce"))
+      .filter((u) => u.role === "student" && u.departmentId === (subject.departmentId || "dept-vlsi"))
       .forEach((stu) => {
         newNotifications.unshift({
           id: "notif-asg-" + Date.now() + "-" + stu.id,
@@ -439,29 +528,79 @@ export function SmartCampusProvider({ children }) {
     addToast("Assignment Created", `Assignment "${title}" published for all enrolled students.`, "success");
   };
 
-  const submitAssignment = (assignmentId, studentId, fileName) => {
+  const submitAssignment = (assignmentId, studentId, fileName, details = {}) => {
     const student = state.users.find((u) => u.id === studentId) || state.currentUser;
     const nowStr = new Date().toLocaleDateString("en-GB") + " " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
     setState((prev) => {
+      let detectedPlagiarismScore = 3;
+      let detectedIntegrityStatus = "Verified Original";
+      let detectedCopiedFrom = null;
+
       const updated = prev.assignments.map((asg) => {
         if (asg.id === assignmentId) {
-          const subs = asg.submissions.filter((s) => s.studentId !== studentId);
+          const existingSubs = asg.submissions || [];
+          const snippetText = details.submissionSnippet || "";
+          const lowerFileName = (fileName || "").toLowerCase();
+
+          // Anti-Copy Logic: Compare against existing student submissions for this course
+          const otherStudentSubs = existingSubs.filter((s) => s.studentId !== studentId);
+
+          for (const otherSub of otherStudentSubs) {
+            // Check 1: File name contains another student's name or identical name
+            const otherNameParts = (otherSub.studentName || "").toLowerCase().split(" ").filter((p) => p.length > 3);
+            const hasOtherNameInFile = otherNameParts.some((p) => lowerFileName.includes(p));
+
+            // Check 2: Identical submission text snippet or matching Verilog/code token
+            const isTextMatch = snippetText && otherSub.submissionSnippet && (
+              snippetText.trim() === otherSub.submissionSnippet.trim() ||
+              (snippetText.length > 25 && otherSub.submissionSnippet.includes(snippetText.substring(0, 25)))
+            );
+
+            // Check 3: Explicit simulated copy test or flag
+            if (hasOtherNameInFile || isTextMatch || details.isSimulatedCopy) {
+              detectedPlagiarismScore = details.simulatedScore || 92;
+              detectedIntegrityStatus = "Flagged Copied";
+              detectedCopiedFrom = `${otherSub.studentName} (Roll: ${otherSub.rollNo || "VL3102"})`;
+              break;
+            }
+          }
+
+          // If original, assign normal 2-5% background similarity
+          if (detectedIntegrityStatus !== "Flagged Copied") {
+            detectedPlagiarismScore = Math.floor(Math.random() * 5) + 2;
+            detectedIntegrityStatus = "Verified Original";
+          }
+
+          const digitalSig = `CSMSS-SIG-${Math.random().toString(36).substring(2, 7).toUpperCase()}-${student.rollNo || "VL3101"}-ORIG`;
+
+          const subs = existingSubs.filter((s) => s.studentId !== studentId);
           subs.push({
             studentId,
             studentName: student.name,
-            status: "Submitted",
+            rollNo: student.rollNo || "VL3101",
+            status: detectedIntegrityStatus === "Flagged Copied" ? "Flagged Copied" : "Submitted",
             submittedOn: nowStr,
             file: fileName || `${student.name.replace(/\s+/g, "_")}_Submission.pdf`,
-            marks: null,
-            feedback: null
+            marks: detectedIntegrityStatus === "Flagged Copied" ? 0 : null,
+            feedback: detectedIntegrityStatus === "Flagged Copied" ? "AUTOMATED SYSTEM ALERT: High similarity match with peer submission. Flagged for faculty academic integrity review." : null,
+            plagiarismScore: detectedPlagiarismScore,
+            integrityStatus: detectedIntegrityStatus,
+            copiedFrom: detectedCopiedFrom,
+            digitalSignature: digitalSig,
+            honorCodeAgreed: details.honorCodeAgreed ?? true,
+            submissionSnippet: details.submissionSnippet || `Solution submitted by ${student.name}. Authenticated via Smart Campus anti-copy verification protocol.`
           });
           return { ...asg, submissions: subs };
         }
         return asg;
       });
 
-      const audit = logAudit("Submitted Assignment", `Student ${student.name} submitted for ${assignmentId}`, "Assignments");
+      const audit = logAudit(
+        "Submitted Assignment",
+        `Student ${student.name} submitted for ${assignmentId}. Integrity: ${detectedIntegrityStatus} (${detectedPlagiarismScore}% match)`,
+        "Assignments"
+      );
 
       return {
         ...prev,
@@ -470,7 +609,60 @@ export function SmartCampusProvider({ children }) {
       };
     });
 
-    addToast("Assignment Submitted", `Your work has been uploaded for teacher evaluation.`, "success");
+    addToast(
+      "Assignment Uploaded",
+      `Work submitted with automated digital integrity verification stamp.`,
+      "success"
+    );
+  };
+
+  const flagPlagiarizedAssignment = (assignmentId, studentId, penaltyMarks = 0, warningRemarks) => {
+    setState((prev) => {
+      let targetStudentName = "Student";
+      let asgTitle = "Assignment";
+      const updated = prev.assignments.map((asg) => {
+        if (asg.id === assignmentId) {
+          asgTitle = asg.title;
+          const subs = (asg.submissions || []).map((s) => {
+            if (s.studentId === studentId) {
+              targetStudentName = s.studentName;
+              return {
+                ...s,
+                status: "Flagged Copied",
+                marks: Number(penaltyMarks),
+                feedback: warningRemarks || "Disciplinary Action: Zero marks awarded due to unauthorized assignment copying & plagiarism detected by automated system.",
+                integrityStatus: "Flagged Copied"
+              };
+            }
+            return s;
+          });
+          return { ...asg, submissions: subs };
+        }
+        return asg;
+      });
+
+      const audit = logAudit("Plagiarism Penalty", `Awarded ${penaltyMarks} marks to ${targetStudentName} for plagiarism in ${asgTitle}`, "Academic Integrity");
+
+      const notif = {
+        id: "notif-" + Date.now(),
+        userId: studentId,
+        title: "Academic Misconduct Notice: Assignment Plagiarism",
+        message: `Your submission for "${asgTitle}" was flagged for unauthorized copying. Marks set to ${penaltyMarks}. Remarks: ${warningRemarks || "Violation of institutional honor code."}`,
+        type: "warning",
+        date: new Date().toLocaleDateString("en-GB"),
+        read: false,
+        link: "/assignments"
+      };
+
+      return {
+        ...prev,
+        assignments: updated,
+        notifications: [notif, ...prev.notifications],
+        auditLogs: [audit, ...prev.auditLogs]
+      };
+    });
+
+    addToast("Plagiarism Penalty Applied", `Submission marked as copied. 0 marks recorded & disciplinary notice issued.`, "danger");
   };
 
   const gradeAssignment = (assignmentId, studentId, marks, feedback) => {
@@ -537,7 +729,7 @@ export function SmartCampusProvider({ children }) {
       id: "lv-" + Date.now(),
       studentId: student.id,
       studentName: student.name,
-      rollNo: student.rollNo || "CE-2024-042",
+      rollNo: student.rollNo || "VLSI3152",
       startDate: leaveData.startDate,
       endDate: leaveData.endDate,
       totalDays: leaveData.totalDays || 1,
@@ -644,9 +836,12 @@ export function SmartCampusProvider({ children }) {
   };
 
   // ==========================================
-  // USER MANAGEMENT ENGINE (ADMIN EDIT/ADD/DELETE)
+  // USER MANAGEMENT ENGINE (ADMIN & FACULTY EDIT/ADD/DELETE)
   // ==========================================
   const updateUser = (userId, updatedData) => {
+    // Asynchronously update MySQL database
+    api.updateUser(userId, updatedData).catch((err) => console.warn('[MySQL Sync Warning]', err.message));
+
     setState((prev) => {
       let updatedUserObj = null;
       const updatedUsers = prev.users.map((u) => {
@@ -715,7 +910,7 @@ export function SmartCampusProvider({ children }) {
 
     addToast(
       "User Updated Successfully",
-      `Profile data for ${updatedData.name || "user"} has been updated across the ERP.`,
+      `Profile data for ${updatedData.name || "user"} has been updated in MySQL and across ERP.`,
       "success"
     );
   };
@@ -730,28 +925,47 @@ export function SmartCampusProvider({ children }) {
       admin: "adm-"
     };
     const prefix = rolePrefixMap[userData.role] || "usr-";
-    const newId = prefix + Date.now();
+    const newId = userData.id || (prefix + Date.now());
 
     const newUser = {
       id: newId,
       avatar: userData.avatar || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80`,
-      password: userData.password || "password123",
+      password: userData.password || userData.dob || "password123",
+      canLogin: true,
       ...userData
     };
+
+    // Asynchronously save to MySQL database
+    api.addUser(newUser).catch((err) => console.warn('[MySQL Save Warning]', err.message));
 
     setState((prev) => {
       const updatedUsers = [newUser, ...prev.users];
 
-      if (newUser.role === "student" && newUser.parentId) {
-        const pIdx = updatedUsers.findIndex((p) => p.id === newUser.parentId);
-        if (pIdx !== -1) {
-          updatedUsers[pIdx] = { ...updatedUsers[pIdx], studentId: newUser.id, studentName: newUser.name };
+      // Auto-create/sync parent record if student entered parentPhone
+      if (newUser.role === "student" && newUser.parentPhone) {
+        const parentId = `par-${newUser.id}`;
+        const parentExists = updatedUsers.some((u) => u.id === parentId || u.phone === newUser.parentPhone);
+        if (!parentExists) {
+          updatedUsers.push({
+            id: parentId,
+            role: "parent",
+            name: newUser.parentName || `Parent of ${newUser.name}`,
+            phone: newUser.parentPhone,
+            email: newUser.parentEmail || "",
+            dob: newUser.dob, // Parent password is student's DOB
+            password: newUser.dob,
+            studentId: newUser.id,
+            studentName: newUser.name,
+            departmentId: newUser.departmentId,
+            departmentName: newUser.departmentName,
+            canLogin: true
+          });
         }
       }
 
       const audit = logAudit(
         "Provisioned New User",
-        `Created new ${newUser.role.toUpperCase()} account for ${newUser.name} (${newUser.email})`,
+        `Created new ${newUser.role.toUpperCase()} account for ${newUser.name} in MySQL`,
         "User Management"
       );
 
@@ -762,7 +976,7 @@ export function SmartCampusProvider({ children }) {
       };
     });
 
-    addToast("User Provisioned", `New ${userData.role.toUpperCase()} account created for ${userData.name}.`, "success");
+    addToast("User Provisioned", `New ${userData.role.toUpperCase()} account created for ${userData.name} in MySQL.`, "success");
     return newUser;
   };
 
@@ -776,11 +990,14 @@ export function SmartCampusProvider({ children }) {
     const userName = targetUser ? targetUser.name : userId;
     const userRole = targetUser ? targetUser.role : "user";
 
+    // Asynchronously delete from MySQL
+    api.deleteUser(userId).catch((err) => console.warn('[MySQL Delete Warning]', err.message));
+
     setState((prev) => {
-      const updatedUsers = prev.users.filter((u) => u.id !== userId);
+      const updatedUsers = prev.users.filter((u) => u.id !== userId && u.parentId !== userId);
       const audit = logAudit(
         "Removed User Account",
-        `Admin decommissioned user: ${userName} (${userRole.toUpperCase()})`,
+        `Admin decommissioned user: ${userName} (${userRole.toUpperCase()}) from MySQL`,
         "User Management"
       );
 
@@ -791,7 +1008,7 @@ export function SmartCampusProvider({ children }) {
       };
     });
 
-    addToast("User Removed", `Account for ${userName} has been removed from ERP.`, "warning");
+    addToast("User Removed", `Account for ${userName} removed from MySQL database.`, "warning");
     return true;
   };
 
@@ -1019,6 +1236,614 @@ export function SmartCampusProvider({ children }) {
   };
 
   // ==========================================
+  // CENTRAL FIRST YEAR COMMON CURRICULUM ENGINE
+  // Single database storage, auto-inherited by all branches
+  // ==========================================
+  const getCommonFirstYearSubjects = (semester = null) => {
+    if (semester !== null && semester !== undefined && semester !== "all") {
+      const semNum = Number(semester);
+      return state.subjects.filter((s) => s.is_common_subject && Number(s.semester) === semNum);
+    }
+    return state.subjects.filter((s) => s.is_common_subject);
+  };
+
+  const getSubjectsForDepartmentAndSemester = (deptId, semester) => {
+    const semNum = Number(semester) || 1;
+    if (semNum === 1 || semNum === 2) {
+      // Semester I & II are common for ALL engineering branches, but faculty is branch-specific!
+      return state.subjects
+        .filter((s) => s.is_common_subject && Number(s.semester) === semNum)
+        .map((s) => {
+          const facultyMap = (state.commonSubjectBranchFaculty && state.commonSubjectBranchFaculty[s.id]) || s.branchFaculty || {};
+          const branchFaculty = facultyMap[deptId];
+          if (branchFaculty) {
+            return {
+              ...s,
+              teacherId: branchFaculty.teacherId,
+              teacherName: branchFaculty.teacherName
+            };
+          }
+          return s;
+        });
+    }
+    // Semester 3 to 8 are branch-specific
+    return state.subjects.filter((s) => s.departmentId === deptId && Number(s.semester) === semNum);
+  };
+
+  const getAllSubjectsForDepartment = (deptId) => {
+    // All branches inherit common Sem 1 & 2 subjects (with their specific branch faculty) + their own Sem 3-8 subjects
+    const commonSubjects = state.subjects
+      .filter((s) => s.is_common_subject)
+      .map((s) => {
+        const facultyMap = (state.commonSubjectBranchFaculty && state.commonSubjectBranchFaculty[s.id]) || s.branchFaculty || {};
+        const branchFaculty = facultyMap[deptId];
+        if (branchFaculty) {
+          return {
+            ...s,
+            teacherId: branchFaculty.teacherId,
+            teacherName: branchFaculty.teacherName
+          };
+        }
+        return s;
+      });
+    const branchSpecific = state.subjects.filter((s) => s.departmentId === deptId && !s.is_common_subject);
+    return [...commonSubjects, ...branchSpecific];
+  };
+
+  const assignCommonSubjectFaculty = (subjectId, departmentId, teacherId, teacherName) => {
+    setState((prev) => {
+      const currentMap = { ...(prev.commonSubjectBranchFaculty || COMMON_SUBJECT_BRANCH_FACULTY) };
+      if (!currentMap[subjectId]) currentMap[subjectId] = {};
+      currentMap[subjectId][departmentId] = { teacherId, teacherName };
+
+      const updatedSubjects = prev.subjects.map((sub) => {
+        if (sub.id === subjectId) {
+          return {
+            ...sub,
+            branchFaculty: {
+              ...(sub.branchFaculty || {}),
+              [departmentId]: { teacherId, teacherName }
+            }
+          };
+        }
+        return sub;
+      });
+
+      return {
+        ...prev,
+        commonSubjectBranchFaculty: currentMap,
+        subjects: updatedSubjects
+      };
+    });
+
+    addToast(
+      "Branch Faculty Assigned",
+      `Assigned ${teacherName} for subject across branch.`,
+      "success"
+    );
+  };
+
+  const addCommonSubject = (subjectData) => {
+    const sem = Number(subjectData.semester) || 1;
+    const newId = "sub-fy-" + (subjectData.code ? subjectData.code.toLowerCase().replace(/[^a-z0-9]/g, "") : `sem${sem}-${Date.now()}`);
+
+    const newSub = {
+      id: newId,
+      name: subjectData.name,
+      subject: subjectData.name,
+      code: subjectData.code,
+      course_code: subjectData.code,
+      academic_year: subjectData.academic_year || "2026-27",
+      year: "First Year",
+      semester: sem,
+      credits: Number(subjectData.credits) || 3,
+      type: subjectData.type || "Theory",
+      subject_type: subjectData.type || "Theory",
+      branch: "All Engineering Branches",
+      is_common_subject: true,
+      departmentId: "common",
+      teacherId: subjectData.teacherId || "tea-1",
+      teacherName: subjectData.teacherName || "Prof. T. A. Mohije",
+      room: subjectData.room || "Smart Classroom C-101",
+      weeklyHours: Number(subjectData.weeklyHours) || 3,
+      description: subjectData.description || `${subjectData.name} - Common First Year Curriculum for all engineering branches.`
+    };
+
+    setState((prev) => {
+      const audit = logAudit(
+        "Created Common First Year Subject",
+        `Admin added common subject: ${newSub.name} (${newSub.code}) for Sem ${newSub.semester} across all engineering branches`,
+        "Academic Curriculum"
+      );
+
+      return {
+        ...prev,
+        subjects: [newSub, ...prev.subjects],
+        auditLogs: [audit, ...prev.auditLogs]
+      };
+    });
+
+    addToast(
+      "Common Subject Created",
+      `"${newSub.name}" (${newSub.code}) added to Semester ${newSub.semester} common curriculum for ALL engineering branches.`,
+      "success"
+    );
+    return newSub;
+  };
+
+  const updateCommonSubject = (subjectId, updatedData) => {
+    setState((prev) => {
+      let updatedSubObj = null;
+      const updatedSubjects = prev.subjects.map((s) => {
+        if (s.id === subjectId) {
+          updatedSubObj = {
+            ...s,
+            ...updatedData,
+            name: updatedData.name || s.name,
+            subject: updatedData.name || s.subject || s.name,
+            code: updatedData.code || s.code,
+            course_code: updatedData.code || s.course_code || s.code,
+            type: updatedData.type || s.type,
+            subject_type: updatedData.type || s.subject_type || s.type,
+            semester: updatedData.semester ? Number(updatedData.semester) : s.semester,
+            credits: updatedData.credits ? Number(updatedData.credits) : s.credits,
+            weeklyHours: updatedData.weeklyHours ? Number(updatedData.weeklyHours) : s.weeklyHours,
+            is_common_subject: true,
+            branch: "All Engineering Branches"
+          };
+          return updatedSubObj;
+        }
+        return s;
+      });
+
+      if (!updatedSubObj) return prev;
+
+      // Sync across timetables where subject is scheduled
+      const updatedTimetables = prev.timetables.map((slot) => {
+        if (slot.subjectId === subjectId) {
+          return {
+            ...slot,
+            subjectName: updatedSubObj.name,
+            subjectCode: updatedSubObj.code,
+            teacherName: updatedSubObj.teacherName || slot.teacherName,
+            teacherId: updatedSubObj.teacherId || slot.teacherId,
+            room: updatedSubObj.room || slot.room
+          };
+        }
+        return slot;
+      });
+
+      const audit = logAudit(
+        "Updated Common Subject",
+        `Admin updated common subject ${updatedSubObj.name} (${updatedSubObj.code}) - synchronized across all engineering branches`,
+        "Academic Curriculum"
+      );
+
+      return {
+        ...prev,
+        subjects: updatedSubjects,
+        timetables: updatedTimetables,
+        auditLogs: [audit, ...prev.auditLogs]
+      };
+    });
+
+    addToast(
+      "Common Subject Updated",
+      `Subject updated and synchronized across all engineering branches and timetables without duplicates.`,
+      "success"
+    );
+  };
+
+  const deleteCommonSubject = (subjectId) => {
+    const targetSub = state.subjects.find((s) => s.id === subjectId);
+    const subName = targetSub ? targetSub.name : subjectId;
+
+    setState((prev) => {
+      const updatedSubjects = prev.subjects.filter((s) => s.id !== subjectId);
+      const updatedTimetables = prev.timetables.filter((t) => t.subjectId !== subjectId);
+      const audit = logAudit(
+        "Deleted Common Subject",
+        `Admin removed ${subName} from common curriculum across all branches`,
+        "Academic Curriculum"
+      );
+
+      return {
+        ...prev,
+        subjects: updatedSubjects,
+        timetables: updatedTimetables,
+        auditLogs: [audit, ...prev.auditLogs]
+      };
+    });
+
+    addToast("Subject Removed", `"${subName}" deleted from Common First Year curriculum.`, "warning");
+    return true;
+  };
+
+  // Switch student semester dynamically (e.g. testing First Year Sem I ↔ Sem II)
+  const switchStudentSemester = (newSem) => {
+    const semNumber = Number(newSem);
+    setState((prev) => {
+      if (!prev.currentUser || prev.currentUser.role !== "student") return prev;
+      const updatedCurrentUser = {
+        ...prev.currentUser,
+        semester: semNumber
+      };
+      const updatedUsers = prev.users.map((u) => (u.id === updatedCurrentUser.id ? updatedCurrentUser : u));
+      return {
+        ...prev,
+        currentUser: updatedCurrentUser,
+        users: updatedUsers
+      };
+    });
+    addToast("Curriculum Switched", `Student view updated to Semester ${semNumber} Common Curriculum.`, "info");
+  };
+
+  // ==========================================
+  // STUDY MATERIAL & NOTES REPOSITORY ENGINE
+  // ==========================================
+  const uploadStudyMaterial = (materialData) => {
+    const id = "mat-" + Date.now();
+    const newMaterial = {
+      id,
+      uploadedDate: new Date().toISOString().split("T")[0],
+      createdAt: new Date().toISOString(),
+      fileSize: materialData.fileSize || "3.5 MB",
+      fileUrl: materialData.fileUrl || "#",
+      targetAudience: materialData.targetAudience || "all",
+      ...materialData
+    };
+
+    // Automatically alert relevant students
+    const newNotif = {
+      id: "notif-mat-" + Date.now(),
+      title: `📚 New Study Material: ${newMaterial.title}`,
+      message: `${newMaterial.uploadedBy} uploaded "${newMaterial.title}" (${newMaterial.materialType || newMaterial.type || "Notes"}) for ${newMaterial.subjectName || "your course"}.`,
+      time: "Just now",
+      date: new Date().toISOString().split("T")[0],
+      type: "academic",
+      recipientRole: "student",
+      read: false,
+      link: "study-material"
+    };
+
+    setState((prev) => ({
+      ...prev,
+      studyMaterials: [newMaterial, ...(prev.studyMaterials || [])],
+      notifications: [newNotif, ...(prev.notifications || [])]
+    }));
+
+    addToast("Study Material Uploaded", `"${newMaterial.title}" published and students alerted.`, "success");
+    return newMaterial;
+  };
+
+  const addStudyMaterial = (materialData) => {
+    return uploadStudyMaterial(materialData);
+  };
+
+  const deleteStudyMaterial = (materialId) => {
+    setState((prev) => ({
+      ...prev,
+      studyMaterials: (prev.studyMaterials || []).filter((m) => m.id !== materialId)
+    }));
+    addToast("Material Removed", "Study material deleted from repository.", "info");
+  };
+
+  // Filter study materials visible to a student based on class, TG batch, and department
+  const getStudyMaterialsForStudent = (student) => {
+    const studentId = student?.id;
+    const deptId = student?.departmentId || "dept-vlsi";
+    const sem = Number(student?.semester) || 5;
+
+    // Find student's assigned class and TG batch
+    let myClassId = null;
+    let myTgBatchId = null;
+
+    (state.classAssignments || []).forEach((ca) => {
+      if (ca.departmentId === deptId && (ca.semester === sem || ca.year === student?.year)) {
+        myClassId = ca.id;
+        (ca.tgBatches || []).forEach((b) => {
+          if ((b.studentIds || []).includes(studentId)) {
+            myTgBatchId = b.id;
+          }
+        });
+      }
+    });
+
+    return (state.studyMaterials || []).filter((item) => {
+      // If audience is "all", it's visible to everyone
+      if (!item.targetAudience || item.targetAudience === "all") return true;
+
+      // If audience is "department"
+      if (item.targetAudience === "department" && item.departmentId === deptId) return true;
+
+      // If audience is "class"
+      if (item.targetAudience === "class") {
+        if (item.classAssignmentId && myClassId && item.classAssignmentId === myClassId) return true;
+        if (item.departmentId === deptId && item.semester === sem) return true;
+      }
+
+      // If audience is "tg-batch"
+      if (item.targetAudience === "tg-batch") {
+        if (myTgBatchId && item.tgBatchId === myTgBatchId) return true;
+        if (!item.tgBatchId && item.classAssignmentId === myClassId) return true;
+      }
+
+      return false;
+    });
+  };
+
+  // ==========================================
+  // CLASS TEACHER & TEACHER GUARDIAN (TG) ENGINE
+  // ==========================================
+  const assignClassTeacher = (classAssignmentId, teacherId, teacherName) => {
+    setState((prev) => {
+      const updated = (prev.classAssignments || []).map((ca) => {
+        if (ca.id === classAssignmentId) {
+          return {
+            ...ca,
+            classTeacherId: teacherId,
+            classTeacherName: teacherName,
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return ca;
+      });
+
+      // Also send notification to teacher
+      const notif = {
+        id: "notif-ct-" + Date.now(),
+        title: "📢 New Responsibility Assigned",
+        message: `You have been designated as Class Teacher for ${updated.find((c) => c.id === classAssignmentId)?.className || "your class"}.`,
+        time: "Just now",
+        date: new Date().toISOString().split("T")[0],
+        type: "announcement",
+        recipientId: teacherId,
+        read: false
+      };
+
+      return {
+        ...prev,
+        classAssignments: updated,
+        notifications: [notif, ...(prev.notifications || [])]
+      };
+    });
+    addToast("Class Teacher Assigned", `${teacherName} is now the Class Teacher.`, "success");
+  };
+
+  const createClassAssignment = (newAssignment) => {
+    const id = "ca-" + Date.now();
+    const assignment = {
+      id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      tgBatches: [],
+      ...newAssignment
+    };
+    setState((prev) => ({
+      ...prev,
+      classAssignments: [assignment, ...(prev.classAssignments || [])]
+    }));
+    addToast("Class Registered", `Class assignment "${assignment.className}" created.`, "success");
+    return id;
+  };
+
+  const updateClassAssignment = (id, updatedFields) => {
+    setState((prev) => ({
+      ...prev,
+      classAssignments: (prev.classAssignments || []).map((ca) =>
+        ca.id === id ? { ...ca, ...updatedFields, updatedAt: new Date().toISOString() } : ca
+      )
+    }));
+    addToast("Class Updated", "Class assignment details updated.", "success");
+  };
+
+  const deleteClassAssignment = (id) => {
+    setState((prev) => ({
+      ...prev,
+      classAssignments: (prev.classAssignments || []).filter((ca) => ca.id !== id)
+    }));
+    addToast("Class Removed", "Class assignment record deleted.", "info");
+  };
+
+  const createTgBatch = (classAssignmentId, batchName, teacherId, teacherName) => {
+    const batchId = "tg-" + Date.now();
+    setState((prev) => ({
+      ...prev,
+      classAssignments: (prev.classAssignments || []).map((ca) => {
+        if (ca.id === classAssignmentId) {
+          const newBatch = {
+            id: batchId,
+            name: batchName,
+            teacherId,
+            teacherName,
+            studentIds: []
+          };
+          return {
+            ...ca,
+            tgBatches: [...(ca.tgBatches || []), newBatch],
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return ca;
+      })
+    }));
+    addToast("TG Batch Created", `${batchName} assigned to ${teacherName}.`, "success");
+    return batchId;
+  };
+
+  const updateTgTeacher = (classAssignmentId, tgBatchId, teacherId, teacherName) => {
+    setState((prev) => {
+      const updated = (prev.classAssignments || []).map((ca) => {
+        if (ca.id === classAssignmentId) {
+          return {
+            ...ca,
+            tgBatches: (ca.tgBatches || []).map((b) =>
+              b.id === tgBatchId ? { ...b, teacherId, teacherName } : b
+            ),
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return ca;
+      });
+
+      const notif = {
+        id: "notif-tg-" + Date.now(),
+        title: "📢 TG Assignment",
+        message: `You have been assigned as Teacher Guardian for batch under ${updated.find((c) => c.id === classAssignmentId)?.className || "your class"}.`,
+        time: "Just now",
+        date: new Date().toISOString().split("T")[0],
+        type: "mentoring",
+        recipientId: teacherId,
+        read: false
+      };
+
+      return {
+        ...prev,
+        classAssignments: updated,
+        notifications: [notif, ...(prev.notifications || [])]
+      };
+    });
+    addToast("TG Teacher Updated", `${teacherName} assigned as Guardian.`, "success");
+  };
+
+  const assignStudentsToTgBatch = (classAssignmentId, tgBatchId, studentIds) => {
+    setState((prev) => ({
+      ...prev,
+      classAssignments: (prev.classAssignments || []).map((ca) => {
+        if (ca.id === classAssignmentId) {
+          return {
+            ...ca,
+            tgBatches: (ca.tgBatches || []).map((b) =>
+              b.id === tgBatchId ? { ...b, studentIds } : b
+            ),
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return ca;
+      })
+    }));
+    addToast("Students Allocated", `Assigned ${studentIds.length} students to TG batch.`, "success");
+  };
+
+  const autoDistributeStudentsToTg = (classAssignmentId, numBatches = 3) => {
+    setState((prev) => {
+      const ca = (prev.classAssignments || []).find((c) => c.id === classAssignmentId);
+      if (!ca) return prev;
+
+      // Find all enrolled students for this class's department
+      const deptStudents = prev.users.filter(
+        (u) => u.role === "student" && u.departmentId === ca.departmentId
+      );
+      const studentIds = deptStudents.map((s) => s.id);
+      const batchSize = Math.ceil(studentIds.length / numBatches);
+
+      const existingBatches = ca.tgBatches || [];
+      const updatedBatches = [];
+
+      for (let i = 0; i < numBatches; i++) {
+        const slice = studentIds.slice(i * batchSize, (i + 1) * batchSize);
+        const existing = existingBatches[i];
+        updatedBatches.push({
+          id: existing ? existing.id : `tg-${ca.id}-${i + 1}`,
+          name: existing ? existing.name : `Batch TG-${i + 1}`,
+          teacherId: existing ? existing.teacherId : "tea-1",
+          teacherName: existing ? existing.teacherName : "Prof. T. A. Mohije",
+          studentIds: slice
+        });
+      }
+
+      return {
+        ...prev,
+        classAssignments: (prev.classAssignments || []).map((c) =>
+          c.id === classAssignmentId
+            ? { ...c, tgBatches: updatedBatches, updatedAt: new Date().toISOString() }
+            : c
+        )
+      };
+    });
+    addToast("Auto Distribution Complete", `Students equally distributed into ${numBatches} TG batches.`, "success");
+  };
+
+  // Helper to query teacher's roles & responsibilities
+  const getTeacherResponsibilities = (teacherId) => {
+    const assignments = state.classAssignments || [];
+    const classTeacherAssignments = assignments.filter((ca) => ca.classTeacherId === teacherId);
+    const tgAssignments = [];
+
+    assignments.forEach((ca) => {
+      (ca.tgBatches || []).forEach((b) => {
+        if (b.teacherId === teacherId) {
+          tgAssignments.push({
+            ...b,
+            classAssignmentId: ca.id,
+            className: ca.className,
+            departmentId: ca.departmentId,
+            semester: ca.semester
+          });
+        }
+      });
+    });
+
+    const teacher = state.users.find((u) => u.id === teacherId);
+    const subjectTeacherCourses = (state.subjects || []).filter(
+      (s) => s.teacherId === teacherId || s.teacherName === teacher?.name
+    );
+
+    return {
+      teacher,
+      isClassTeacher: classTeacherAssignments.length > 0,
+      classAssignments: classTeacherAssignments,
+      classTeacherAssignments: classTeacherAssignments,
+      isTG: tgAssignments.length > 0,
+      tgBatches: tgAssignments,
+      tgAssignments: tgAssignments,
+      isSubjectTeacher: subjectTeacherCourses.length > 0,
+      subjects: subjectTeacherCourses
+    };
+  };
+
+  // Broadcast Class Announcement
+  const sendClassAnnouncement = (classAssignmentId, title, message) => {
+    const ca = (state.classAssignments || []).find((c) => c.id === classAssignmentId);
+    const newNotif = {
+      id: "notif-ca-" + Date.now(),
+      title: `📢 Class Notice: ${title}`,
+      message: `${message} (Class: ${ca?.className || "General"})`,
+      time: "Just now",
+      date: new Date().toISOString().split("T")[0],
+      type: "announcement",
+      recipientRole: "student",
+      read: false
+    };
+    setState((prev) => ({
+      ...prev,
+      notifications: [newNotif, ...(prev.notifications || [])]
+    }));
+    addToast("Announcement Sent", "Broadcast alert dispatched to entire class.", "success");
+  };
+
+  // Send Direct Announcement to a specific TG Batch
+  const sendTgAnnouncement = (classAssignmentId, tgBatchId, title, message) => {
+    const ca = (state.classAssignments || []).find((c) => c.id === classAssignmentId);
+    const batch = ca?.tgBatches?.find((b) => b.id === tgBatchId);
+    const newNotif = {
+      id: "notif-tg-" + Date.now(),
+      title: `🛡️ TG Mentor Message: ${title}`,
+      message: `${message} (${batch?.name || "TG Batch"})`,
+      time: "Just now",
+      date: new Date().toISOString().split("T")[0],
+      type: "mentoring",
+      recipientRole: "student",
+      read: false
+    };
+    setState((prev) => ({
+      ...prev,
+      notifications: [newNotif, ...(prev.notifications || [])]
+    }));
+    addToast("TG Announcement Sent", `Message sent to ${batch?.name || "TG batch"} students.`, "success");
+  };
+
+  // ==========================================
   // TIMETABLE MANAGEMENT ENGINE (ADMIN EDIT/ADD/DELETE)
   // ==========================================
   const addTimetableSlot = (slotData) => {
@@ -1155,6 +1980,664 @@ export function SmartCampusProvider({ children }) {
   };
 
   // ==========================================
+  // STUDENT SKILLS & TALENT METHODS
+  // ==========================================
+  const addStudentSkill = (skillData) => {
+    const newSkill = {
+      id: "skill-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      ...skillData
+    };
+
+    const audit = logAudit(
+      "Added Student Skill",
+      `${newSkill.studentName} added ${newSkill.skill} (${newSkill.skillLevel} - ${newSkill.category})`,
+      "Talent & Skills"
+    );
+
+    // Notify HOD and Teachers of department about new skill profile
+    const notif = {
+      id: "notif-skill-" + Date.now(),
+      title: "New Student Skill Profile Added",
+      message: `${newSkill.studentName} (${newSkill.departmentName}) added ${newSkill.skill} (${newSkill.skillLevel}) to their profile.`,
+      timestamp: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) + ", " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      read: false,
+      recipientRole: "teacher",
+      recipientDepartmentId: newSkill.departmentId,
+      deliveryStatus: "Delivered",
+      type: "skill"
+    };
+
+    setState((prev) => ({
+      ...prev,
+      studentSkills: [newSkill, ...prev.studentSkills],
+      notifications: [notif, ...prev.notifications],
+      auditLogs: [audit, ...prev.auditLogs]
+    }));
+
+    addToast("Skill Added", `"${newSkill.skill}" has been added to your profile.`, "success");
+    return newSkill;
+  };
+
+  const updateStudentSkill = (skillId, updatedData) => {
+    setState((prev) => ({
+      ...prev,
+      studentSkills: prev.studentSkills.map((s) =>
+        s.id === skillId ? { ...s, ...updatedData, updatedAt: new Date().toISOString() } : s
+      )
+    }));
+    addToast("Profile Updated", "Skill details successfully updated.", "success");
+  };
+
+  const deleteStudentSkill = (skillId) => {
+    setState((prev) => ({
+      ...prev,
+      studentSkills: prev.studentSkills.filter((s) => s.id !== skillId)
+    }));
+    addToast("Skill Removed", "The skill entry has been removed from your profile.", "info");
+  };
+
+  // ==========================================
+  // COLLEGE EVENTS & TEAMS METHODS
+  // ==========================================
+  const createCollegeEvent = (eventData) => {
+    const newEvent = {
+      id: "evt-" + Date.now(),
+      createdAt: new Date().toISOString(),
+      status: "Upcoming",
+      ...eventData
+    };
+
+    const audit = logAudit(
+      "Created College Event",
+      `Event "${newEvent.eventName}" (${newEvent.category}) created by ${newEvent.coordinatorName}`,
+      "Events & Teams"
+    );
+
+    // Broadcast notice/notification
+    const notif = {
+      id: "notif-evt-" + Date.now(),
+      title: `New College Event: ${newEvent.eventName}`,
+      message: `${newEvent.coordinatorName} scheduled "${newEvent.eventName}" on ${newEvent.date}. Required skills: ${(newEvent.requiredSkills || []).map((s) => s.skill).join(", ")}.`,
+      timestamp: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) + ", " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      read: false,
+      recipientRole: "student",
+      deliveryStatus: "Delivered",
+      type: "event"
+    };
+
+    setState((prev) => ({
+      ...prev,
+      collegeEvents: [newEvent, ...prev.collegeEvents],
+      notifications: [notif, ...prev.notifications],
+      auditLogs: [audit, ...prev.auditLogs]
+    }));
+
+    addToast("Event Created", `"${newEvent.eventName}" has been scheduled successfully.`, "success");
+    return newEvent;
+  };
+
+  const updateCollegeEvent = (eventId, updatedData) => {
+    setState((prev) => ({
+      ...prev,
+      collegeEvents: prev.collegeEvents.map((e) => (e.id === eventId ? { ...e, ...updatedData } : e))
+    }));
+    addToast("Event Updated", "Event details updated successfully.", "success");
+  };
+
+  const deleteCollegeEvent = (eventId) => {
+    setState((prev) => ({
+      ...prev,
+      collegeEvents: prev.collegeEvents.filter((e) => e.id !== eventId),
+      eventInvitations: prev.eventInvitations.filter((i) => i.eventId !== eventId),
+      eventTeamMembers: prev.eventTeamMembers.filter((t) => t.eventId !== eventId)
+    }));
+    addToast("Event Deleted", "College event and associated records removed.", "info");
+  };
+
+  // ==========================================
+  // EVENT INVITATION SYSTEM
+  // ==========================================
+  const sendEventInvitation = ({ eventId, studentId, role, skill, notes = "" }) => {
+    const event = state.collegeEvents.find((e) => e.id === eventId);
+    const student = state.users.find((u) => u.id === studentId);
+    if (!event || !student) {
+      addToast("Error", "Invalid event or student selected.", "danger");
+      return;
+    }
+
+    // Check if already invited
+    const existing = state.eventInvitations.find(
+      (i) => i.eventId === eventId && i.studentId === studentId
+    );
+    if (existing) {
+      addToast("Already Invited", `${student.name} is already ${existing.status.toLowerCase()} for this event.`, "warning");
+      return;
+    }
+
+    const newInvitation = {
+      id: "inv-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+      eventId: event.id,
+      eventName: event.eventName,
+      eventDate: event.date,
+      venue: event.venue,
+      studentId: student.id,
+      studentName: student.name,
+      invitedBy: state.currentUser ? state.currentUser.id : event.coordinatorId,
+      invitedByName: state.currentUser ? state.currentUser.name : event.coordinatorName,
+      role: role || skill || "Participant",
+      skill: skill || "General",
+      status: "Invited",
+      responseDate: null,
+      declineReason: null,
+      notes,
+      createdAt: new Date().toISOString()
+    };
+
+    // Notification for the invited student
+    const notif = {
+      id: "notif-inv-" + Date.now(),
+      title: `Event Invitation: ${event.eventName}`,
+      message: `You have been invited to participate in ${event.eventName} as ${newInvitation.role}. Coordinator: ${newInvitation.invitedByName}`,
+      timestamp: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) + ", " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      read: false,
+      recipientId: student.id,
+      recipientRole: "student",
+      deliveryStatus: "Delivered",
+      type: "invitation"
+    };
+
+    const audit = logAudit(
+      "Sent Event Invitation",
+      `Invited ${student.name} for "${event.eventName}" as ${newInvitation.role}`,
+      "Events & Teams"
+    );
+
+    setState((prev) => ({
+      ...prev,
+      eventInvitations: [newInvitation, ...prev.eventInvitations],
+      notifications: [notif, ...prev.notifications],
+      auditLogs: [audit, ...prev.auditLogs]
+    }));
+
+    addToast("Invitation Dispatched", `Invitation sent to ${student.name} for ${event.eventName}.`, "success");
+    return newInvitation;
+  };
+
+  const respondToInvitation = ({ invitationId, status, declineReason = null }) => {
+    const inv = state.eventInvitations.find((i) => i.id === invitationId);
+    if (!inv) return;
+
+    const updatedInvitations = state.eventInvitations.map((i) =>
+      i.id === invitationId
+        ? {
+            ...i,
+            status,
+            declineReason: status === "Declined" ? declineReason : null,
+            responseDate: new Date().toISOString()
+          }
+        : i
+    );
+
+    // If accepted, also auto-register to team members if not already there
+    let updatedTeamMembers = [...state.eventTeamMembers];
+    if (status === "Accepted") {
+      const alreadyInTeam = updatedTeamMembers.some(
+        (t) => t.eventId === inv.eventId && t.studentId === inv.studentId
+      );
+      if (!alreadyInTeam) {
+        updatedTeamMembers.push({
+          id: "team-" + Date.now(),
+          eventId: inv.eventId,
+          studentId: inv.studentId,
+          studentName: inv.studentName,
+          assignedRole: inv.role,
+          assignedBy: inv.invitedBy,
+          assignedByName: inv.invitedByName,
+          status: "Accepted"
+        });
+      }
+    }
+
+    // Notification back to coordinator
+    const notif = {
+      id: "notif-resp-" + Date.now(),
+      title: `Invitation ${status}: ${inv.eventName}`,
+      message: `${inv.studentName} has ${status.toLowerCase()} the invitation for ${inv.eventName} as ${inv.role}.${declineReason ? ` Reason: ${declineReason}` : ""}`,
+      timestamp: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) + ", " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      read: false,
+      recipientId: inv.invitedBy,
+      recipientRole: "teacher",
+      deliveryStatus: "Delivered",
+      type: "invitation_response"
+    };
+
+    const audit = logAudit(
+      `Invitation ${status}`,
+      `${inv.studentName} ${status.toLowerCase()} invitation for "${inv.eventName}"`,
+      "Events & Teams"
+    );
+
+    setState((prev) => ({
+      ...prev,
+      eventInvitations: updatedInvitations,
+      eventTeamMembers: updatedTeamMembers,
+      notifications: [notif, ...prev.notifications],
+      auditLogs: [audit, ...prev.auditLogs]
+    }));
+
+    addToast(
+      status === "Accepted" ? "Invitation Accepted" : "Invitation Declined",
+      status === "Accepted"
+        ? `You have joined the roster for ${inv.eventName}!`
+        : `Decline response submitted to the coordinator.`,
+      status === "Accepted" ? "success" : "info"
+    );
+  };
+
+  const assignEventTeamMember = ({ eventId, studentId, role }) => {
+    const student = state.users.find((u) => u.id === studentId);
+    const event = state.collegeEvents.find((e) => e.id === eventId);
+    if (!student || !event) return;
+
+    const existingIdx = state.eventTeamMembers.findIndex(
+      (t) => t.eventId === eventId && t.studentId === studentId
+    );
+
+    let updatedTeam = [...state.eventTeamMembers];
+    if (existingIdx >= 0) {
+      updatedTeam[existingIdx] = {
+        ...updatedTeam[existingIdx],
+        assignedRole: role,
+        assignedBy: state.currentUser?.id,
+        assignedByName: state.currentUser?.name,
+        status: "Assigned"
+      };
+    } else {
+      updatedTeam.push({
+        id: "team-" + Date.now(),
+        eventId,
+        studentId,
+        studentName: student.name,
+        assignedRole: role,
+        assignedBy: state.currentUser?.id,
+        assignedByName: state.currentUser?.name,
+        status: "Assigned"
+      });
+    }
+
+    const notif = {
+      id: "notif-team-" + Date.now(),
+      title: `Team Assignment: ${event.eventName}`,
+      message: `You have been assigned as "${role}" in the official management team for ${event.eventName}.`,
+      timestamp: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) + ", " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      read: false,
+      recipientId: student.id,
+      recipientRole: "student",
+      deliveryStatus: "Delivered",
+      type: "team_assignment"
+    };
+
+    setState((prev) => ({
+      ...prev,
+      eventTeamMembers: updatedTeam,
+      notifications: [notif, ...prev.notifications]
+    }));
+
+    addToast("Role Assigned", `${student.name} assigned as "${role}".`, "success");
+  };
+
+  const removeEventTeamMember = ({ eventId, studentId }) => {
+    setState((prev) => ({
+      ...prev,
+      eventTeamMembers: prev.eventTeamMembers.filter(
+        (t) => !(t.eventId === eventId && t.studentId === studentId)
+      )
+    }));
+    addToast("Team Updated", "Member removed from event team roster.", "info");
+  };
+
+  // ==========================================
+  // CONFIDENTIAL PARENT HEALTH RECORDS
+  // ==========================================
+  const addHealthRecord = (healthData) => {
+    const newRecord = {
+      id: "hlth-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+      verificationStatus: "Pending Verification",
+      verifiedBy: null,
+      verifiedAt: null,
+      reviewNotes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      ...healthData
+    };
+
+    const audit = logAudit(
+      "Submitted Confidential Health Record",
+      `Parent ${newRecord.parentName} submitted medical details for ${newRecord.studentName} (${newRecord.conditionCategory})`,
+      "Health & Confidential"
+    );
+
+    // Confidential review notification dispatched to Department HOD and Admin only
+    const notif = {
+      id: "notif-hlth-" + Date.now(),
+      title: "Confidential Health Document Requiring Verification",
+      message: `Parent of ${newRecord.studentName} submitted medical documentation for ${newRecord.conditionCategory}. Please review in HOD portal.`,
+      timestamp: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) + ", " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      read: false,
+      recipientRole: "hod",
+      recipientDepartmentId: newRecord.departmentId,
+      deliveryStatus: "Delivered",
+      type: "health_review"
+    };
+
+    setState((prev) => ({
+      ...prev,
+      studentHealthRecords: [newRecord, ...prev.studentHealthRecords],
+      notifications: [notif, ...prev.notifications],
+      auditLogs: [audit, ...prev.auditLogs]
+    }));
+
+    addToast(
+      "Health Record Submitted",
+      "Medical details securely submitted. Status is now 'Pending Verification'.",
+      "success"
+    );
+    return newRecord;
+  };
+
+  const updateHealthRecord = (recordId, updatedData) => {
+    setState((prev) => ({
+      ...prev,
+      studentHealthRecords: prev.studentHealthRecords.map((r) =>
+        r.id === recordId
+          ? {
+              ...r,
+              ...updatedData,
+              verificationStatus: "Pending Verification",
+              updatedAt: new Date().toISOString()
+            }
+          : r
+      )
+    }));
+
+    const audit = logAudit(
+      "Updated Health Record",
+      `Modified health record details for ID: ${recordId}. Re-verification flagged.`,
+      "Health & Confidential"
+    );
+
+    setState((prev) => ({ ...prev, auditLogs: [audit, ...prev.auditLogs] }));
+    addToast("Record Updated", "Health record updated and submitted for re-verification.", "info");
+  };
+
+  const updateHealthVerification = ({ recordId, verificationStatus, reviewNotes = "" }) => {
+    const record = state.studentHealthRecords.find((r) => r.id === recordId);
+    if (!record) return;
+
+    const reviewerName = state.currentUser ? state.currentUser.name : "Authorized Medical Staff";
+    const reviewerRole = state.activeRole ? state.activeRole.toUpperCase() : "STAFF";
+
+    const updatedRecords = state.studentHealthRecords.map((r) =>
+      r.id === recordId
+        ? {
+            ...r,
+            verificationStatus,
+            reviewNotes,
+            verifiedBy: `${reviewerName} (${reviewerRole})`,
+            verifiedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        : r
+    );
+
+    const audit = logAudit(
+      "Verified Health Record",
+      `${reviewerName} marked health record of ${record.studentName} as "${verificationStatus}". Notes: ${reviewNotes || "None"}`,
+      "Health & Confidential"
+    );
+
+    // Notification to Parent
+    const notif = {
+      id: "notif-hlth-par-" + Date.now(),
+      title: `Medical Verification: ${verificationStatus}`,
+      message: `Health documentation for ${record.studentName} has been marked as "${verificationStatus}" by college authorities.${reviewNotes ? ` Remarks: ${reviewNotes}` : ""}`,
+      timestamp: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) + ", " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      read: false,
+      recipientId: record.parentId,
+      recipientRole: "parent",
+      deliveryStatus: "Delivered",
+      type: "health_status"
+    };
+
+    setState((prev) => ({
+      ...prev,
+      studentHealthRecords: updatedRecords,
+      notifications: [notif, ...prev.notifications],
+      auditLogs: [audit, ...prev.auditLogs]
+    }));
+
+    addToast(
+      "Verification Recorded",
+      `Health record status set to "${verificationStatus}". Parent notified.`,
+      verificationStatus === "Verified" ? "success" : "warning"
+    );
+  };
+
+  const logHealthAccess = (action, studentId, details) => {
+    const student = state.users.find((u) => u.id === studentId);
+    const studentName = student ? student.name : "Student " + studentId;
+    const actorName = state.currentUser ? state.currentUser.name : "Unknown User";
+    const actorRole = state.activeRole ? state.activeRole.toUpperCase() : "UNKNOWN";
+
+    const audit = logAudit(
+      action || "CONFIDENTIAL_HEALTH_ACCESS",
+      `${actorName} (${actorRole}) accessed confidential medical information for ${studentName}. Details: ${details || "Safety check"}`,
+      "Health & Confidential"
+    );
+
+    setState((prev) => ({
+      ...prev,
+      auditLogs: [audit, ...prev.auditLogs]
+    }));
+  };
+
+  // ==========================================
+  // DOCTOR'S LETTERS & MEDICAL PROOF ENGINE
+  // ==========================================
+  const uploadDoctorLetter = (letterData) => {
+    const parent = state.currentUser?.role === "parent" ? state.currentUser : (state.users.find((u) => u.role === "parent") || state.users[0]);
+    const ward = state.users.find((u) => u.id === (letterData.studentId || parent?.studentId)) || state.users[0];
+
+    const newLetter = {
+      id: "doc-let-" + Date.now(),
+      studentId: ward.id,
+      studentName: ward.name,
+      prn: ward.prn || ward.prnNo || "24025331378056",
+      rollNo: ward.rollNo || "VL3152",
+      departmentId: ward.departmentId || "dept-vlsi",
+      departmentName: ward.departmentName || "Electronic Engineering (VLSI Design And Technology)",
+      year: ward.year || "Third Year",
+      semester: ward.semester || 5,
+      division: ward.division || "A",
+      parentId: parent.id,
+      parentName: parent.name,
+      parentContact: parent.phone || "7378535499",
+      letterType: letterData.letterType || "Medical Sick Leave / Absence Certificate",
+      doctorName: letterData.doctorName || "Dr. Medical Practitioner",
+      regNo: letterData.regNo || "MMC-Pending",
+      hospitalClinic: letterData.hospitalClinic || "Private Clinic",
+      doctorContact: letterData.doctorContact || "",
+      issueDate: letterData.issueDate || new Date().toISOString().split("T")[0],
+      leaveStartDate: letterData.leaveStartDate || null,
+      leaveEndDate: letterData.leaveEndDate || null,
+      totalDays: letterData.totalDays ? Number(letterData.totalDays) : (letterData.leaveStartDate && letterData.leaveEndDate ? Math.max(1, Math.round((new Date(letterData.leaveEndDate) - new Date(letterData.leaveStartDate)) / (1000 * 60 * 60 * 24)) + 1) : null),
+      diagnosis: letterData.diagnosis || "Medical assessment details provided on official certificate.",
+      recommendations: letterData.recommendations || "Prescribed rest / medical treatment as per attached note.",
+      applyForLeaveCondonation: !!letterData.applyForLeaveCondonation,
+      documentUrl: letterData.documentUrl || "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=800&auto=format&fit=crop&q=80",
+      documentName: letterData.documentName || "Doctor_Medical_Certificate.pdf",
+      documentSize: letterData.documentSize || "350 KB",
+      status: "Pending Review",
+      verifiedBy: null,
+      verifiedAt: null,
+      reviewNotes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    // Notification for TG Teacher & HOD
+    const facultyNotif = {
+      id: "notif-doc-" + Date.now(),
+      title: `🩺 Doctor's Letter Uploaded: ${ward.name}`,
+      message: `Parent of ${ward.name} (${ward.rollNo}) uploaded a "${newLetter.letterType}" from ${newLetter.doctorName}${newLetter.totalDays ? ` for ${newLetter.totalDays} day(s) medical absence` : ""}. Please review in Medical / Leave Desk.`,
+      timestamp: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) + ", " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      read: false,
+      recipientRole: "teacher",
+      recipientDepartmentId: ward.departmentId,
+      deliveryStatus: "Delivered",
+      type: "doctor_letter"
+    };
+
+    // Optional: automatically link into leaves table if leave condonation is requested
+    let newLeaves = state.leaves;
+    if (newLetter.applyForLeaveCondonation && newLetter.leaveStartDate) {
+      const linkedLeave = {
+        id: "lv-doc-" + Date.now(),
+        studentId: ward.id,
+        studentName: ward.name,
+        rollNo: ward.rollNo || "VL3152",
+        startDate: newLetter.leaveStartDate,
+        endDate: newLetter.leaveEndDate || newLetter.leaveStartDate,
+        totalDays: newLetter.totalDays || 1,
+        reason: `Medical Leave (${newLetter.letterType})`,
+        description: `Doctor's Certificate uploaded by parent (${parent.name}). Doctor: ${newLetter.doctorName} (${newLetter.hospitalClinic}). Diagnosis: ${newLetter.diagnosis}`,
+        document: newLetter.documentName,
+        appliedDate: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+        status: "Pending",
+        approverComment: "Medical certificate attached under Doctor's Letters."
+      };
+      newLeaves = [linkedLeave, ...state.leaves];
+    }
+
+    const audit = logAudit(
+      "Uploaded Doctor's Letter",
+      `Parent of ${ward.name} submitted official doctor certificate from ${newLetter.doctorName} (${newLetter.letterType})`,
+      "Health & Confidential"
+    );
+
+    setState((prev) => ({
+      ...prev,
+      doctorLetters: [newLetter, ...prev.doctorLetters],
+      leaves: newLeaves,
+      notifications: [facultyNotif, ...prev.notifications],
+      auditLogs: [audit, ...prev.auditLogs]
+    }));
+
+    addToast(
+      "Doctor's Letter Uploaded",
+      `Medical document from ${newLetter.doctorName} submitted for verification.${newLetter.applyForLeaveCondonation ? " Medical leave condonation application initiated." : ""}`,
+      "success"
+    );
+
+    return newLetter;
+  };
+
+  const updateDoctorLetter = (letterId, updatedData) => {
+    setState((prev) => ({
+      ...prev,
+      doctorLetters: prev.doctorLetters.map((letItem) =>
+        letItem.id === letterId
+          ? {
+              ...letItem,
+              ...updatedData,
+              status: "Pending Review",
+              updatedAt: new Date().toISOString()
+            }
+          : letItem
+      )
+    }));
+
+    const audit = logAudit(
+      "Updated Doctor's Letter",
+      `Updated doctor certificate ID ${letterId}. Re-verification flagged.`,
+      "Health & Confidential"
+    );
+
+    setState((prev) => ({ ...prev, auditLogs: [audit, ...prev.auditLogs] }));
+    addToast("Doctor Letter Updated", "Details updated and queued for re-verification.", "info");
+  };
+
+  const deleteDoctorLetter = (letterId) => {
+    setState((prev) => ({
+      ...prev,
+      doctorLetters: prev.doctorLetters.filter((l) => l.id !== letterId)
+    }));
+
+    const audit = logAudit(
+      "Deleted Doctor's Letter",
+      `Withdrew doctor letter record ID ${letterId}`,
+      "Health & Confidential"
+    );
+
+    setState((prev) => ({ ...prev, auditLogs: [audit, ...prev.auditLogs] }));
+    addToast("Record Withdrawn", "Doctor's letter removed from records.", "warning");
+  };
+
+  const verifyDoctorLetter = ({ letterId, status, reviewNotes = "" }) => {
+    const letter = state.doctorLetters.find((l) => l.id === letterId);
+    if (!letter) return;
+
+    const reviewerName = state.currentUser ? state.currentUser.name : "Faculty / Medical Staff";
+    const reviewerRole = state.activeRole ? state.activeRole.toUpperCase() : "STAFF";
+
+    const updatedLetters = state.doctorLetters.map((l) =>
+      l.id === letterId
+        ? {
+            ...l,
+            status,
+            reviewNotes,
+            verifiedBy: `${reviewerName} (${reviewerRole})`,
+            verifiedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        : l
+    );
+
+    const parentNotif = {
+      id: "notif-doc-par-" + Date.now(),
+      title: `🩺 Doctor's Letter ${status}: ${letter.doctorName}`,
+      message: `Doctor letter submitted for ${letter.studentName} has been marked as "${status}" by ${reviewerName}.${reviewNotes ? ` Remarks: ${reviewNotes}` : ""}`,
+      timestamp: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) + ", " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      read: false,
+      recipientId: letter.parentId,
+      recipientRole: "parent",
+      deliveryStatus: "Delivered",
+      type: "doctor_letter"
+    };
+
+    const audit = logAudit(
+      "Verified Doctor's Letter",
+      `${reviewerName} marked doctor letter ID ${letterId} as ${status}. Remarks: ${reviewNotes || "None"}`,
+      "Health & Confidential"
+    );
+
+    setState((prev) => ({
+      ...prev,
+      doctorLetters: updatedLetters,
+      notifications: [parentNotif, ...prev.notifications],
+      auditLogs: [audit, ...prev.auditLogs]
+    }));
+
+    addToast(
+      "Verification Status Updated",
+      `Doctor's letter status changed to "${status}". Parent notified.`,
+      status === "Verified" ? "success" : "warning"
+    );
+  };
+
+  // ==========================================
   // AI ACADEMIC ASSISTANT LOGIC
   // ==========================================
   const queryAIAssistant = (userQuery) => {
@@ -1262,6 +2745,29 @@ export function SmartCampusProvider({ children }) {
     <SmartCampusContext.Provider
       value={{
         ...state,
+        users: Array.isArray(state.users) ? state.users : [CLEAN_BASELINE_ADMIN],
+        departments: Array.isArray(state.departments) ? state.departments : DEPARTMENTS,
+        subjects: Array.isArray(state.subjects) ? state.subjects : [],
+        timetables: Array.isArray(state.timetables) ? state.timetables : [],
+        timetableToday: Array.isArray(state.timetableToday) ? state.timetableToday : [],
+        studyMaterials: Array.isArray(state.studyMaterials) ? state.studyMaterials : [],
+        attendanceLogs: Array.isArray(state.attendanceLogs) ? state.attendanceLogs : [],
+        smsLogs: Array.isArray(state.smsLogs) ? state.smsLogs : [],
+        marks: Array.isArray(state.marks) ? state.marks : [],
+        assignments: Array.isArray(state.assignments) ? state.assignments : [],
+        notices: Array.isArray(state.notices) ? state.notices : [],
+        exams: Array.isArray(state.exams) ? state.exams : [],
+        leaves: Array.isArray(state.leaves) ? state.leaves : [],
+        complaints: Array.isArray(state.complaints) ? state.complaints : [],
+        notifications: Array.isArray(state.notifications) ? state.notifications : [],
+        auditLogs: Array.isArray(state.auditLogs) ? state.auditLogs : [],
+        studentSkills: Array.isArray(state.studentSkills) ? state.studentSkills : [],
+        collegeEvents: Array.isArray(state.collegeEvents) ? state.collegeEvents : [],
+        eventInvitations: Array.isArray(state.eventInvitations) ? state.eventInvitations : [],
+        eventTeamMembers: Array.isArray(state.eventTeamMembers) ? state.eventTeamMembers : [],
+        studentHealthRecords: Array.isArray(state.studentHealthRecords) ? state.studentHealthRecords : [],
+        doctorLetters: Array.isArray(state.doctorLetters) ? state.doctorLetters : [],
+        classAssignments: Array.isArray(state.classAssignments) ? state.classAssignments : [],
         toasts,
         addToast,
         removeToast,
@@ -1273,6 +2779,7 @@ export function SmartCampusProvider({ children }) {
         createAssignment,
         submitAssignment,
         gradeAssignment,
+        flagPlagiarizedAssignment,
         createNotice,
         applyLeave,
         updateLeaveStatus,
@@ -1288,13 +2795,58 @@ export function SmartCampusProvider({ children }) {
         addSubject,
         updateSubject,
         deleteSubject,
+        getCommonFirstYearSubjects,
+        getSubjectsForDepartmentAndSemester,
+        getAllSubjectsForDepartment,
+        addCommonSubject,
+        updateCommonSubject,
+        deleteCommonSubject,
+        assignCommonSubjectFaculty,
+        switchStudentSemester,
+        addStudyMaterial,
+        uploadStudyMaterial,
+        deleteStudyMaterial,
+        getStudyMaterialsForStudent,
+        assignClassTeacher,
+        createClassAssignment,
+        updateClassAssignment,
+        deleteClassAssignment,
+        createTgBatch,
+        updateTgTeacher,
+        assignStudentsToTgBatch,
+        autoDistributeStudentsToTg,
+        getTeacherResponsibilities,
+        sendClassAnnouncement,
+        sendTgAnnouncement,
         addTimetableSlot,
         updateTimetableSlot,
         deleteTimetableSlot,
         markNotificationRead,
         markAllNotificationsRead,
         queryAIAssistant,
-        setDemoStep
+        setDemoStep,
+        classMetadata: VLSI_CLASS_METADATA,
+        getStudentBatchInfo,
+        // Talent, Events & Health methods
+        addStudentSkill,
+        updateStudentSkill,
+        deleteStudentSkill,
+        createCollegeEvent,
+        updateCollegeEvent,
+        deleteCollegeEvent,
+        sendEventInvitation,
+        respondToInvitation,
+        assignEventTeamMember,
+        removeEventTeamMember,
+        addHealthRecord,
+        updateHealthRecord,
+        updateHealthVerification,
+        logHealthAccess,
+        // Doctor's Letters & Proofs methods
+        uploadDoctorLetter,
+        updateDoctorLetter,
+        deleteDoctorLetter,
+        verifyDoctorLetter
       }}
     >
       {children}

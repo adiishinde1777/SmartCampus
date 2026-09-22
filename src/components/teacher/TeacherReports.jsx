@@ -14,9 +14,9 @@ export default function TeacherReports() {
   const { subjects, users, attendance, marks, systemSettings } = useSmartCampus();
 
   const [reportType, setReportType] = useState("attendance");
-  const [selectedSubject, setSelectedSubject] = useState("sub-dbms");
+  const [selectedSubject, setSelectedSubject] = useState("sub-vlsi501");
 
-  const students = users.filter((u) => u.role === "student" && u.departmentId === "dept-ce");
+  const students = users.filter((u) => u.role === "student" && u.departmentId === "dept-vlsi");
   const subjectObj = subjects.find((s) => s.id === selectedSubject) || subjects[0];
   const threshold = systemSettings.attendanceThreshold;
 

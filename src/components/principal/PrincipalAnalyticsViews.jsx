@@ -57,20 +57,20 @@ export function PrincipalAttendanceAnalytics() {
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "380px", overflowY: "auto" }}>
             <p style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
               Total 118 students currently fall below the mandatory {threshold}% threshold. Automated weekly SMS and WhatsApp notifications are dispatched to parents.
             </p>
 
-            <div style={{ padding: "12px", background: "#fef2f2", borderRadius: "8px", border: "1px solid #fecaca" }}>
-              <div style={{ fontWeight: "700", color: "#991b1b" }}>Computer Engineering: 28 Students</div>
-              <div style={{ fontSize: "0.75rem", color: "#7f1d1d" }}>Includes Rahul Patil, Aditya Kulkarni</div>
-            </div>
-
-            <div style={{ padding: "12px", background: "#fef2f2", borderRadius: "8px", border: "1px solid #fecaca" }}>
-              <div style={{ fontWeight: "700", color: "#991b1b" }}>Mechanical Engineering: 42 Students</div>
-              <div style={{ fontSize: "0.75rem", color: "#7f1d1d" }}>Remedial counseling underway</div>
-            </div>
+            {departments.map((d) => {
+              const defCount = d.id === "dept-vlsi" ? 12 : Math.round((d.studentCount || 100) * 0.11);
+              return (
+                <div key={d.id} style={{ padding: "10px 12px", background: "#fef2f2", borderRadius: "8px", border: "1px solid #fecaca" }}>
+                  <div style={{ fontWeight: "700", color: "#991b1b", fontSize: "0.85rem" }}>{d.name}: {defCount} Defaulters</div>
+                  <div style={{ fontSize: "0.72rem", color: "#7f1d1d" }}>Compliance alerts active • HOD: {d.hod}</div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

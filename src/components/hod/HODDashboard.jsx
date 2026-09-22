@@ -11,7 +11,8 @@ import {
   TrendingUp,
   BarChart3,
   CheckCircle2,
-  ArrowRight
+  ArrowRight,
+  Sparkles
 } from "lucide-react";
 import { StatCard, Badge } from "../common/UIPrimitives";
 
@@ -25,13 +26,21 @@ export default function HODDashboard({ onNavigate }) {
     marks,
     assignments,
     complaints,
-    systemSettings
+    systemSettings,
+    studentSkills,
+    collegeEvents,
+    studentHealthRecords
   } = useSmartCampus();
 
   const hod = currentUser;
-  const dept = departments.find((d) => d.id === (hod?.departmentId || "dept-ce")) || departments[0];
+  const deptId = hod?.departmentId || "dept-vlsi";
+  const dept = departments.find((d) => d.id === deptId) || {
+    id: deptId,
+    name: hod?.departmentName || "Electronic Engineering (VLSI Design And Technology)"
+  };
   const deptStudents = users.filter((u) => u.role === "student" && u.departmentId === dept.id);
   const deptTeachers = users.filter((u) => u.role === "teacher" && u.departmentId === dept.id);
+  const deptSubjects = subjects.filter((s) => s.departmentId === dept.id || s.departmentId === "dept-vlsi");
   const threshold = systemSettings.attendanceThreshold;
 
   // Calculate department-wide attendance
@@ -44,7 +53,7 @@ export default function HODDashboard({ onNavigate }) {
     let stuTotal = 0;
     let stuAttended = 0;
 
-    subjects.forEach((sub) => {
+    deptSubjects.forEach((sub) => {
       const data = sAtt[sub.id] || { total: 20, attended: 16, percentage: 80 };
       stuTotal += data.total;
       stuAttended += data.attended;
@@ -184,8 +193,71 @@ export default function HODDashboard({ onNavigate }) {
         />
       </div>
 
+      {/* Department Talent & Events Highlight Card */}
+      <div
+        className="card"
+        style={{
+          background: "linear-gradient(135deg, #312e81 0%, #1e1b4b 100%)",
+          color: "white",
+          padding: "20px 28px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "16px",
+          boxShadow: "0 8px 20px -4px rgba(49, 46, 129, 0.3)"
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div
+            style={{
+              width: "46px",
+              height: "46px",
+              borderRadius: "12px",
+              background: "rgba(255, 255, 255, 0.18)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "white"
+            }}
+          >
+            <Sparkles size={24} />
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <h3 style={{ fontSize: "1.15rem", fontWeight: "800", color: "white" }}>
+                Department Talent & Event Volunteers
+              </h3>
+              <span style={{ background: "rgba(255,255,255,0.2)", padding: "2px 8px", borderRadius: "10px", fontSize: "0.72rem", fontWeight: "700" }}>
+                {new Set((studentSkills || []).map((s) => s.studentId)).size} Skilled Students
+              </span>
+            </div>
+            <p style={{ fontSize: "0.86rem", color: "#c7d2fe", marginTop: "3px" }}>
+              Track student cultural, sports & technical participation. Review pending health documents.
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <button
+            onClick={() => onNavigate("department-talent")}
+            className="btn btn-sm"
+            style={{ background: "#ffffff", color: "#312e81", fontWeight: "700", border: "none" }}
+          >
+            View Dept Talent
+          </button>
+          <button
+            onClick={() => onNavigate("department-talent")}
+            className="btn btn-sm"
+            style={{ background: "rgba(255,255,255,0.18)", color: "white", border: "1px solid rgba(255,255,255,0.3)" }}
+          >
+            Health Verification Desk
+          </button>
+        </div>
+      </div>
+
       {/* Visual Analytics Charts & Defaulters Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "24px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "24px" }}>
         
         {/* Subject Attendance Comparison */}
         <div className="card">
@@ -195,44 +267,62 @@ export default function HODDashboard({ onNavigate }) {
                 <BarChart3 size={18} color="var(--primary-600)" />
                 Subject-wise Department Attendance Comparison
               </div>
-              <div className="card-subtitle">Real-time attendance averages across courses</div>
+              <div className="card-subtitle">Real-time attendance averages (Theory & Practical)</div>
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-            {subjects.map((sub) => {
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            {deptSubjects.map((sub) => {
               // Calculate average for this subject
               let total = 0;
               let att = 0;
+              let thTotal = 0;
+              let thAtt = 0;
+              let prTotal = 0;
+              let prAtt = 0;
+
               deptStudents.forEach((stu) => {
                 const d = attendance[stu.id]?.[sub.id] || { total: 20, attended: 16, percentage: 80 };
                 total += d.total;
                 att += d.attended;
+                thTotal += d.theoryTotal ?? Math.round(d.total * 0.7);
+                thAtt += d.theoryAttended ?? Math.min(thTotal, Math.round(d.attended * 0.7));
+                prTotal += d.practicalTotal ?? (d.total - (d.theoryTotal ?? Math.round(d.total * 0.7)));
+                prAtt += d.practicalAttended ?? Math.max(0, d.attended - (d.theoryAttended ?? Math.min(thTotal, Math.round(d.attended * 0.7))));
               });
               const subPct = total > 0 ? Math.round((att / total) * 1000) / 10 : 78;
+              const thPct = thTotal > 0 ? Math.round((thAtt / thTotal) * 1000) / 10 : subPct;
+              const prPct = prTotal > 0 ? Math.round((prAtt / prTotal) * 1000) / 10 : subPct;
               const isLow = subPct < threshold;
 
               return (
-                <div key={sub.id}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", marginBottom: "4px" }}>
+                <div key={sub.id} style={{ background: "var(--bg-surface-secondary)", padding: "12px", borderRadius: "10px", border: "1px solid var(--border-subtle)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", marginBottom: "6px" }}>
                     <span style={{ fontWeight: "700" }}>{sub.name} ({sub.code})</span>
                     <span style={{ fontWeight: "800", color: isLow ? "var(--danger-solid)" : "var(--success-solid)" }}>
-                      {subPct}%
+                      Overall: {subPct}%
                     </span>
                   </div>
-                  <div style={{ height: "10px", background: "#e2e8f0", borderRadius: "5px", overflow: "hidden" }}>
+                  <div style={{ height: "8px", background: "#e2e8f0", borderRadius: "4px", overflow: "hidden", marginBottom: "8px" }}>
                     <div
                       style={{
                         height: "100%",
                         width: `${subPct}%`,
                         background: isLow ? "var(--danger-solid)" : "var(--primary-600)",
-                        borderRadius: "5px"
+                        borderRadius: "4px"
                       }}
                     />
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "2px" }}>
-                    <span>Faculty: {sub.teacherName}</span>
-                    <span>Status: {isLow ? "⚠️ Defaulter High" : "✓ Healthy"}</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px", fontSize: "0.74rem", color: "var(--text-muted)" }}>
+                    <span>Faculty: <strong>{sub.teacherName}</strong></span>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <span style={{ background: "rgba(37, 99, 235, 0.1)", color: "#1d4ed8", padding: "1px 6px", borderRadius: "4px", fontWeight: "600" }}>
+                        Theory: {thPct}%
+                      </span>
+                      <span style={{ background: "rgba(16, 185, 129, 0.1)", color: "#047857", padding: "1px 6px", borderRadius: "4px", fontWeight: "600" }}>
+                        Practical: {prPct}%
+                      </span>
+                    </div>
                   </div>
                 </div>
               );

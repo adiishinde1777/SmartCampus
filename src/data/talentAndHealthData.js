@@ -1,0 +1,721 @@
+// TALENT, EVENTS & HEALTH TAXONOMIES AND SEED DATA
+
+export const SPORTS_OPTIONS = [
+  "Cricket",
+  "Football",
+  "Volleyball",
+  "Basketball",
+  "Kabaddi",
+  "Kho-Kho",
+  "Badminton",
+  "Table Tennis",
+  "Chess",
+  "Carrom",
+  "Athletics",
+  "Running",
+  "Swimming",
+  "Other"
+];
+
+export const CULTURAL_OPTIONS = [
+  "Dance",
+  "Singing",
+  "Instrumental Music",
+  "Drawing",
+  "Painting",
+  "Acting",
+  "Drama",
+  "Photography",
+  "Videography",
+  "Poetry",
+  "Writing",
+  "Stand-up / Comedy",
+  "Fashion Show",
+  "Decoration",
+  "Rangoli",
+  "Mehendi",
+  "Music",
+  "Other"
+];
+
+export const EVENT_MGMT_OPTIONS = [
+  "Anchoring",
+  "Public Speaking",
+  "Event Management",
+  "Stage Management",
+  "Backstage Management",
+  "Registration Desk",
+  "Crowd Management",
+  "Hospitality",
+  "Guest Management",
+  "Decoration",
+  "Photography",
+  "Videography",
+  "Social Media",
+  "Content Writing",
+  "Technical Support",
+  "Sound & Lighting",
+  "Discipline Management",
+  "Volunteer",
+  "Other"
+];
+
+export const TECHNICAL_OPTIONS = [
+  "Programming",
+  "Web Development",
+  "App Development",
+  "Python",
+  "Java",
+  "C/C++",
+  "JavaScript",
+  "React",
+  "Node.js",
+  "Database Management",
+  "Arduino",
+  "Raspberry Pi",
+  "IoT",
+  "Robotics",
+  "PCB Design",
+  "Verilog / VLSI",
+  "AI / ML",
+  "Video Editing",
+  "Graphic Designing",
+  "CAD",
+  "3D Design",
+  "Other"
+];
+
+export const SKILL_LEVELS = ["Beginner", "Intermediate", "Advanced", "Expert"];
+
+export const EXPERIENCE_LEVELS = [
+  "No Experience",
+  "College Level",
+  "District Level",
+  "State Level",
+  "National Level",
+  "International Level"
+];
+
+export const EVENT_CATEGORIES = [
+  "Sports",
+  "Cultural",
+  "Technical",
+  "Annual Gathering",
+  "Engineer's Day",
+  "Independence Day",
+  "Republic Day",
+  "College Fest",
+  "Seminar",
+  "Workshop",
+  "Competition",
+  "NSS",
+  "NCC",
+  "Other"
+];
+
+export const PREFERRED_EVENT_TYPES = [
+  "Any Event",
+  "Sports",
+  "Cultural",
+  "Technical",
+  "Management"
+];
+
+export const HEALTH_CONDITION_OPTIONS = [
+  "Diabetes / Sugar",
+  "Blood Pressure",
+  "Migraine",
+  "Asthma",
+  "Allergy",
+  "Epilepsy",
+  "Heart-related condition",
+  "Vision-related issue",
+  "Hearing-related issue",
+  "Medication requirement",
+  "Physical limitation",
+  "Other"
+];
+
+export const VERIFICATION_STATUSES = [
+  "Pending Verification",
+  "Verified",
+  "Rejected",
+  "More Information Required"
+];
+
+export const DECLINE_REASONS = [
+  "Academic Schedule",
+  "Personal Reason",
+  "Already Assigned",
+  "Not Available",
+  "Other"
+];
+
+// Helper to get emoji for a category/skill
+export const getSkillEmoji = (category, skill) => {
+  const map = {
+    Cricket: "🏏",
+    Football: "⚽",
+    Volleyball: "🏐",
+    Basketball: "🏀",
+    Kabaddi: "🤼",
+    "Kho-Kho": "🏃",
+    Badminton: "🏸",
+    "Table Tennis": "🏓",
+    Chess: "♟️",
+    Carrom: "🎯",
+    Athletics: "🏃",
+    Running: "👟",
+    Swimming: "🏊",
+    Dance: "💃",
+    Singing: "🎤",
+    "Instrumental Music": "🎸",
+    Drawing: "🎨",
+    Painting: "🖌️",
+    Acting: "🎭",
+    Drama: "🎭",
+    Photography: "📸",
+    Videography: "📹",
+    Poetry: "📜",
+    Writing: "✍️",
+    "Stand-up / Comedy": "🎙️",
+    Anchoring: "🎙️",
+    "Public Speaking": "🗣️",
+    "Event Management": "📋",
+    "Stage Management": "🎪",
+    "Backstage Management": "🎭",
+    "Technical Support": "🛠️",
+    "Sound & Lighting": "💡",
+    Programming: "💻",
+    "Web Development": "🌐",
+    "App Development": "📱",
+    Python: "🐍",
+    Java: "☕",
+    "C/C++": "⚙️",
+    JavaScript: "⚡",
+    React: "⚛️",
+    "Node.js": "🟢",
+    "Database Management": "🗄️",
+    Arduino: "🔌",
+    "Raspberry Pi": "🍓",
+    IoT: "📡",
+    Robotics: "🤖",
+    "PCB Design": "📐",
+    "Verilog / VLSI": "🔬",
+    "AI / ML": "🧠",
+    "Video Editing": "🎬",
+    "Graphic Designing": "🎨",
+    CAD: "📐",
+    "3D Design": "🧊",
+    Volunteer: "🤝"
+  };
+  return map[skill] || (category === "Sports" ? "🏆" : category === "Cultural" ? "✨" : category === "Technical" ? "💻" : "📋");
+};
+
+// Initial Student Skills Seed
+export const INITIAL_STUDENT_SKILLS = [
+  // Aditya Shinde (stu-1) Profile
+  {
+    id: "skill-1",
+    studentId: "stu-1",
+    studentName: "Aditya Shinde",
+    departmentId: "dept-vlsi",
+    departmentName: "Electronic Engineering (VLSI Design And Technology)",
+    year: "Third Year",
+    semester: 5,
+    division: "A",
+    rollNo: "VL3152",
+    category: "Event & Management",
+    skill: "Anchoring",
+    customSkill: "",
+    skillLevel: "Advanced",
+    experienceLevel: "College Level",
+    experienceDescription: "Served as lead anchor for Annual Social Gathering 2025 and TechFest inaugurations across multiple sessions.",
+    achievements: [
+      "Best Anchor – CSMSS College Gathering 2025",
+      "Inter-College Debate Competition 1st Runner Up"
+    ],
+    certificateUrl: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80",
+    certificateName: "Best_Anchor_Award_2025.pdf",
+    availableForEvents: "Yes",
+    preferredEventType: "Any Event",
+    createdAt: "2026-08-10T10:30:00.000Z",
+    updatedAt: "2026-08-10T10:30:00.000Z"
+  },
+  {
+    id: "skill-2",
+    studentId: "stu-1",
+    studentName: "Aditya Shinde",
+    departmentId: "dept-vlsi",
+    departmentName: "Electronic Engineering (VLSI Design And Technology)",
+    year: "Third Year",
+    semester: 5,
+    division: "A",
+    rollNo: "VL3152",
+    category: "Sports",
+    skill: "Cricket",
+    customSkill: "",
+    skillLevel: "Advanced",
+    experienceLevel: "District Level",
+    experienceDescription: "Played cricket at district level for 3 years as middle-order batsman and wicket-keeper.",
+    achievements: [
+      "District Cricket Winner 2024 (Under-19)",
+      "CSMSS Inter-Department Cricket Tournament Champions"
+    ],
+    certificateUrl: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80",
+    certificateName: "District_Cricket_Certificate.pdf",
+    availableForEvents: "Yes",
+    preferredEventType: "Sports",
+    createdAt: "2026-08-12T14:15:00.000Z",
+    updatedAt: "2026-08-12T14:15:00.000Z"
+  },
+  {
+    id: "skill-3",
+    studentId: "stu-1",
+    studentName: "Aditya Shinde",
+    departmentId: "dept-vlsi",
+    departmentName: "Electronic Engineering (VLSI Design And Technology)",
+    year: "Third Year",
+    semester: 5,
+    division: "A",
+    rollNo: "VL3152",
+    category: "Technical",
+    skill: "Video Editing",
+    customSkill: "",
+    skillLevel: "Expert",
+    experienceLevel: "College Level",
+    experienceDescription: "Lead video editor for college official social media handles and department promotional films.",
+    achievements: [
+      "Inter-College Short Film Video Editing Winner 2025",
+      "Directed 2025 College Teaser Video"
+    ],
+    certificateUrl: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80",
+    certificateName: "Video_Editing_Excellence.png",
+    availableForEvents: "Yes",
+    preferredEventType: "Technical",
+    createdAt: "2026-08-14T11:00:00.000Z",
+    updatedAt: "2026-08-14T11:00:00.000Z"
+  },
+  {
+    id: "skill-4",
+    studentId: "stu-1",
+    studentName: "Aditya Shinde",
+    departmentId: "dept-vlsi",
+    departmentName: "Electronic Engineering (VLSI Design And Technology)",
+    year: "Third Year",
+    semester: 5,
+    division: "A",
+    rollNo: "VL3152",
+    category: "Technical",
+    skill: "Verilog / VLSI",
+    customSkill: "",
+    skillLevel: "Advanced",
+    experienceLevel: "State Level",
+    experienceDescription: "Architected 8-bit ALU and SPI master controller using Verilog in laboratory projects.",
+    achievements: [
+      "State Level VLSI FPGA Design Challenge 2nd Rank",
+      "NPTEL Elite Certification in Digital System Design"
+    ],
+    certificateUrl: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80",
+    certificateName: "VLSI_Design_Certification.pdf",
+    availableForEvents: "Yes",
+    preferredEventType: "Technical",
+    createdAt: "2026-08-18T16:20:00.000Z",
+    updatedAt: "2026-08-18T16:20:00.000Z"
+  },
+
+  // Other Student Talents in TE VLSI for realistic search
+  {
+    id: "skill-5",
+    studentId: "stu-2",
+    studentName: "Sneha Sharma",
+    departmentId: "dept-vlsi",
+    departmentName: "Electronic Engineering (VLSI Design And Technology)",
+    year: "Third Year",
+    semester: 5,
+    division: "A",
+    rollNo: "VL3102",
+    category: "Cultural",
+    skill: "Dance",
+    customSkill: "",
+    skillLevel: "Expert",
+    experienceLevel: "State Level",
+    experienceDescription: "Trained classical Kathak and contemporary dancer with 8 years of stage performance history.",
+    achievements: [
+      "State Youth Festival 1st Prize in Classical Dance",
+      "CSMSS Cultural Idol 2025"
+    ],
+    certificateUrl: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80",
+    certificateName: "State_Dance_Winner.pdf",
+    availableForEvents: "Yes",
+    preferredEventType: "Cultural",
+    createdAt: "2026-08-20T09:00:00.000Z",
+    updatedAt: "2026-08-20T09:00:00.000Z"
+  },
+  {
+    id: "skill-6",
+    studentId: "stu-3",
+    studentName: "Amit Joshi",
+    departmentId: "dept-vlsi",
+    departmentName: "Electronic Engineering (VLSI Design And Technology)",
+    year: "Third Year",
+    semester: 5,
+    division: "A",
+    rollNo: "VL3103",
+    category: "Cultural",
+    skill: "Photography",
+    customSkill: "",
+    skillLevel: "Advanced",
+    experienceLevel: "District Level",
+    experienceDescription: "Specializes in event portraiture, stage lighting photography, and drone operation.",
+    achievements: [
+      "District LensCraft Winner 2024",
+      "Lead Photographer for College Annual Magazine"
+    ],
+    certificateUrl: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80",
+    certificateName: "LensCraft_Award.pdf",
+    availableForEvents: "Yes",
+    preferredEventType: "Cultural",
+    createdAt: "2026-08-21T10:15:00.000Z",
+    updatedAt: "2026-08-21T10:15:00.000Z"
+  },
+  {
+    id: "skill-7",
+    studentId: "stu-4",
+    studentName: "Priya Deshmukh",
+    departmentId: "dept-vlsi",
+    departmentName: "Electronic Engineering (VLSI Design And Technology)",
+    year: "Third Year",
+    semester: 5,
+    division: "A",
+    rollNo: "VL3104",
+    category: "Event & Management",
+    skill: "Event Management",
+    customSkill: "",
+    skillLevel: "Advanced",
+    experienceLevel: "College Level",
+    experienceDescription: "Organized IEEE student branch workshops, guest lectures, and campus blood donation camp.",
+    achievements: [
+      "Best Student Organizer Award 2025",
+      "Coordinated 500+ attendees National Seminar"
+    ],
+    certificateUrl: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80",
+    certificateName: "Event_Organizer_Certificate.pdf",
+    availableForEvents: "Yes",
+    preferredEventType: "Management",
+    createdAt: "2026-08-22T13:45:00.000Z",
+    updatedAt: "2026-08-22T13:45:00.000Z"
+  },
+  {
+    id: "skill-8",
+    studentId: "stu-5",
+    studentName: "Rohan Kulkarni",
+    departmentId: "dept-vlsi",
+    departmentName: "Electronic Engineering (VLSI Design And Technology)",
+    year: "Third Year",
+    semester: 5,
+    division: "A",
+    rollNo: "VL3105",
+    category: "Technical",
+    skill: "Robotics",
+    customSkill: "",
+    skillLevel: "Advanced",
+    experienceLevel: "National Level",
+    experienceDescription: "Built autonomous line follower and obstacle-avoidance robots using Arduino and ROS.",
+    achievements: [
+      "RoboCon 2025 National Finalist",
+      "1st Prize in Inter-Engineering RoboRace"
+    ],
+    certificateUrl: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80",
+    certificateName: "RoboCon_National_Certificate.pdf",
+    availableForEvents: "Yes",
+    preferredEventType: "Technical",
+    createdAt: "2026-08-24T15:30:00.000Z",
+    updatedAt: "2026-08-24T15:30:00.000Z"
+  }
+];
+
+// Initial College Events Seed
+export const INITIAL_COLLEGE_EVENTS = [
+  {
+    id: "evt-1",
+    eventName: "Engineer's Day 2026",
+    category: "Engineer's Day",
+    description: "Grand celebration of National Engineer's Day featuring technical symposiums, robotics demonstrations, project exhibition, and formal felicitation ceremony.",
+    date: "2026-09-25",
+    startTime: "09:30 AM",
+    endTime: "05:00 PM",
+    venue: "Main Auditorium & Tech Complex",
+    department: "All",
+    year: "All",
+    requiredStudents: 20,
+    registrationDeadline: "2026-09-21",
+    coordinatorId: "tea-1",
+    coordinatorName: "Prof. T. A. Mohije",
+    coordinatorPhone: "+91 98900 12345",
+    status: "Upcoming",
+    requiredSkills: [
+      { skill: "Anchoring", category: "Event & Management", minSkillLevel: "Intermediate", requiredCount: 2 },
+      { skill: "Photography", category: "Cultural", minSkillLevel: "Intermediate", requiredCount: 3 },
+      { skill: "Video Editing", category: "Technical", minSkillLevel: "Intermediate", requiredCount: 2 },
+      { skill: "Event Management", category: "Event & Management", minSkillLevel: "Intermediate", requiredCount: 4 },
+      { skill: "Technical Support", category: "Event & Management", minSkillLevel: "Intermediate", requiredCount: 5 }
+    ],
+    additionalInstructions: "Selected students will receive official duty leave (ODL) and certificates of appreciation.",
+    createdAt: "2026-09-10T10:00:00.000Z"
+  },
+  {
+    id: "evt-2",
+    eventName: "Tarang 2026 - Annual Cultural Fest",
+    category: "College Fest",
+    description: "3-day mega inter-collegiate cultural fest featuring dance competitions, music concerts, drama shows, and student talent exhibitions.",
+    date: "2026-10-15",
+    startTime: "10:00 AM",
+    endTime: "09:00 PM",
+    venue: "Open Air Amphitheatre",
+    department: "All",
+    year: "All",
+    requiredStudents: 45,
+    registrationDeadline: "2026-10-05",
+    coordinatorId: "tea-rana",
+    coordinatorName: "Dr. Rana",
+    coordinatorPhone: "+91 98900 11001",
+    status: "Upcoming",
+    requiredSkills: [
+      { skill: "Dance", category: "Cultural", minSkillLevel: "Intermediate", requiredCount: 15 },
+      { skill: "Singing", category: "Cultural", minSkillLevel: "Intermediate", requiredCount: 8 },
+      { skill: "Stage Management", category: "Event & Management", minSkillLevel: "Beginner", requiredCount: 10 },
+      { skill: "Sound & Lighting", category: "Event & Management", minSkillLevel: "Intermediate", requiredCount: 4 }
+    ],
+    additionalInstructions: "Rehearsals will begin 2 weeks prior to the event during extracurricular hours.",
+    createdAt: "2026-09-12T12:00:00.000Z"
+  },
+  {
+    id: "evt-3",
+    eventName: "Inter-Department Cricket Tournament",
+    category: "Sports",
+    description: "Annual cricket championship between VLSI, Computer, Mechanical, Civil and First Year departments.",
+    date: "2026-10-02",
+    startTime: "08:00 AM",
+    endTime: "06:00 PM",
+    venue: "College Sports Ground",
+    department: "All",
+    year: "All",
+    requiredStudents: 32,
+    registrationDeadline: "2026-09-28",
+    coordinatorId: "tea-ggp",
+    coordinatorName: "Mr. G. G. Patil",
+    coordinatorPhone: "+91 98900 11002",
+    status: "Upcoming",
+    requiredSkills: [
+      { skill: "Cricket", category: "Sports", minSkillLevel: "Advanced", requiredCount: 22 },
+      { skill: "Discipline Management", category: "Event & Management", minSkillLevel: "Beginner", requiredCount: 6 }
+    ],
+    additionalInstructions: "Players must bring their own cricket kit; match balls will be provided by gymkhana.",
+    createdAt: "2026-09-14T09:30:00.000Z"
+  }
+];
+
+// Initial Event Invitations Seed
+export const INITIAL_EVENT_INVITATIONS = [
+  {
+    id: "inv-1",
+    eventId: "evt-1",
+    eventName: "Engineer's Day 2026",
+    eventDate: "2026-09-25",
+    venue: "Main Auditorium",
+    studentId: "stu-1",
+    studentName: "Aditya Shinde",
+    invitedBy: "tea-1",
+    invitedByName: "Prof. T. A. Mohije",
+    role: "Lead Anchor & Stage Host",
+    skill: "Anchoring",
+    status: "Invited", // "Invited" | "Accepted" | "Declined" | "Shortlisted" | "Selected" | "Completed"
+    responseDate: null,
+    declineReason: null,
+    notes: "Invited based on exceptional past anchoring record at Annual Gathering.",
+    createdAt: "2026-09-15T10:30:00.000Z"
+  },
+  {
+    id: "inv-2",
+    eventId: "evt-1",
+    eventName: "Engineer's Day 2026",
+    eventDate: "2026-09-25",
+    venue: "Main Auditorium",
+    studentId: "stu-3",
+    studentName: "Amit Joshi",
+    invitedBy: "tea-1",
+    invitedByName: "Prof. T. A. Mohije",
+    role: "Lead Stage Photographer",
+    skill: "Photography",
+    status: "Accepted",
+    responseDate: "2026-09-15T15:00:00.000Z",
+    declineReason: null,
+    notes: "Confirmed availability with DSLR gear.",
+    createdAt: "2026-09-15T11:00:00.000Z"
+  }
+];
+
+// Initial Event Team Members Seed
+export const INITIAL_EVENT_TEAM_MEMBERS = [
+  {
+    id: "team-1",
+    eventId: "evt-1",
+    studentId: "stu-3",
+    studentName: "Amit Joshi",
+    assignedRole: "Lead Stage Photographer",
+    assignedBy: "tea-1",
+    assignedByName: "Prof. T. A. Mohije",
+    status: "Selected"
+  }
+];
+
+// Initial Sensitive Health Records Seed
+export const INITIAL_STUDENT_HEALTH_RECORDS = [
+  {
+    id: "hlth-1",
+    studentId: "stu-1",
+    studentName: "Aditya Shinde",
+    prn: "24025331378056",
+    departmentId: "dept-vlsi",
+    departmentName: "Electronic Engineering (VLSI Design And Technology)",
+    year: "Third Year",
+    semester: 5,
+    division: "A",
+    parentId: "par-1",
+    parentName: "Santosh Shinde",
+    parentContact: "7378535499",
+    conditionCategory: "Migraine",
+    customCondition: "",
+    description: "Student may experience acute migraine episodes during prolonged exposure to bright flashing strobing lights, excessive outdoor heat, or severe dehydration.",
+    emergencyInstructions: "Shift student immediately to a quiet, shaded, well-ventilated medical room. Administer water. If severe throbbing headache persists past 30 minutes, notify parent Santosh Shinde at 7378535499.",
+    regularMedication: "Prescribed SOS migraine analgesic (Naproxen 250mg) stored in personal backpack.",
+    doctorInformation: "Dr. R. K. Deshpande, Neurologist, City Care Hospital (+91 98220 54321)",
+    documentUrl: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80",
+    documentName: "Neurology_Medical_Certificate_AdityaShinde.pdf",
+    documentSize: "348 KB",
+    verificationStatus: "Verified", // "Pending Verification" | "Verified" | "Rejected" | "More Information Required"
+    verifiedBy: "Dr. Shrikant Honade (HOD)",
+    verifiedAt: "2026-08-25T11:30:00.000Z",
+    reviewNotes: "Official doctor letter verified on institutional medical records. Approved for safety notifications during stage & outdoor lighting setups.",
+    createdAt: "2026-08-22T14:10:00.000Z",
+    updatedAt: "2026-08-25T11:30:00.000Z"
+  },
+  {
+    id: "hlth-2",
+    studentId: "stu-4",
+    studentName: "Priya Deshmukh",
+    prn: "24025331378059",
+    departmentId: "dept-vlsi",
+    departmentName: "Electronic Engineering (VLSI Design And Technology)",
+    year: "Third Year",
+    semester: 5,
+    division: "A",
+    parentId: "par-4",
+    parentName: "Anand Deshmukh",
+    parentContact: "+91 98333 77665",
+    conditionCategory: "Asthma",
+    customCondition: "",
+    description: "Mild dust-induced asthma. May experience coughing and shortness of breath during dusty field activities or heavy ground preparation.",
+    emergencyInstructions: "Student carries Asthalin inhaler. Permit 2 puffs. Contact parent if breathing difficulty continues.",
+    regularMedication: "Salbutamol (Asthalin) Inhaler carried in kit.",
+    doctorInformation: "Dr. V. N. Patil, Pulmonologist (+91 98230 99887)",
+    documentUrl: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80",
+    documentName: "Doctor_Asthma_Record.pdf",
+    documentSize: "285 KB",
+    verificationStatus: "Pending Verification",
+    verifiedBy: null,
+    verifiedAt: null,
+    reviewNotes: null,
+    createdAt: "2026-09-14T16:20:00.000Z",
+    updatedAt: "2026-09-14T16:20:00.000Z"
+  }
+];
+
+// Doctor Letter Types / Purposes
+export const DOCTOR_LETTER_TYPES = [
+  "Medical Sick Leave / Absence Certificate",
+  "Medical Fitness & Resumption Certificate",
+  "Chronic Illness / Allergy Doctor Note",
+  "Physical Activity / Sports Exemption Letter",
+  "Hospitalization & Discharge Summary",
+  "Prescription & Medical Consultation Note",
+  "Other Doctor Note"
+];
+
+// Initial Doctor Letters Uploaded by Parents
+export const INITIAL_DOCTOR_LETTERS = [
+  {
+    id: "doc-let-1",
+    studentId: "stu-1",
+    studentName: "Aditya Shinde",
+    prn: "24025331378056",
+    rollNo: "VL3152",
+    departmentId: "dept-vlsi",
+    departmentName: "Electronic Engineering (VLSI Design And Technology)",
+    year: "Third Year",
+    semester: 5,
+    division: "A",
+    parentId: "par-1",
+    parentName: "Santosh Shinde",
+    parentContact: "7378535499",
+    letterType: "Medical Sick Leave / Absence Certificate",
+    doctorName: "Dr. R. K. Deshpande (MD, Neurologist)",
+    regNo: "MMC-2012-08-3490",
+    hospitalClinic: "City Care Hospital & Neuro Clinic, Station Road",
+    doctorContact: "+91 98220 54321",
+    issueDate: "2026-09-11",
+    leaveStartDate: "2026-09-11",
+    leaveEndDate: "2026-09-13",
+    totalDays: 3,
+    diagnosis: "Acute migraine episode with severe photophobia and vertigo caused by extreme heat dehydration.",
+    recommendations: "Advised 3 days complete vocal and digital screen rest. Avoid harsh sunlight and strobing strobe light exposure.",
+    applyForLeaveCondonation: true,
+    documentUrl: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=800&auto=format&fit=crop&q=80",
+    documentName: "Dr_Deshpande_Neurology_Leave_Certificate.pdf",
+    documentSize: "412 KB",
+    status: "Verified", // "Verified" | "Pending Review" | "Rejected"
+    verifiedBy: "Prof. T. A. Mohije (TG Teacher)",
+    verifiedAt: "2026-09-14T10:15:00.000Z",
+    reviewNotes: "Doctor certificate verified with clinic records. 3 days medical leave approved for attendance condonation.",
+    createdAt: "2026-09-12T08:30:00.000Z",
+    updatedAt: "2026-09-14T10:15:00.000Z"
+  },
+  {
+    id: "doc-let-2",
+    studentId: "stu-1",
+    studentName: "Aditya Shinde",
+    prn: "24025331378056",
+    rollNo: "VL3152",
+    departmentId: "dept-vlsi",
+    departmentName: "Electronic Engineering (VLSI Design And Technology)",
+    year: "Third Year",
+    semester: 5,
+    division: "A",
+    parentId: "par-1",
+    parentName: "Santosh Shinde",
+    parentContact: "7378535499",
+    letterType: "Medical Fitness & Resumption Certificate",
+    doctorName: "Dr. Sunita V. Kulkarni (MBBS, DCH)",
+    regNo: "MMC-2015-04-1188",
+    hospitalClinic: "Sanjeevani Multispeciality Clinic, Cidco",
+    doctorContact: "+91 98231 44556",
+    issueDate: "2026-09-14",
+    leaveStartDate: null,
+    leaveEndDate: null,
+    totalDays: null,
+    diagnosis: "Complete recovery from acute viral episode and migraine symptoms.",
+    recommendations: "Certified medically fit to resume all theory lectures, VLSI hardware laboratory practicals, and institutional duties.",
+    applyForLeaveCondonation: false,
+    documentUrl: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=800&auto=format&fit=crop&q=80",
+    documentName: "Medical_Fitness_Certificate_Aditya.pdf",
+    documentSize: "320 KB",
+    status: "Verified",
+    verifiedBy: "Dr. Shrikant Honade (HOD)",
+    verifiedAt: "2026-09-15T09:40:00.000Z",
+    reviewNotes: "Fitness certificate registered with department records. Cleared for regular lab practicals.",
+    createdAt: "2026-09-14T18:00:00.000Z",
+    updatedAt: "2026-09-15T09:40:00.000Z"
+  }
+];
+

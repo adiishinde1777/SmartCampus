@@ -12,17 +12,28 @@ import {
   TrendingUp,
   Layers,
   ArrowRight,
-  ShieldCheck
+  ShieldCheck,
+  Sparkles
 } from "lucide-react";
 import { StatCard, Badge } from "../common/UIPrimitives";
 
 export default function PrincipalDashboard({ onNavigate }) {
-  const { currentUser, departments, users, systemSettings, complaints } = useSmartCampus();
+  const { currentUser, departments, users, systemSettings, complaints, collegeEvents } = useSmartCampus();
 
-  const totalStudents = departments.reduce((acc, d) => acc + (d.studentCount || 0), 0);
-  const totalFaculty = departments.reduce((acc, d) => acc + (d.facultyCount || 0), 0);
-  const avgAttendance = (departments.reduce((acc, d) => acc + d.avgAttendance, 0) / departments.length).toFixed(1);
-  const avgMarks = (departments.reduce((acc, d) => acc + d.avgMarks, 0) / departments.length).toFixed(1);
+  const [selectedDeptFilter, setSelectedDeptFilter] = useState("all");
+
+  const displayedDepartments = selectedDeptFilter === "all"
+    ? departments
+    : departments.filter((d) => d.id === selectedDeptFilter);
+
+  const totalStudents = displayedDepartments.reduce((acc, d) => acc + (d.studentCount || 0), 0);
+  const totalFaculty = displayedDepartments.reduce((acc, d) => acc + (d.facultyCount || 0), 0);
+  const avgAttendance = displayedDepartments.length > 0
+    ? (displayedDepartments.reduce((acc, d) => acc + d.avgAttendance, 0) / displayedDepartments.length).toFixed(1)
+    : "0.0";
+  const avgMarks = displayedDepartments.length > 0
+    ? (displayedDepartments.reduce((acc, d) => acc + d.avgMarks, 0) / displayedDepartments.length).toFixed(1)
+    : "0.0";
 
   const pendingComplaints = complaints.filter((c) => c.status !== "Resolved");
 
@@ -69,12 +80,79 @@ export default function PrincipalDashboard({ onNavigate }) {
         </button>
       </div>
 
+      {/* Principal College Department View Option Bar */}
+      <div
+        className="card"
+        style={{
+          padding: "16px 20px",
+          background: "var(--bg-surface)",
+          border: "1.5px solid var(--border-subtle)",
+          boxShadow: "var(--shadow-sm)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "14px"
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div
+            style={{
+              width: "42px",
+              height: "42px",
+              borderRadius: "12px",
+              background: "linear-gradient(135deg, #881337, #be123c)",
+              color: "white",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+          >
+            <Building2 size={22} />
+          </div>
+          <div>
+            <div style={{ fontWeight: "800", fontSize: "1rem", color: "var(--text-main)" }}>
+              College Oversight Scope: {selectedDeptFilter === "all" ? "All Engineering Departments (Institutional View)" : departments.find(d => d.id === selectedDeptFilter)?.name}
+            </div>
+            <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+              {selectedDeptFilter === "all"
+                ? `Institutional View: Aggregating all ${departments.length} engineering departments across CSMSS Campus.`
+                : "Departmental Deep-Dive: Viewing isolated metrics and academic health."}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+          <button
+            onClick={() => setSelectedDeptFilter("all")}
+            className={`btn btn-sm ${selectedDeptFilter === "all" ? "btn-primary" : "btn-secondary"}`}
+            style={{ fontWeight: "700", padding: "6px 14px" }}
+          >
+            🏢 All Departments ({departments.length})
+          </button>
+          {departments.map((d) => (
+            <button
+              key={d.id}
+              onClick={() => setSelectedDeptFilter(d.id)}
+              className={`btn btn-sm ${selectedDeptFilter === d.id ? "btn-primary" : "btn-secondary"}`}
+              style={{
+                fontSize: "0.8rem",
+                fontWeight: selectedDeptFilter === d.id ? "700" : "600",
+                padding: "6px 12px"
+              }}
+            >
+              {d.code || d.name.split(" ")[0]}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* 8 Principal Executive Summary Cards */}
       <div className="stats-grid">
         <StatCard
           label="Total Enrolled Students"
           value={totalStudents}
-          subtext="Across all 4 engineering branches"
+          subtext={selectedDeptFilter === "all" ? "Across all engineering departments" : `In ${displayedDepartments[0]?.name}`}
           icon={Users}
           variant="primary"
           onClick={() => onNavigate("departments")}
@@ -83,7 +161,7 @@ export default function PrincipalDashboard({ onNavigate }) {
         <StatCard
           label="Total Faculty Staff"
           value={totalFaculty}
-          subtext="Professors & Technical Staff"
+          subtext={selectedDeptFilter === "all" ? "Professors & Technical Staff" : `Faculty in ${displayedDepartments[0]?.code}`}
           icon={GraduationCap}
           variant="purple"
           onClick={() => onNavigate("departments")}
@@ -91,25 +169,25 @@ export default function PrincipalDashboard({ onNavigate }) {
 
         <StatCard
           label="Active Departments"
-          value={departments.length}
-          subtext="CE, IT, EXTC, MECH"
+          value={displayedDepartments.length}
+          subtext={selectedDeptFilter === "all" ? "All College Departments" : `Focused on ${displayedDepartments[0]?.code}`}
           icon={Building2}
           variant="primary"
           onClick={() => onNavigate("departments")}
         />
 
         <StatCard
-          label="College Overall Attendance"
+          label="Scope Overall Attendance"
           value={`${avgAttendance}%`}
           subtext={`Threshold: ${systemSettings.attendanceThreshold}%`}
           icon={CalendarCheck}
-          variant={avgAttendance >= systemSettings.attendanceThreshold ? "success" : "warning"}
+          variant={Number(avgAttendance) >= systemSettings.attendanceThreshold ? "success" : "warning"}
           onClick={() => onNavigate("attendance-analytics")}
         />
 
         <StatCard
           label="Students Below Threshold"
-          value="118 (13.8%)"
+          value={selectedDeptFilter === "all" ? "118 (13.8%)" : `${Math.round(totalStudents * 0.12)} Students`}
           subtext="Parent notifications active"
           icon={AlertTriangle}
           variant="danger"
@@ -117,9 +195,9 @@ export default function PrincipalDashboard({ onNavigate }) {
         />
 
         <StatCard
-          label="Institution Marks Average"
+          label="Academic Benchmark (Avg)"
           value={`${avgMarks}%`}
-          subtext="Mid-term & unit evaluations"
+          subtext="Continuous Internal Evaluation"
           icon={Award}
           variant="purple"
           onClick={() => onNavigate("academic-analytics")}
@@ -141,6 +219,60 @@ export default function PrincipalDashboard({ onNavigate }) {
           icon={ShieldCheck}
           variant="success"
         />
+      </div>
+
+      {/* College Talent Overview Highlight Card */}
+      <div
+        className="card"
+        style={{
+          background: "linear-gradient(135deg, #4c0519 0%, #881337 100%)",
+          color: "white",
+          padding: "20px 28px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "16px",
+          boxShadow: "0 8px 20px -4px rgba(76, 5, 25, 0.3)"
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div
+            style={{
+              width: "46px",
+              height: "46px",
+              borderRadius: "12px",
+              background: "rgba(255, 255, 255, 0.18)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fecdd3"
+            }}
+          >
+            <Sparkles size={24} />
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <h3 style={{ fontSize: "1.15rem", fontWeight: "800", color: "white" }}>
+                College Talent & Extracurricular Overview
+              </h3>
+              <span style={{ background: "rgba(255,255,255,0.2)", padding: "2px 8px", borderRadius: "10px", fontSize: "0.72rem", fontWeight: "700" }}>
+                {(collegeEvents || []).length} Scheduled College Events
+              </span>
+            </div>
+            <p style={{ fontSize: "0.86rem", color: "#fecdd3", marginTop: "3px" }}>
+              Comprehensive talent analytics across Sports, Cultural, Technical, and Management domains.
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => onNavigate("college-talent")}
+          className="btn btn-sm"
+          style={{ background: "#ffffff", color: "#881337", fontWeight: "700", border: "none" }}
+        >
+          Open Talent Analytics
+        </button>
       </div>
 
       {/* Multi-Department Visual Comparison Grid */}
@@ -165,7 +297,7 @@ export default function PrincipalDashboard({ onNavigate }) {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-            {departments.map((d) => (
+            {displayedDepartments.map((d) => (
               <div key={d.id}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem", marginBottom: "4px" }}>
                   <span style={{ fontWeight: "700" }}>{d.name} ({d.code})</span>
@@ -211,7 +343,7 @@ export default function PrincipalDashboard({ onNavigate }) {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-            {departments.map((d) => (
+            {displayedDepartments.map((d, idx) => (
               <div key={d.id}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem", marginBottom: "4px" }}>
                   <span style={{ fontWeight: "700" }}>{d.name}</span>
@@ -228,7 +360,7 @@ export default function PrincipalDashboard({ onNavigate }) {
                   />
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "2px" }}>
-                  <span>Academic Rank: #{d.code === "IT" ? 1 : d.code === "CE" ? 2 : d.code === "EXTC" ? 3 : 4}</span>
+                  <span>Academic Rank: #{idx + 1}</span>
                   <span>Benchmark Status: ✓ Above 60%</span>
                 </div>
               </div>

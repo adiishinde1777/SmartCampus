@@ -1,114 +1,55 @@
-import React, { useState } from "react";
+import React from "react";
 import { useSmartCampus } from "../../context/SmartCampusContext";
 import {
   Menu,
   Bell,
-  Search,
-  ChevronDown,
-  User,
+  LogOut,
   ShieldCheck,
-  CheckCircle2,
-  AlertTriangle,
   GraduationCap
 } from "lucide-react";
 
-export default function TopNavbar({ currentView, onToggleMobile, onOpenNotifications }) {
-  const { currentUser, activeRole, switchUser, users, notifications, systemSettings } = useSmartCampus();
-  const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
+export default function TopNavbar({ currentView, onNavigate, onToggleMobile, onOpenNotifications }) {
+  const { currentUser, activeRole, notifications, systemSettings, logout } = useSmartCampus();
 
   const unreadCount = notifications.filter(
     (n) => (n.recipientId === currentUser?.id || n.recipientRole === currentUser?.role) && !n.read
   ).length;
 
-  const roles = [
-    { role: "student", label: "Student (Rahul Patil)", id: "stu-1" },
-    { role: "teacher", label: "Teacher (Prof. R.K. Patil)", id: "tea-1" },
-    { role: "parent", label: "Parent (Suresh Patil)", id: "par-1" },
-    { role: "hod", label: "HOD (Dr. V.S. Rao)", id: "hod-1" },
-    { role: "principal", label: "Principal (Dr. S.K. Mehta)", id: "prin-1" },
-    { role: "admin", label: "Admin Officer", id: "adm-1" }
-  ];
-
-  const handleRoleSelect = (targetId) => {
-    switchUser(targetId);
-    setRoleDropdownOpen(false);
-  };
-
   return (
     <header className="top-navbar">
       <div className="navbar-left">
-        <button className="mobile-menu-btn" onClick={onToggleMobile}>
+        <button className="mobile-menu-btn" onClick={onToggleMobile} title="Toggle Navigation">
           <Menu size={22} />
         </button>
 
         <div className="navbar-breadcrumb">
           <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-            {systemSettings.collegeName} •
+            {systemSettings?.collegeName || "CSMSS Chh. Shahu College of Engineering"} •
           </span>
           <span className="active-crumb" style={{ textTransform: "capitalize" }}>
-            {currentView.replace(/-/g, " ")}
+            {currentView ? currentView.replace(/-/g, " ") : "Dashboard"}
           </span>
         </div>
       </div>
 
       <div className="navbar-right">
-        {/* Quick Persona Switcher Dropdown */}
-        <div className="role-switcher-dropdown">
-          <button
-            className="role-switch-btn"
-            onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
-          >
-            <ShieldCheck size={16} color="var(--primary-600)" />
-            <span>Switch Role: <strong style={{ textTransform: "uppercase", color: "var(--primary-700)" }}>{activeRole}</strong></span>
-            <ChevronDown size={14} />
-          </button>
-
-          {roleDropdownOpen && (
-            <div
-              style={{
-                position: "absolute",
-                top: "115%",
-                right: 0,
-                background: "white",
-                borderRadius: "12px",
-                border: "1px solid var(--border-subtle)",
-                boxShadow: "var(--shadow-xl)",
-                width: "280px",
-                padding: "8px",
-                zIndex: 60,
-                display: "flex",
-                flexDirection: "column",
-                gap: "4px"
-              }}
-            >
-              <div style={{ padding: "6px 10px", fontSize: "0.72rem", fontWeight: "700", color: "var(--text-muted)", textTransform: "uppercase" }}>
-                Select Active Login Persona
-              </div>
-              {roles.map((r) => (
-                <button
-                  key={r.id}
-                  onClick={() => handleRoleSelect(r.id)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "8px 12px",
-                    borderRadius: "8px",
-                    border: "none",
-                    background: activeRole === r.role ? "var(--primary-50)" : "transparent",
-                    color: activeRole === r.role ? "var(--primary-700)" : "var(--text-main)",
-                    fontWeight: activeRole === r.role ? "700" : "500",
-                    fontSize: "0.85rem",
-                    cursor: "pointer",
-                    textAlign: "left"
-                  }}
-                >
-                  <span>{r.label}</span>
-                  {activeRole === r.role && <CheckCircle2 size={16} color="var(--primary-600)" />}
-                </button>
-              ))}
-            </div>
-          )}
+        {/* Active Role Identifier Badge */}
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "5px 12px",
+            background: "rgba(37, 99, 235, 0.08)",
+            border: "1px solid rgba(37, 99, 235, 0.2)",
+            borderRadius: "20px",
+            fontSize: "0.78rem",
+            fontWeight: "700",
+            color: "var(--primary-700)"
+          }}
+        >
+          <ShieldCheck size={14} color="var(--primary-600)" />
+          <span style={{ textTransform: "uppercase" }}>{activeRole} ACCESS</span>
         </div>
 
         {/* Notification Bell */}
@@ -121,21 +62,60 @@ export default function TopNavbar({ currentView, onToggleMobile, onOpenNotificat
           {unreadCount > 0 && <span className="notification-bell-badge">{unreadCount}</span>}
         </button>
 
-        {/* User Pill */}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", paddingLeft: "8px", borderLeft: "1px solid var(--border-subtle)" }}>
-          <img
-            src={currentUser?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"}
-            alt={currentUser?.name}
-            style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover", border: "2px solid #e2e8f0" }}
-          />
+        {/* User Profile Pill & Sign Out */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", paddingLeft: "10px", borderLeft: "1px solid var(--border-subtle)" }}>
+          {currentUser?.avatar ? (
+            <img
+              src={currentUser.avatar}
+              alt={currentUser?.name}
+              style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover", border: "2px solid #e2e8f0" }}
+            />
+          ) : (
+            <div
+              style={{
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #2563eb, #1e40af)",
+                color: "white",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: "700",
+                fontSize: "0.82rem",
+                border: "2px solid #e2e8f0",
+                flexShrink: 0
+              }}
+            >
+              {currentUser?.name ? currentUser.name.split(" ").slice(0, 2).map((n) => n[0]).join("") : "U"}
+            </div>
+          )}
           <div className="hide-on-mobile" style={{ display: "flex", flexDirection: "column" }}>
             <span style={{ fontSize: "0.85rem", fontWeight: "700", color: "var(--text-main)", lineHeight: 1.2 }}>
-              {currentUser?.name}
+              {currentUser?.name || "Logged In User"}
             </span>
             <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
               {currentUser?.rollNo || currentUser?.designation || activeRole}
             </span>
           </div>
+
+          <button
+            onClick={logout}
+            className="btn btn-secondary btn-sm"
+            style={{
+              padding: "5px 10px",
+              fontSize: "0.75rem",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+              color: "#dc2626",
+              borderColor: "#fecaca"
+            }}
+            title="Sign Out of Portal"
+          >
+            <LogOut size={13} />
+            <span className="hide-on-mobile">Logout</span>
+          </button>
         </div>
       </div>
     </header>

@@ -24,11 +24,20 @@ import {
   CalendarDays,
   FileText,
   HelpCircle,
-  Activity
+  Activity,
+  Library
 } from "lucide-react";
 
 export default function Sidebar({ currentView, setCurrentView, isMobileOpen, setIsMobileOpen }) {
-  const { currentUser, activeRole, logout, notifications, complaints, leaves } = useSmartCampus();
+  const {
+    currentUser,
+    activeRole,
+    logout,
+    notifications,
+    complaints,
+    leaves,
+    getTeacherResponsibilities
+  } = useSmartCampus();
 
   const unreadNotifs = notifications.filter(
     (n) => (n.recipientId === currentUser?.id || n.recipientRole === currentUser?.role) && !n.read
@@ -37,30 +46,61 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
   const pendingLeavesCount = leaves.filter((l) => l.status === "Pending").length;
   const pendingComplaintsCount = complaints.filter((c) => c.status !== "Resolved").length;
 
+  // Resolve dynamic teacher responsibilities
+  const teacherResp = activeRole === "teacher" && getTeacherResponsibilities
+    ? getTeacherResponsibilities(currentUser?.id)
+    : { isClassTeacher: false, isTG: false };
+
   // Role based navigation definitions
   const getNavItems = () => {
     switch (activeRole) {
       case "student":
         return [
           { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+          { id: "skills", label: "My Skills & Interests", icon: Sparkles, highlight: true },
           { id: "attendance", label: "Attendance", icon: CalendarCheck },
           { id: "marks", label: "Marks & Grades", icon: Award },
           { id: "assignments", label: "Assignments", icon: BookOpen },
+          { id: "study-material", label: "Study Material / Notes", icon: Library, highlight: true },
+          { id: "timetable", label: "Class Timetable", icon: Clock },
           { id: "notices", label: "Notices", icon: Bell },
           { id: "exams", label: "Exam Schedule", icon: CalendarDays },
           { id: "leave", label: "Apply Leave", icon: Clock },
           { id: "complaints", label: "Complaints", icon: AlertOctagon },
           { id: "performance", label: "Academic Health", icon: TrendingUp },
           { id: "notifications", label: "Notifications", icon: Bell, badge: unreadNotifs },
-          { id: "ai-assistant", label: "AI Assistant", icon: Sparkles, highlight: true },
           { id: "profile", label: "My Profile", icon: User }
         ];
-      case "teacher":
-        return [
+      case "teacher": {
+        const items = [
           { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-          { id: "classes", label: "My Classes", icon: GraduationCap },
-          { id: "attendance", label: "Mark Attendance", icon: CalendarCheck, highlight: true },
+          { id: "talent-finder", label: "Event Talent Finder", icon: Users, highlight: true }
+        ];
+
+        // Students & Class Roster is always accessible to teacher
+        items.push({
+          id: "my-class",
+          label: "Students & Class Roster",
+          icon: GraduationCap,
+          highlight: true
+        });
+
+        // Dynamically add TG Batch tab if assigned
+        if (teacherResp.isTG) {
+          items.push({
+            id: "my-tg-batch",
+            label: "My TG Batch",
+            icon: ShieldCheck,
+            highlight: true
+          });
+        }
+
+        // Standard academic tabs
+        items.push(
+          { id: "classes", label: "Subject Classes", icon: BookOpen },
+          { id: "attendance", label: "Mark Attendance", icon: CalendarCheck },
           { id: "marks", label: "Upload Marks", icon: Award },
+          { id: "teacher-study-material", label: "Study Material", icon: Library, highlight: true },
           { id: "assignments", label: "Assignments", icon: BookOpen },
           { id: "notices", label: "Class Notices", icon: Bell },
           { id: "leaves", label: "Leave Requests", icon: Clock, badge: pendingLeavesCount },
@@ -68,11 +108,16 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
           { id: "reports", label: "Reports & Exports", icon: FileSpreadsheet },
           { id: "notifications", label: "Notifications", icon: Bell, badge: unreadNotifs },
           { id: "profile", label: "Profile", icon: User }
-        ];
+        );
+
+        return items;
+      }
       case "parent":
         return [
           { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-          { id: "attendance", label: "Child Attendance", icon: CalendarCheck, highlight: true },
+          { id: "doctor-letters", label: "Doctor's Letters", icon: FileText, highlight: true },
+          { id: "health-info", label: "Health Information", icon: Activity },
+          { id: "attendance", label: "Child Attendance", icon: CalendarCheck },
           { id: "marks", label: "Marks & Progress", icon: Award },
           { id: "assignments", label: "Assignments", icon: BookOpen },
           { id: "notices", label: "College Notices", icon: Bell },
@@ -83,6 +128,7 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
       case "hod":
         return [
           { id: "dashboard", label: "HOD Dashboard", icon: LayoutDashboard },
+          { id: "department-talent", label: "Dept Talent & Events", icon: Sparkles, highlight: true },
           { id: "students", label: "Dept Students", icon: Users },
           { id: "faculty", label: "Faculty Tracking", icon: GraduationCap },
           { id: "attendance", label: "Attendance Radar", icon: CalendarCheck },
@@ -97,23 +143,27 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
       case "principal":
         return [
           { id: "dashboard", label: "Principal Dashboard", icon: LayoutDashboard },
+          { id: "college-talent", label: "College Talent Overview", icon: BarChart3, highlight: true },
           { id: "departments", label: "Departments", icon: Building2 },
           { id: "attendance-analytics", label: "Attendance Analytics", icon: CalendarCheck },
           { id: "academic-analytics", label: "Academic Analytics", icon: TrendingUp },
           { id: "complaints", label: "College Complaints", icon: AlertOctagon },
           { id: "notices", label: "College Circulars", icon: Bell },
           { id: "reports", label: "Executive Reports", icon: FileSpreadsheet },
-          { id: "drilldown", label: "College Drill-Down", icon: Layers, highlight: true },
+          { id: "drilldown", label: "College Drill-Down", icon: Layers },
           { id: "profile", label: "Profile", icon: User }
         ];
       case "admin":
         return [
           { id: "dashboard", label: "Admin Console", icon: LayoutDashboard },
+          { id: "talent-admin", label: "Talent & Health Admin", icon: ShieldCheck, highlight: true },
+          { id: "class-tg-management", label: "Class & TG Management", icon: Users, highlight: true },
           { id: "users", label: "User Management", icon: Users },
           { id: "departments", label: "Departments", icon: Building2 },
+          { id: "common-curriculum", label: "Common First Year", icon: Layers },
           { id: "subjects", label: "Subjects & Faculty", icon: BookOpen },
           { id: "timetable", label: "Timetable Master", icon: CalendarDays },
-          { id: "threshold", label: "Attendance Threshold", icon: ShieldCheck, highlight: true },
+          { id: "threshold", label: "Attendance Threshold", icon: ShieldCheck },
           { id: "notices", label: "Notice Board", icon: Bell },
           { id: "complaints", label: "All Complaints", icon: AlertOctagon },
           { id: "audit-logs", label: "Audit Trail Logs", icon: FileText },
@@ -196,13 +246,30 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
       {/* Footer Profile & Logout */}
       <div className="sidebar-footer">
         <div className="user-profile-mini">
-          <img
-            src={
-              currentUser?.avatar ||
-              "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
-            }
-            alt={currentUser?.name}
-          />
+          {currentUser?.avatar ? (
+            <img
+              src={currentUser.avatar}
+              alt={currentUser?.name}
+            />
+          ) : (
+            <div
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #2563eb, #1e40af)",
+                color: "white",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: "700",
+                fontSize: "0.85rem",
+                flexShrink: 0
+              }}
+            >
+              {currentUser?.name ? currentUser.name.split(" ").slice(0, 2).map((n) => n[0]).join("") : "U"}
+            </div>
+          )}
           <div className="user-details">
             <div className="user-name">{currentUser?.name || "Logged User"}</div>
             <div className="user-sub">{currentUser?.designation || currentUser?.departmentName || activeRole}</div>

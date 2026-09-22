@@ -7,11 +7,13 @@ import {
   Clock,
   Smartphone,
   ShieldAlert,
-  MessageSquare
+  MessageSquare,
+  Stethoscope,
+  FileText
 } from "lucide-react";
 import { Badge } from "../common/UIPrimitives";
 
-export default function ParentAttendance() {
+export default function ParentAttendance({ onNavigate }) {
   const { currentUser, users, attendance, subjects, attendanceLogs, systemSettings } = useSmartCampus();
 
   const parent = currentUser;
@@ -21,11 +23,29 @@ export default function ParentAttendance() {
   const wardAtt = attendance[ward?.id] || {};
   let totalClasses = 0;
   let totalAttended = 0;
+  let totalTheoryClasses = 0;
+  let totalTheoryAttended = 0;
+  let totalPracticalClasses = 0;
+  let totalPracticalAttended = 0;
 
-  const subjectRows = subjects.map((sub) => {
+  const subjectRows = (subjects || []).map((sub) => {
     const sData = wardAtt[sub.id] || { total: 20, attended: 16, percentage: 80 };
     totalClasses += sData.total;
     totalAttended += sData.attended;
+
+    const thTotal = sData.theoryTotal ?? Math.round(sData.total * 0.7);
+    const thAtt = sData.theoryAttended ?? Math.min(thTotal, Math.round(sData.attended * 0.7));
+    const thPct = thTotal > 0 ? Math.round((thAtt / thTotal) * 1000) / 10 : sData.percentage;
+
+    const prTotal = sData.practicalTotal ?? Math.max(0, sData.total - thTotal);
+    const prAtt = sData.practicalAttended ?? Math.max(0, sData.attended - thAtt);
+    const prPct = prTotal > 0 ? Math.round((prAtt / prTotal) * 1000) / 10 : sData.percentage;
+
+    totalTheoryClasses += thTotal;
+    totalTheoryAttended += thAtt;
+    totalPracticalClasses += prTotal;
+    totalPracticalAttended += prAtt;
+
     const isBelow = sData.percentage < threshold;
 
     let requiredLectures = 0;
@@ -38,6 +58,12 @@ export default function ParentAttendance() {
       ...sub,
       total: sData.total,
       attended: sData.attended,
+      theoryTotal: thTotal,
+      theoryAttended: thAtt,
+      theoryPercentage: thPct,
+      practicalTotal: prTotal,
+      practicalAttended: prAtt,
+      practicalPercentage: prPct,
       missed: sData.total - sData.attended,
       percentage: sData.percentage,
       isBelow,
@@ -46,6 +72,8 @@ export default function ParentAttendance() {
   });
 
   const overallPct = totalClasses > 0 ? Math.round((totalAttended / totalClasses) * 1000) / 10 : 0;
+  const overallTheoryPct = totalTheoryClasses > 0 ? Math.round((totalTheoryAttended / totalTheoryClasses) * 1000) / 10 : overallPct;
+  const overallPracticalPct = totalPracticalClasses > 0 ? Math.round((totalPracticalAttended / totalPracticalClasses) * 1000) / 10 : overallPct;
   const myWardLogs = attendanceLogs.filter((l) => l.studentId === ward?.id);
 
   return (
@@ -57,13 +85,21 @@ export default function ParentAttendance() {
             Ward Attendance & Absence History: {ward?.name}
           </h2>
           <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "4px" }}>
-            Real-time verified lecture attendance, absence alerts, and recovery targets
+            Real-time verified lecture attendance, practical sessions, absence alerts, and recovery targets
           </p>
         </div>
 
-        <Badge variant={overallPct >= threshold ? "success" : "danger"}>
-          Overall Ward Attendance: {overallPct}%
-        </Badge>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <Badge variant={overallPct >= threshold ? "success" : "danger"}>
+            Overall: {overallPct}%
+          </Badge>
+          <Badge variant="primary">
+            Theory: {overallTheoryPct}%
+          </Badge>
+          <Badge variant="purple">
+            Practical: {overallPracticalPct}%
+          </Badge>
+        </div>
       </div>
 
       {/* Summary Card */}
@@ -90,11 +126,68 @@ export default function ParentAttendance() {
             </h3>
             <p style={{ fontSize: "0.85rem", color: overallPct < threshold ? "#7f1d1d" : "#14532d", marginTop: "2px" }}>
               {overallPct < threshold
-                ? `Rahul's attendance (${overallPct}%) is currently below the institutional ${threshold}% threshold. Please ensure regular attendance to avoid exam debarment.`
-                : `Rahul has attended ${totalAttended} out of ${totalClasses} lectures (${overallPct}%). All requirements met.`}
+                ? `${ward?.name ? ward.name.split(" ")[0] : "Aditya"}'s attendance (${overallPct}%) is currently below the institutional ${threshold}% threshold. Please ensure regular attendance to avoid exam debarment.`
+                : `${ward?.name ? ward.name.split(" ")[0] : "Aditya"} has attended ${totalAttended} out of ${totalClasses} lectures (${overallPct}%). All requirements met.`}
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Doctor's Letter Absence Condonation Banner */}
+      <div
+        className="card"
+        style={{
+          background: "linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)",
+          border: "1px solid #a7f3d0",
+          padding: "16px 20px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "14px"
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+          <div
+            style={{
+              width: "42px",
+              height: "42px",
+              borderRadius: "10px",
+              background: "#dcfce7",
+              color: "#059669",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0
+            }}
+          >
+            <Stethoscope size={22} />
+          </div>
+          <div>
+            <div style={{ fontWeight: "800", color: "#065f46", fontSize: "0.95rem" }}>
+              Medical Absence Condonation
+            </div>
+            <div style={{ fontSize: "0.82rem", color: "#047857", marginTop: "2px" }}>
+              Was your ward absent due to illness, fever, or medical consultation? Upload a doctor's letter to request official attendance excusal.
+            </div>
+          </div>
+        </div>
+
+        {onNavigate && (
+          <button
+            onClick={() => onNavigate("doctor-letters")}
+            className="btn btn-sm"
+            style={{
+              background: "#059669",
+              color: "white",
+              fontWeight: "700",
+              border: "none",
+              boxShadow: "0 2px 8px rgba(5, 150, 105, 0.3)"
+            }}
+          >
+            <FileText size={14} /> Upload Doctor's Letter
+          </button>
+        )}
       </div>
 
       {/* Subject Table */}
@@ -112,9 +205,9 @@ export default function ParentAttendance() {
               <tr>
                 <th>Subject Name</th>
                 <th>Course Code</th>
-                <th>Attended / Total</th>
-                <th>Missed Lectures</th>
-                <th>Attendance %</th>
+                <th>📘 Theory</th>
+                <th>🔬 Practical</th>
+                <th>Overall Attendance</th>
                 <th>Compliance Status</th>
                 <th>Recovery Target</th>
               </tr>
@@ -129,17 +222,22 @@ export default function ParentAttendance() {
                     <Badge variant="gray">{row.code}</Badge>
                   </td>
                   <td>
-                    <strong>{row.attended}</strong> / {row.total}
+                    <span style={{ fontSize: "0.82rem", fontWeight: "700", color: "#1d4ed8" }}>
+                      {row.theoryPercentage}% ({row.theoryAttended}/{row.theoryTotal})
+                    </span>
                   </td>
                   <td>
-                    <span style={{ color: row.missed > 5 ? "var(--danger-solid)" : "var(--text-muted)", fontWeight: row.missed > 5 ? "700" : "normal" }}>
-                      {row.missed} Missed
+                    <span style={{ fontSize: "0.82rem", fontWeight: "700", color: "#047857" }}>
+                      {row.practicalPercentage}% ({row.practicalAttended}/{row.practicalTotal})
                     </span>
                   </td>
                   <td>
                     <strong style={{ color: row.isBelow ? "#991b1b" : "var(--text-main)" }}>
                       {row.percentage}%
                     </strong>
+                    <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginLeft: "4px" }}>
+                      ({row.attended}/{row.total})
+                    </span>
                   </td>
                   <td>
                     {row.isBelow ? (
@@ -187,7 +285,7 @@ export default function ParentAttendance() {
               </tr>
             </thead>
             <tbody>
-              {myWardLogs.map((log) => (
+              {(myWardLogs || []).map((log) => (
                 <tr key={log.id}>
                   <td>
                     <strong>{log.date}</strong> ({log.time})

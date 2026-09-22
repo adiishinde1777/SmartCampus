@@ -84,7 +84,7 @@ export default function TeacherProfile() {
               {teacher?.designation} • Department of <strong>{teacher?.departmentName}</strong>
             </p>
             <div style={{ display: "flex", gap: "12px", marginTop: "8px", fontSize: "0.82rem", color: "var(--text-muted)" }}>
-              <span>Faculty ID: <strong>FAC-CE-104</strong></span>
+              <span>Faculty ID: <strong>{teacher?.facultyId || "FAC-VLSI-104"}</strong></span>
               <span>•</span>
               <span>Divisions: <strong>{Array.isArray(teacher?.assignedDivisions) ? teacher?.assignedDivisions.join(", ") : teacher?.assignedDivisions || "Sem 5 - Div A"}</strong></span>
             </div>

@@ -40,7 +40,7 @@ export default function EditProfileModal({ isOpen, onClose }) {
     parentName: currentUser?.parentName || "",
     parentPhone: currentUser?.parentPhone || "",
     parentEmail: currentUser?.parentEmail || "",
-    collegeName: currentUser?.collegeName || "ABC Institute of Technology"
+    collegeName: currentUser?.collegeName || "CSMSS Chh. Shahu College of Engineering"
   }));
 
   const [showPassword, setShowPassword] = useState(false);

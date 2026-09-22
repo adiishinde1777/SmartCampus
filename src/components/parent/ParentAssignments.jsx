@@ -63,7 +63,7 @@ export default function ParentAssignments() {
 
               {isSubmitted && (
                 <div style={{ marginTop: "12px", background: "#ecfdf5", border: "1px solid #a7f3d0", padding: "10px", borderRadius: "8px", fontSize: "0.78rem" }}>
-                  <div style={{ fontWeight: "700", color: "#065f46" }}>✓ Uploaded by Rahul on {sub.submittedOn}</div>
+                  <div style={{ fontWeight: "700", color: "#065f46" }}>✓ Uploaded by {sub.studentName ? sub.studentName.split(" ")[0] : "Aditya"} on {sub.submittedOn}</div>
                   {sub.feedback && (
                     <div style={{ color: "#047857", marginTop: "2px" }}>Instructor Remark: {sub.feedback}</div>
                   )}

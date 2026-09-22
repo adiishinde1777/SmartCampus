@@ -16,8 +16,8 @@ import { Badge } from "../common/UIPrimitives";
 export default function TeacherPerformance() {
   const { subjects, users, attendance, marks, systemSettings } = useSmartCampus();
 
-  const [selectedSub, setSelectedSub] = useState("sub-dbms");
-  const students = users.filter((u) => u.role === "student" && u.departmentId === "dept-ce");
+  const [selectedSub, setSelectedSub] = useState("sub-vlsi501");
+  const students = users.filter((u) => u.role === "student" && u.departmentId === "dept-vlsi");
   const threshold = systemSettings.attendanceThreshold;
 
   const currentSubject = subjects.find((s) => s.id === selectedSub) || subjects[0];
@@ -103,11 +103,31 @@ export default function TeacherPerformance() {
                     </td>
                     <td>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <img
-                          src={stu.avatar}
-                          alt={stu.name}
-                          style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover" }}
-                        />
+                        {stu.avatar ? (
+                          <img
+                            src={stu.avatar}
+                            alt={stu.name}
+                            style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover" }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: "32px",
+                              height: "32px",
+                              borderRadius: "50%",
+                              background: "linear-gradient(135deg, #3b82f6, #1d4ed8)",
+                              color: "white",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontWeight: "700",
+                              fontSize: "0.75rem",
+                              flexShrink: 0
+                            }}
+                          >
+                            {stu.name ? stu.name.split(" ").slice(0, 2).map((n) => n[0]).join("") : "ST"}
+                          </div>
+                        )}
                         <strong style={{ color: isBelowAtt ? "#991b1b" : "var(--text-main)" }}>{stu.name}</strong>
                       </div>
                     </td>

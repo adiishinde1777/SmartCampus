@@ -1,60 +1,121 @@
 import React, { useState } from "react";
 import { useSmartCampus } from "../../context/SmartCampusContext";
+import StudentRegisterPage from "./StudentRegisterPage";
 import {
   GraduationCap,
   ShieldCheck,
   User,
-  Lock,
   ArrowRight,
   BookOpen,
   Users,
   Building2,
   HeartHandshake,
   Sparkles,
-  CheckCircle2
+  Phone,
+  UserPlus,
+  Code
 } from "lucide-react";
 
 export default function LoginPage() {
-  const { login, switchUser, users, systemSettings } = useSmartCampus();
+  const { login } = useSmartCampus();
 
-  const [email, setEmail] = useState("rahul.patil@campus.edu");
-  const [password, setPassword] = useState("password123");
   const [selectedRole, setSelectedRole] = useState("student");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showRegisterPage, setShowRegisterPage] = useState(false);
 
-  const handleLogin = (e) => {
+  if (showRegisterPage) {
+    return <StudentRegisterPage onBackToLogin={() => setShowRegisterPage(false)} />;
+  }
+
+  const handleRoleChange = (role) => {
+    setSelectedRole(role);
+    setError("");
+    setUsername("");
+    setPassword("");
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    const res = login(email, password, selectedRole);
-    if (!res.success) {
-      setError(res.message);
+    setLoading(true);
+
+    try {
+      const res = await login(username, password, selectedRole);
+      if (!res.success) {
+        setError(res.message || "Invalid credentials. Please verify your details.");
+      }
+    } catch (err) {
+      setError(err.message || "Failed to authenticate. Ensure server is running.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleQuickLogin = (role) => {
-    const matchedUser = users.find((u) => u.role === role);
-    if (matchedUser) {
-      setEmail(matchedUser.email);
-      setPassword("password123");
-      setSelectedRole(role);
-      switchUser(matchedUser.id);
+  // Dynamic input label and placeholder definitions
+  const getFieldLabels = () => {
+    switch (selectedRole) {
+      case "student":
+        return {
+          userLabel: "Student PRN Number",
+          userPlaceholder: "e.g. 24025331378056",
+          passLabel: "Student Date of Birth (Password)",
+          passPlaceholder: "YYYY-MM-DD (e.g. 2004-08-22)",
+          hint: "Student login: Enter PRN as Username & Birthdate as Password"
+        };
+      case "parent":
+        return {
+          userLabel: "Registered Parent Mobile Number",
+          userPlaceholder: "e.g. 9422000000",
+          passLabel: "Student's Date of Birth (Password)",
+          passPlaceholder: "YYYY-MM-DD (e.g. 2004-08-22)",
+          hint: "Parent login: Enter Parent Mobile as Username & Ward DOB as Password"
+        };
+      case "teacher":
+        return {
+          userLabel: "Faculty Mobile Number",
+          userPlaceholder: "e.g. 9822000000",
+          passLabel: "Faculty Date of Birth (Password)",
+          passPlaceholder: "YYYY-MM-DD (e.g. 1982-06-15)",
+          hint: "Teacher login: Enter Mobile Number as Username & DOB as Password"
+        };
+      case "hod":
+        return {
+          userLabel: "HOD Mobile Number",
+          userPlaceholder: "e.g. 9822000000",
+          passLabel: "HOD Date of Birth (Password)",
+          passPlaceholder: "YYYY-MM-DD (e.g. 1978-04-12)",
+          hint: "HOD login: Enter Mobile Number as Username & DOB as Password"
+        };
+      case "principal":
+        return {
+          userLabel: "Principal Mobile Number",
+          userPlaceholder: "e.g. 9822000000",
+          passLabel: "Principal Date of Birth (Password)",
+          passPlaceholder: "YYYY-MM-DD (e.g. 1972-11-20)",
+          hint: "Principal login: Enter Mobile Number as Username & DOB as Password"
+        };
+      case "admin":
+      default:
+        return {
+          userLabel: "Admin Username",
+          userPlaceholder: "admin",
+          passLabel: "Admin Password",
+          passPlaceholder: "••••••••",
+          hint: "System Administrator: Enter admin credentials"
+        };
     }
   };
 
-  const demoAccounts = [
-    { role: "student", name: "Rahul Patil", title: "Student (Sem 5)", id: "stu-1", icon: GraduationCap, color: "#2563eb", bg: "#eff6ff" },
-    { role: "teacher", name: "Prof. R. K. Patil", title: "Associate Professor", id: "tea-1", icon: BookOpen, color: "#7c3aed", bg: "#f5f3ff" },
-    { role: "parent", name: "Suresh Patil", title: "Parent (Father of Rahul)", id: "par-1", icon: HeartHandshake, color: "#059669", bg: "#ecfdf5" },
-    { role: "hod", name: "Dr. V. S. Rao", title: "HOD (Comp Engg)", id: "hod-1", icon: Users, color: "#d97706", bg: "#fffbeb" },
-    { role: "principal", name: "Dr. S. K. Mehta", title: "Principal & Director", id: "prin-1", icon: Building2, color: "#dc2626", bg: "#fef2f2" },
-    { role: "admin", name: "Admin Officer", title: "System Manager", id: "adm-1", icon: ShieldCheck, color: "#0891b2", bg: "#ecfeff" }
-  ];
+  const fields = getFieldLabels();
 
   return (
     <div
       style={{
         minHeight: "100vh",
-        background: "radial-gradient(circle at 10% 20%, #0f172a 0%, #1e1b4b 50%, #020617 100%)",
+        background: "radial-gradient(circle at 10% 20%, #0b1329 0%, #151c38 50%, #030712 100%)",
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
@@ -63,194 +124,220 @@ export default function LoginPage() {
         color: "white"
       }}
     >
-      <div style={{ maxWidth: "1080px", width: "100%", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "40px", alignItems: "center" }}>
+      <div style={{ maxWidth: "1040px", width: "100%", display: "grid", gridTemplateColumns: "1.1fr 1fr", gap: "40px", alignItems: "center" }}>
         
-        {/* Left Hero Pitch */}
-        <div style={{ padding: "20px" }}>
+        {/* Left Hero Pitch & Branding */}
+        <div style={{ padding: "16px" }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(59, 130, 246, 0.15)", border: "1px solid rgba(59, 130, 246, 0.3)", padding: "6px 14px", borderRadius: "30px", marginBottom: "20px" }}>
             <Sparkles size={16} color="#60a5fa" />
             <span style={{ fontSize: "0.82rem", fontWeight: "700", color: "#93c5fd", letterSpacing: "0.05em" }}>
-              ENTERPRISE CAMPUS AUTOMATION
+              CAMPUS AUTOMATION & MANAGEMENT SYSTEM
             </span>
           </div>
 
-          <h1 style={{ fontSize: "2.8rem", fontWeight: "800", lineHeight: 1.15, color: "white", marginBottom: "16px" }}>
+          <h1 style={{ fontSize: "2.8rem", fontWeight: "800", lineHeight: 1.15, color: "white", marginBottom: "16px", letterSpacing: "-0.02em" }}>
             SMART CAMPUS
           </h1>
 
-          <p style={{ fontSize: "1.15rem", color: "#94a3b8", lineHeight: 1.6, marginBottom: "28px" }}>
-            Academic, Attendance & Parent Communication Management System.
+          <p style={{ fontSize: "1.08rem", color: "#94a3b8", lineHeight: 1.6, marginBottom: "24px" }}>
+            CSMSS Chh. Shahu College of Engineering • Integrated Academic, Faculty, Student & Parent Communication Portal
           </p>
 
-          {/* Philosophy Banner */}
+          {/* Student Online Registration Card */}
           <div
             style={{
               background: "rgba(255, 255, 255, 0.05)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              borderRadius: "14px",
-              padding: "16px 20px",
-              marginBottom: "32px"
+              border: "1px solid rgba(255, 255, 255, 0.12)",
+              borderRadius: "16px",
+              padding: "18px 20px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "24px"
             }}
           >
-            <div style={{ fontSize: "0.75rem", color: "#38bdf8", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>
-              The Core Engine Loop
+            <div>
+              <div style={{ fontWeight: "700", fontSize: "0.95rem", color: "white" }}>
+                New Student Enrollment Form
+              </div>
+              <div style={{ fontSize: "0.8rem", color: "#94a3b8", marginTop: "2px" }}>
+                Fill your student profile & parent contact information online
+              </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", fontWeight: "800", fontSize: "0.95rem", color: "white", flexWrap: "wrap" }}>
-              <span>Track</span> ➔ <span>Alert</span> ➔ <span>Analyse</span> ➔ <span style={{ color: "#4ade80" }}>Act</span>
-            </div>
+            <button
+              type="button"
+              onClick={() => setShowRegisterPage(true)}
+              className="btn btn-primary btn-sm"
+              style={{ display: "flex", alignItems: "center", gap: "6px", whiteSpace: "nowrap" }}
+            >
+              <UserPlus size={16} />
+              <span>Enroll Now</span>
+            </button>
           </div>
 
-          {/* Role quick switcher buttons */}
-          <div>
-            <p style={{ fontSize: "0.82rem", color: "#94a3b8", fontWeight: "600", marginBottom: "12px" }}>
-              ⚡ 1-Click Instant Demo Portals:
-            </p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-              {demoAccounts.map((acc) => {
-                const Icon = acc.icon;
-                return (
-                  <button
-                    key={acc.role}
-                    onClick={() => handleQuickLogin(acc.role)}
-                    style={{
-                      background: "rgba(255, 255, 255, 0.06)",
-                      border: "1px solid rgba(255, 255, 255, 0.12)",
-                      borderRadius: "10px",
-                      padding: "10px 12px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      cursor: "pointer",
-                      textAlign: "left",
-                      color: "white",
-                      transition: "all 0.2s"
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(37, 99, 235, 0.25)";
-                      e.currentTarget.style.borderColor = "#60a5fa";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "rgba(255, 255, 255, 0.06)";
-                      e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.12)";
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "8px",
-                        background: acc.bg,
-                        color: acc.color,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center"
-                      }}
-                    >
-                      <Icon size={16} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: "0.82rem", fontWeight: "700" }}>{acc.role.toUpperCase()}</div>
-                      <div style={{ fontSize: "0.72rem", color: "#94a3b8" }}>{acc.name}</div>
-                    </div>
-                  </button>
-                );
-              })}
+          {/* DEVELOPED BY ADITYA SHINDE BRANDING BADGE */}
+          <div
+            style={{
+              background: "linear-gradient(135deg, rgba(37, 99, 235, 0.2) 0%, rgba(30, 64, 175, 0.3) 100%)",
+              border: "1.5px solid rgba(96, 165, 250, 0.4)",
+              backdropFilter: "blur(12px)",
+              borderRadius: "18px",
+              padding: "18px 22px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "16px",
+              boxShadow: "0 10px 30px -5px rgba(37, 99, 235, 0.3)"
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              <div
+                style={{
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "12px",
+                  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+                  color: "white",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 4px 12px rgba(37, 99, 235, 0.4)"
+                }}
+              >
+                <Code size={24} />
+              </div>
+              <div>
+                <div style={{ fontSize: "0.72rem", color: "#93c5fd", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  SYSTEM ARCHITECT & DEVELOPER
+                </div>
+                <div style={{ fontSize: "1.15rem", fontWeight: "800", color: "white", letterSpacing: "0.01em" }}>
+                  Developed by Aditya Shinde
+                </div>
+              </div>
             </div>
+
+            <a
+              href="tel:7378535499"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                background: "white",
+                color: "#1e3a8a",
+                padding: "9px 18px",
+                borderRadius: "12px",
+                fontWeight: "800",
+                fontSize: "0.85rem",
+                textDecoration: "none",
+                boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
+                whiteSpace: "nowrap"
+              }}
+            >
+              <Phone size={16} color="#2563eb" />
+              <span>Contact: 7378535499</span>
+            </a>
           </div>
+
         </div>
 
-        {/* Right Login Card */}
+        {/* Right Authentication Card */}
         <div
           style={{
             background: "white",
-            color: "var(--text-main)",
-            borderRadius: "20px",
-            padding: "36px",
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+            color: "#0f172a",
+            borderRadius: "24px",
+            padding: "38px",
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.6)",
             border: "1px solid #e2e8f0"
           }}
         >
           <div style={{ marginBottom: "24px", textAlign: "center" }}>
-            <h2 style={{ fontSize: "1.45rem", fontWeight: "800", color: "#0f172a" }}>Sign In to Portal</h2>
-            <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "4px" }}>
-              Select your academic role and enter credentials
+            <h2 style={{ fontSize: "1.55rem", fontWeight: "800", color: "#0f172a" }}>
+              Sign In to Portal
+            </h2>
+            <p style={{ fontSize: "0.84rem", color: "#64748b", marginTop: "4px" }}>
+              {fields.hint}
             </p>
           </div>
 
           {error && (
-            <div style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", padding: "10px 14px", borderRadius: "8px", fontSize: "0.82rem", marginBottom: "16px", fontWeight: "600" }}>
+            <div
+              style={{
+                background: "#fef2f2",
+                color: "#dc2626",
+                border: "1px solid #fecaca",
+                padding: "12px 14px",
+                borderRadius: "10px",
+                fontSize: "0.84rem",
+                marginBottom: "18px",
+                fontWeight: "600"
+              }}
+            >
               {error}
             </div>
           )}
 
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <div className="form-group">
-              <label className="form-label">Role Selector</label>
+              <label className="form-label" style={{ fontWeight: "700" }}>Login Role</label>
               <select
                 className="form-control"
+                style={{ fontSize: "0.92rem", fontWeight: "600", padding: "10px 14px" }}
                 value={selectedRole}
-                onChange={(e) => {
-                  setSelectedRole(e.target.value);
-                  const matched = users.find((u) => u.role === e.target.value);
-                  if (matched) setEmail(matched.email);
-                }}
+                onChange={(e) => handleRoleChange(e.target.value)}
               >
-                <option value="student">Student</option>
-                <option value="teacher">Teacher / Faculty</option>
-                <option value="parent">Parent / Guardian</option>
-                <option value="hod">Head of Department (HOD)</option>
-                <option value="principal">Principal & Director</option>
-                <option value="admin">System Administrator</option>
+                <option value="student">🎓 Student</option>
+                <option value="teacher">👨‍🏫 Teacher / Faculty</option>
+                <option value="parent">👨‍👩‍👧 Parent / Guardian</option>
+                <option value="hod">🏛️ Head of Department (HOD)</option>
+                <option value="principal">🏫 Principal & Director</option>
+                <option value="admin">⚙️ System Administrator</option>
               </select>
             </div>
 
             <div className="form-group">
-              <label className="form-label">Email or User ID</label>
-              <div style={{ position: "relative" }}>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. rahul.patil@campus.edu"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <label className="form-label">Password</label>
-                <a
-                  href="#forgot"
-                  onClick={(e) => { e.preventDefault(); alert("Demo Password for all accounts: password123"); }}
-                  style={{ fontSize: "0.78rem", color: "var(--primary-600)", fontWeight: "600", textDecoration: "none" }}
-                >
-                  Forgot Password?
-                </a>
-              </div>
+              <label className="form-label" style={{ fontWeight: "700" }}>{fields.userLabel}</label>
               <input
-                type="password"
+                type="text"
                 className="form-control"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder={fields.userPlaceholder}
+                style={{ padding: "10px 14px" }}
                 required
               />
             </div>
 
+            <div className="form-group">
+              <label className="form-label" style={{ fontWeight: "700" }}>{fields.passLabel}</label>
+              <input
+                type={selectedRole === "admin" ? "password" : "text"}
+                className="form-control"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={fields.passPlaceholder}
+                style={{ padding: "10px 14px" }}
+                required
+              />
+              <small style={{ color: "#64748b", fontSize: "0.75rem", marginTop: "4px", display: "block" }}>
+                {selectedRole === "admin" ? "Default admin password is admin123" : "Format: YYYY-MM-DD or DD-MM-YYYY"}
+              </small>
+            </div>
+
             <button
               type="submit"
+              disabled={loading}
               className="btn btn-primary btn-lg"
-              style={{ width: "100%", marginTop: "12px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
+              style={{ width: "100%", marginTop: "12px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "12px" }}
             >
-              <span>Authenticate & Enter</span>
+              <span>{loading ? "Verifying..." : "Authenticate & Enter Portal"}</span>
               <ArrowRight size={18} />
             </button>
           </form>
 
-          <div style={{ marginTop: "24px", paddingTop: "18px", borderTop: "1px solid #e2e8f0", fontSize: "0.75rem", color: "var(--text-muted)", textAlign: "center" }}>
-            Demo Mode Active • Pre-configured credentials loaded
+          {/* Footer note */}
+          <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px solid #e2e8f0", textAlign: "center", fontSize: "0.78rem", color: "#64748b" }}>
+            CSMSS Chh. Shahu College of Engineering • Academic Management System
           </div>
         </div>
 

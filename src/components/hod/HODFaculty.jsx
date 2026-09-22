@@ -13,25 +13,58 @@ import {
 import { Badge } from "../common/UIPrimitives";
 
 export default function HODFaculty() {
-  const { users, subjects } = useSmartCampus();
+  const { currentUser, users, subjects, departments, addToast } = useSmartCampus();
 
-  const deptTeachers = users.filter((u) => u.role === "teacher" && u.departmentId === "dept-ce");
+  const deptId = currentUser?.departmentId || "dept-vlsi";
+  const activeDept = departments.find((d) => d.id === deptId) || {
+    id: deptId,
+    name: currentUser?.departmentName || "Electronic Engineering (VLSI Design And Technology)"
+  };
+
+  const deptTeachers = users.filter((u) => u.role === "teacher" && u.departmentId === deptId);
+
+  const handleContact = (teacherName) => {
+    addToast(
+      "Communication Dispatched",
+      `Official departmental memo sent to ${teacherName}.`,
+      "info"
+    );
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       {/* Header */}
-      <div>
-        <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "var(--text-main)" }}>
-          Department Faculty Tracking & Lecture Compliance
-        </h2>
-        <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "4px" }}>
-          Monitor daily lecture attendance submissions, assigned teaching load, and faculty contact records
-        </p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
+        <div>
+          <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "var(--text-main)" }}>
+            Department Faculty Tracking & Lecture Compliance
+          </h2>
+          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "4px" }}>
+            Monitor daily lecture attendance submissions, assigned teaching load, and faculty records for {activeDept.name}
+          </p>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            background: "rgba(99, 102, 241, 0.08)",
+            border: "1px solid rgba(99, 102, 241, 0.25)",
+            padding: "7px 14px",
+            borderRadius: "10px",
+            fontSize: "0.85rem",
+            fontWeight: "700",
+            color: "var(--primary-700)"
+          }}
+        >
+          <span>Dept Faculty: <strong>{deptTeachers.length} Active</strong></span>
+        </div>
       </div>
 
       {/* Faculty Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: "20px" }}>
-        {deptTeachers.map((tea, idx) => {
+        {deptTeachers.map((tea) => {
           const teaSubjects = subjects.filter((s) => s.teacherId === tea.id || s.teacherName === tea.name);
 
           return (
@@ -73,7 +106,7 @@ export default function HODFaculty() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <Badge variant="success" icon={CheckCircle2}>100% Attendance Compliant</Badge>
                 <button
-                  onClick={() => alert(`Sending message to ${tea.name}...`)}
+                  onClick={() => handleContact(tea.name)}
                   className="btn btn-secondary btn-sm"
                 >
                   <Send size={12} /> Contact

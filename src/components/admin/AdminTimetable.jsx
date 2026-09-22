@@ -33,7 +33,7 @@ export default function AdminTimetable() {
   } = useSmartCampus();
 
   // Filters for which timetable we are viewing/editing
-  const [selectedDept, setSelectedDept] = useState("dept-ce");
+  const [selectedDept, setSelectedDept] = useState("dept-vlsi");
   const [selectedSem, setSelectedSem] = useState(5);
   const [selectedDiv, setSelectedDiv] = useState("A");
   const [selectedDayTab, setSelectedDayTab] = useState("all"); // "all" | "Monday" | ... | "Saturday"
@@ -45,13 +45,14 @@ export default function AdminTimetable() {
 
   const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const standardTimeSlots = [
-    "09:00 AM - 10:00 AM",
-    "10:00 AM - 11:00 AM",
+    "10:00 AM - 11:15 AM",
     "11:15 AM - 12:15 PM",
+    "12:15 PM - 01:00 PM",
     "01:00 PM - 02:00 PM",
     "02:00 PM - 03:00 PM",
-    "03:00 PM - 04:00 PM",
-    "04:00 PM - 05:00 PM"
+    "03:00 PM - 03:15 PM",
+    "03:15 PM - 04:15 PM",
+    "04:15 PM - 05:15 PM"
   ];
 
   const teachers = users.filter((u) => u.role === "teacher");
@@ -72,23 +73,23 @@ export default function AdminTimetable() {
   // Form State
   const [formData, setFormData] = useState({
     day: "Monday",
-    time: "09:00 AM - 10:00 AM",
+    time: "10:00 AM - 11:15 AM",
     subjectId: "",
     teacherId: "tea-1",
-    room: "Room B-204",
+    room: "Classroom A-209",
     type: "Theory"
   });
 
   const handleOpenAdd = (presetDay = null) => {
-    const defaultSub = availableSubjects[0] || subjects[0] || { id: "sub-dbms", teacherId: "tea-1" };
+    const defaultSub = availableSubjects[0] || subjects[0] || { id: "sub-vlsi501", teacherId: "tea-1" };
     const defaultTeacher = teachers.find((t) => t.id === defaultSub.teacherId) || teachers[0];
 
     setFormData({
       day: presetDay || (selectedDayTab !== "all" ? selectedDayTab : "Monday"),
-      time: "09:00 AM - 10:00 AM",
+      time: "10:00 AM - 11:15 AM",
       subjectId: defaultSub.id,
       teacherId: defaultTeacher ? defaultTeacher.id : "tea-1",
-      room: "Room B-204",
+      room: "Classroom A-209",
       type: defaultSub.type === "Lab" ? "Lab" : "Theory"
     });
     setIsAddModalOpen(true);

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSmartCampus } from "../../context/SmartCampusContext";
 import {
   CalendarCheck,
@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Badge, Modal } from "../common/UIPrimitives";
 
-export default function TeacherAttendance() {
+export default function TeacherAttendance({ onNavigate }) {
   const {
     departments,
     subjects,
@@ -26,26 +26,57 @@ export default function TeacherAttendance() {
     systemSettings
   } = useSmartCampus();
 
-  const [selectedDept, setSelectedDept] = useState("dept-ce");
-  const [selectedSemDiv, setSelectedSemDiv] = useState("Sem 5 - Div A");
-  const [selectedSubject, setSelectedSubject] = useState("sub-dbms");
+  const [selectedDept, setSelectedDept] = useState("dept-vlsi");
+  const [selectedClass, setSelectedClass] = useState("TE VLSI – Semester 5 (3rd Year)");
+  const [selectedBatch, setSelectedBatch] = useState("all"); // 'all' | 'TA1' | 'TA2'
+  const [selectedSubject, setSelectedSubject] = useState("sub-vlsi501");
+  const [sessionType, setSessionType] = useState("Theory"); // 'Theory' | 'Practical'
   const [lectureNum, setLectureNum] = useState(14);
   const [lectureDate, setLectureDate] = useState("2026-09-08");
   const [lectureTime, setLectureTime] = useState("10:00 AM");
+  const [isSheetLoaded, setIsSheetLoaded] = useState(false);
 
-  // Get enrolled students
-  const enrolledStudents = users.filter((u) => u.role === "student" && u.departmentId === selectedDept);
+  // Get enrolled students sorted in ascending Roll Number order
+  // Supports 2nd Year (SE VLSI), 3rd Year (TE VLSI), and Final Year (BE VLSI)
+  const enrolledStudents = users
+    .filter((u) => {
+      if (u.role !== "student") return false;
+      if (u.departmentId !== selectedDept) return false;
+      if (selectedDept === "dept-vlsi") {
+        if (selectedClass.includes("2nd Year") || selectedClass.includes("SE")) {
+          if (!(u.semester === 3 || u.semester === 4 || u.year?.includes("Second") || u.className?.includes("SE") || u.batch?.includes("SE"))) return false;
+        } else if (selectedClass.includes("Final Year") || selectedClass.includes("BE")) {
+          if (!(u.semester === 7 || u.semester === 8 || u.year?.includes("Final") || u.className?.includes("BE") || u.batch?.includes("BE"))) return false;
+        } else {
+          // 3rd Year (TE)
+          if (!(u.semester === 5 || u.semester === 6 || u.year?.includes("Third") || u.className?.includes("TE") || u.batch?.includes("TE"))) return false;
+        }
+        if (selectedBatch === "TA1" && u.batch !== "TA1" && u.batch !== "SA1" && u.batch !== "BA1") return false;
+        if (selectedBatch === "TA2" && u.batch !== "TA2" && u.batch !== "SA2" && u.batch !== "BA2") return false;
+      }
+      return true;
+    })
+    .sort((a, b) => (a.rollNo || "").localeCompare(b.rollNo || ""));
 
   // Status map: { [studentId]: "Present" | "Absent" }
-  // By default in demo flow, let's have Rahul Patil set as "Absent" or "Present" ready to toggle!
+  // By default in demo flow, let's have Aditya Shinde set as "Absent" or "Present" ready to toggle!
   const [statusMap, setStatusMap] = useState(() => {
     const map = {};
     enrolledStudents.forEach((stu) => {
-      // Default Rahul Patil (stu-1) to Absent to make demo immediately ready!
+      // Default Aditya Shinde (stu-1) to Absent to make demo immediately ready!
       map[stu.id] = stu.id === "stu-1" ? "Absent" : "Present";
     });
     return map;
   });
+
+  // Re-sync statusMap when department/class/batch filter changes
+  useEffect(() => {
+    const map = {};
+    enrolledStudents.forEach((stu) => {
+      map[stu.id] = stu.id === "stu-1" ? "Absent" : "Present";
+    });
+    setStatusMap(map);
+  }, [selectedDept, selectedClass, selectedBatch]);
 
   const [submissionResult, setSubmissionResult] = useState(null);
 
@@ -64,13 +95,22 @@ export default function TeacherAttendance() {
     setStatusMap(updated);
   };
 
+  const currentSubjectObj = subjects.find((s) => s.id === selectedSubject) || subjects[0];
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    const effectiveSemester = selectedClass.includes("2nd Year") || selectedClass.includes("SE")
+      ? 3
+      : selectedClass.includes("Final Year") || selectedClass.includes("BE")
+      ? 7
+      : (currentSubjectObj?.semester || 5);
+
     const res = markAttendance({
       departmentId: selectedDept,
-      semester: 5,
-      division: "A",
+      semester: effectiveSemester,
+      division: null,
       subjectId: selectedSubject,
+      sessionType,
       lectureNum: Number(lectureNum),
       statusMap,
       date: lectureDate,
@@ -80,7 +120,6 @@ export default function TeacherAttendance() {
     setSubmissionResult(res);
   };
 
-  const currentSubjectObj = subjects.find((s) => s.id === selectedSubject) || subjects[0];
   const presentCount = Object.values(statusMap).filter((s) => s === "Present").length;
   const absentCount = Object.values(statusMap).filter((s) => s === "Absent").length;
 
@@ -117,22 +156,46 @@ export default function TeacherAttendance() {
               value={selectedDept}
               onChange={(e) => setSelectedDept(e.target.value)}
             >
-              {departments.map((d) => (
+              {(departments || []).map((d) => (
                 <option key={d.id} value={d.id}>{d.name}</option>
               ))}
             </select>
           </div>
 
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label">2. Semester & Division</label>
+            <label className="form-label">2. Class / Academic Year</label>
             <select
               className="form-control"
-              value={selectedSemDiv}
-              onChange={(e) => setSelectedSemDiv(e.target.value)}
+              value={selectedClass}
+              onChange={(e) => {
+                setSelectedClass(e.target.value);
+                setIsSheetLoaded(false);
+              }}
+              disabled={selectedDept !== "dept-vlsi"}
             >
-              <option value="Sem 5 - Div A">Sem 5 - Division A</option>
-              <option value="Sem 5 - Div B">Sem 5 - Division B</option>
-              <option value="Sem 3 - Div A">Sem 3 - Division A</option>
+              {selectedDept === "dept-vlsi" ? (
+                <>
+                  <option value="TE VLSI – Semester 5 (3rd Year)">3rd Year (TE VLSI – Sem 5 & 6)</option>
+                  <option value="SE VLSI – Semester 3 (2nd Year)">2nd Year (SE VLSI – Sem 3 & 4)</option>
+                  <option value="BE VLSI – Semester 7 (Final Year)">Final Year (BE VLSI – Sem 7 & 8)</option>
+                </>
+              ) : (
+                <option value="">No Active Class (Roster Empty)</option>
+              )}
+            </select>
+          </div>
+
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label">Batch Filter</label>
+            <select
+              className="form-control"
+              value={selectedBatch}
+              onChange={(e) => setSelectedBatch(e.target.value)}
+              disabled={selectedDept !== "dept-vlsi"}
+            >
+              <option value="all">All Students (72 Enrolled)</option>
+              <option value="TA1">Batch TA1 (Roll VL3101 to VL3136)</option>
+              <option value="TA2">Batch TA2 (Roll VL3137 to VL3172)</option>
             </select>
           </div>
 
@@ -143,14 +206,27 @@ export default function TeacherAttendance() {
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
             >
-              {subjects.map((s) => (
+              {(subjects || []).map((s) => (
                 <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
               ))}
             </select>
           </div>
 
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label">4. Lecture #</label>
+            <label className="form-label">4. Session Type</label>
+            <select
+              className="form-control"
+              value={sessionType}
+              onChange={(e) => setSessionType(e.target.value)}
+              style={{ fontWeight: "700", color: sessionType === "Practical" ? "#047857" : "#1d4ed8" }}
+            >
+              <option value="Theory">📘 Theory Lecture</option>
+              <option value="Practical">🔬 Practical Lab Session</option>
+            </select>
+          </div>
+
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label">5. {sessionType} Session #</label>
             <input
               type="number"
               className="form-control"
@@ -161,7 +237,7 @@ export default function TeacherAttendance() {
           </div>
 
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label">Lecture Date & Time</label>
+            <label className="form-label">Date & Time</label>
             <input
               type="text"
               className="form-control"
@@ -170,15 +246,100 @@ export default function TeacherAttendance() {
             />
           </div>
         </div>
+
+        {/* Load / Gate Control Bar */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginTop: "16px",
+            paddingTop: "14px",
+            borderTop: "1px solid #e2e8f0",
+            flexWrap: "wrap",
+            gap: "10px"
+          }}
+        >
+          <div style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+            {isSheetLoaded ? (
+              <span>Active Attendance Sheet: <strong>{currentSubjectObj?.name}</strong> ({sessionType} #{lectureNum}) • <strong>{enrolledStudents.length} Students</strong></span>
+            ) : (
+              <span>Configure Department & Subject above, then click <strong>"Load Attendance Sheet"</strong> to reveal the roll call.</span>
+            )}
+          </div>
+
+          <div style={{ display: "flex", gap: "10px" }}>
+            {isSheetLoaded ? (
+              <button
+                type="button"
+                onClick={() => setIsSheetLoaded(false)}
+                className="btn btn-secondary btn-sm"
+              >
+                Hide Attendance Sheet
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsSheetLoaded(true)}
+                className="btn btn-primary"
+                style={{ fontWeight: "700" }}
+              >
+                <Users size={16} /> Load Attendance Sheet
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Student List and Marking Table */}
-      <div className="card">
+      {!isSheetLoaded ? (
+        <div
+          className="card"
+          style={{
+            padding: "54px 24px",
+            textAlign: "center",
+            background: "var(--bg-surface-secondary)",
+            border: "2px dashed var(--border-strong)",
+            borderRadius: "14px"
+          }}
+        >
+          <div
+            style={{
+              width: "56px",
+              height: "56px",
+              borderRadius: "14px",
+              background: "#eff6ff",
+              color: "#2563eb",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px auto"
+            }}
+          >
+            <CalendarCheck size={28} />
+          </div>
+          <h3 style={{ fontSize: "1.25rem", fontWeight: "800", color: "var(--text-main)" }}>
+            Attendance Roster Protected
+          </h3>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", maxWidth: "520px", margin: "8px auto 22px auto", lineHeight: "1.5" }}>
+            Student attendance records are not displayed openly. Please confirm your Department (<strong>Electronic Engineering VLSI</strong>), Class, Batch, and Subject above, then click below to display the live attendance sheet.
+          </p>
+          <button
+            type="button"
+            onClick={() => setIsSheetLoaded(true)}
+            className="btn btn-primary btn-lg"
+            style={{ display: "inline-flex", alignItems: "center", gap: "8px", margin: "0 auto", fontWeight: "700" }}
+          >
+            <Users size={18} /> Load Attendance Sheet ({currentSubjectObj?.name || "VLSI Subject"})
+          </button>
+        </div>
+      ) : (
+        /* Student List and Marking Table */
+        <div className="card">
         <div className="card-header">
           <div>
             <div className="card-title">
               <Users size={18} color="var(--primary-600)" />
-              Roll Call: {selectedSemDiv} ({enrolledStudents.length} Students)
+              Roll Call: {selectedClass} ({enrolledStudents.length} Students)
             </div>
             <div className="card-subtitle">
               Subject: <strong>{currentSubjectObj.name}</strong> • Mandatory Threshold: <strong>{systemSettings.attendanceThreshold}%</strong>
@@ -214,7 +375,18 @@ export default function TeacherAttendance() {
               </tr>
             </thead>
             <tbody>
-              {enrolledStudents.map((stu) => {
+              {enrolledStudents.length === 0 ? (
+                <tr>
+                  <td colSpan="6" style={{ textAlign: "center", padding: "48px 20px", color: "var(--text-muted)" }}>
+                    <Users size={40} style={{ opacity: 0.3, margin: "0 auto 12px", display: "block" }} />
+                    <div style={{ fontWeight: "700", fontSize: "1.05rem", color: "var(--text-main)" }}>No Students Enrolled in this Department</div>
+                    <p style={{ fontSize: "0.85rem", marginTop: "6px", maxWidth: "480px", margin: "6px auto 0" }}>
+                      Student database is currently populated exclusively for <strong>Electronics Engineering (VLSI Design & Technology) – 3rd Year (TE VLSI)</strong>.
+                    </p>
+                  </td>
+                </tr>
+              ) : (
+                (enrolledStudents || []).map((stu) => {
                 const stuData = attendance[stu.id]?.[selectedSubject] || { total: 20, attended: 16, percentage: 80 };
                 const isMarkedPresent = statusMap[stu.id] === "Present";
                 const isBelowThreshold = stuData.percentage < systemSettings.attendanceThreshold;
@@ -222,35 +394,83 @@ export default function TeacherAttendance() {
                 return (
                   <tr key={stu.id} style={{ background: !isMarkedPresent ? "#fff1f2" : undefined }}>
                     <td>
-                      <Badge variant="gray">{stu.rollNo}</Badge>
+                      <Badge variant="primary">{stu.rollNo}</Badge>
+                      {stu.batch && (
+                        <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "3px", fontWeight: "600" }}>
+                          {stu.batch}
+                        </div>
+                      )}
                     </td>
                     <td>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <img
-                          src={stu.avatar}
-                          alt={stu.name}
-                          style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover" }}
-                        />
+                        {stu.avatar ? (
+                          <img
+                            src={stu.avatar}
+                            alt={stu.name}
+                            style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover" }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: "36px",
+                              height: "36px",
+                              borderRadius: "50%",
+                              background: "linear-gradient(135deg, #3b82f6, #1d4ed8)",
+                              color: "white",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontWeight: "700",
+                              fontSize: "0.78rem",
+                              flexShrink: 0
+                            }}
+                          >
+                            {stu.name ? stu.name.split(" ").slice(0, 2).map((n) => n[0]).join("") : "ST"}
+                          </div>
+                        )}
                         <div>
                           <div style={{ fontWeight: "700", color: !isMarkedPresent ? "#991b1b" : "var(--text-main)" }}>
                             {stu.name}
                           </div>
-                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{stu.email}</div>
+                          <div style={{ fontSize: "0.72rem", color: "var(--color-primary)", fontFamily: "monospace" }}>
+                            PRN: {stu.prn || stu.prnNo}
+                          </div>
                         </div>
                       </div>
                     </td>
                     <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        <strong style={{ color: isBelowThreshold ? "var(--danger-solid)" : "var(--text-main)" }}>
-                          {stuData.percentage}%
-                        </strong>
-                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                          ({stuData.attended}/{stuData.total})
-                        </span>
-                        {isBelowThreshold && (
-                          <span title={`Below ${systemSettings.attendanceThreshold}%`} style={{ color: "var(--danger-solid)", fontSize: "0.75rem" }}>⚠️</span>
-                        )}
-                      </div>
+                      {(() => {
+                        const thTotal = stuData.theoryTotal ?? Math.round(stuData.total * 0.7);
+                        const thAtt = stuData.theoryAttended ?? Math.min(thTotal, Math.round(stuData.attended * 0.7));
+                        const thPct = thTotal > 0 ? Math.round((thAtt / thTotal) * 100) : stuData.percentage;
+                        const prTotal = stuData.practicalTotal ?? Math.max(0, stuData.total - thTotal);
+                        const prAtt = stuData.practicalAttended ?? Math.max(0, stuData.attended - thAtt);
+                        const prPct = prTotal > 0 ? Math.round((prAtt / prTotal) * 100) : stuData.percentage;
+
+                        return (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <strong style={{ color: isBelowThreshold ? "var(--danger-solid)" : "var(--text-main)", fontSize: "0.9rem" }}>
+                                {stuData.percentage}% Overall
+                              </strong>
+                              <span style={{ fontSize: "0.74rem", color: "var(--text-muted)" }}>
+                                ({stuData.attended}/{stuData.total})
+                              </span>
+                              {isBelowThreshold && (
+                                <span title={`Below ${systemSettings.attendanceThreshold}%`} style={{ color: "var(--danger-solid)", fontSize: "0.75rem" }}>⚠️</span>
+                              )}
+                            </div>
+                            <div style={{ display: "flex", gap: "6px", fontSize: "0.72rem" }}>
+                              <span style={{ background: "rgba(37, 99, 235, 0.1)", color: "#1d4ed8", padding: "1px 6px", borderRadius: "4px", fontWeight: "600" }}>
+                                Theory: {thPct}% ({thAtt}/{thTotal})
+                              </span>
+                              <span style={{ background: "rgba(16, 185, 129, 0.1)", color: "#047857", padding: "1px 6px", borderRadius: "4px", fontWeight: "600" }}>
+                                Practical: {prPct}% ({prAtt}/{prTotal})
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td>
                       <div style={{ fontSize: "0.82rem" }}>
@@ -310,8 +530,9 @@ export default function TeacherAttendance() {
                     </td>
                   </tr>
                 );
-              })}
-            </tbody>
+              })
+            )}
+          </tbody>
           </table>
         </div>
 
@@ -345,6 +566,7 @@ export default function TeacherAttendance() {
           </button>
         </div>
       </div>
+      )}
 
       {/* Confirmation & Automation Pipeline Modal */}
       <Modal
@@ -382,7 +604,7 @@ export default function TeacherAttendance() {
                 <Smartphone size={16} color="#dc2626" />
                 <span>
                   Identified <strong>{submissionResult?.absentCount} Absent Student(s)</strong>:{" "}
-                  {submissionResult?.absentStudents?.map((s) => s.name).join(", ") || "None"}.
+                  {(submissionResult?.absentStudents || []).map((s) => s.name).join(", ") || "None"}.
                 </span>
               </div>
 
@@ -398,45 +620,12 @@ export default function TeacherAttendance() {
             </div>
           </div>
 
-          {/* Quick Demo Switcher Buttons */}
-          <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", padding: "16px", borderRadius: "12px" }}>
-            <div style={{ fontSize: "0.82rem", fontWeight: "700", color: "#1e40af", marginBottom: "8px" }}>
-              🚀 Next Steps in Demo Scenario:
-            </div>
-            <p style={{ fontSize: "0.8rem", color: "#1e3a8a", marginBottom: "12px" }}>
-              Switch personas to see the immediate effect of this attendance submission:
-            </p>
-            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => {
-                  setSubmissionResult(null);
-                  switchUser("stu-1"); // Switch to Rahul Patil
-                }}
-              >
-                <span>View Rahul Patil (Student Alert)</span>
-                <ArrowRight size={14} />
-              </button>
-
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => {
-                  setSubmissionResult(null);
-                  switchUser("par-1"); // Switch to Suresh Patil (Parent)
-                }}
-              >
-                <span>View Suresh Patil (Parent Alert)</span>
-                <ArrowRight size={14} />
-              </button>
-            </div>
-          </div>
-
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <button
-              className="btn btn-secondary"
+              className="btn btn-primary"
               onClick={() => setSubmissionResult(null)}
             >
-              Close Confirmation
+              Done & Close
             </button>
           </div>
         </div>

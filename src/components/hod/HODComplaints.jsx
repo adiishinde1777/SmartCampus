@@ -12,7 +12,16 @@ import {
 import { Badge, Modal } from "../common/UIPrimitives";
 
 export default function HODComplaints() {
-  const { complaints, updateComplaintStatus } = useSmartCampus();
+  const { currentUser, complaints, users, updateComplaintStatus, addToast } = useSmartCampus();
+
+  const deptId = currentUser?.departmentId || "dept-vlsi";
+  const deptStudents = users.filter((u) => u.role === "student" && u.departmentId === deptId);
+  const deptStudentIds = new Set(deptStudents.map((s) => s.id));
+
+  // Strictly department complaints
+  const deptComplaints = complaints.filter(
+    (c) => deptStudentIds.has(c.studentId) || (c.location && (c.location.includes("B-204") || c.location.includes("A-209") || c.location.toLowerCase().includes("vlsi")))
+  );
 
   const [activeModalTicket, setActiveModalTicket] = useState(null);
   const [assignedTo, setAssignedTo] = useState("Mr. S. Jadhav (AV & IT Technician)");
@@ -23,19 +32,43 @@ export default function HODComplaints() {
     e.preventDefault();
     if (!activeModalTicket) return;
     updateComplaintStatus(activeModalTicket.id, status, resolutionNote, assignedTo);
+    addToast(
+      "Ticket Status Updated",
+      `Ticket #${activeModalTicket.ticketNo} marked as ${status}.`,
+      "success"
+    );
     setActiveModalTicket(null);
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       {/* Header */}
-      <div>
-        <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "var(--text-main)" }}>
-          Department Complaint & Facility Issue Resolution Desk
-        </h2>
-        <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "4px" }}>
-          Track classroom, laboratory, and hardware grievances reported by students and assign maintenance personnel
-        </p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
+        <div>
+          <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "var(--text-main)" }}>
+            Department Complaint & Facility Issue Resolution Desk
+          </h2>
+          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "4px" }}>
+            Track classroom, laboratory, and hardware grievances reported by department students and assign maintenance personnel
+          </p>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            background: "rgba(99, 102, 241, 0.08)",
+            border: "1px solid rgba(99, 102, 241, 0.25)",
+            padding: "7px 14px",
+            borderRadius: "10px",
+            fontSize: "0.85rem",
+            fontWeight: "700",
+            color: "var(--primary-700)"
+          }}
+        >
+          <span>Dept Grievances: <strong>{deptComplaints.length} Active</strong></span>
+        </div>
       </div>
 
       {/* Complaints Table */}
@@ -43,7 +76,7 @@ export default function HODComplaints() {
         <div className="card-header">
           <div className="card-title">
             <AlertOctagon size={18} color="var(--primary-600)" />
-            Active Tickets ({complaints.length})
+            Department Active Tickets ({deptComplaints.length})
           </div>
         </div>
 
@@ -62,8 +95,15 @@ export default function HODComplaints() {
               </tr>
             </thead>
             <tbody>
-              {complaints.map((c) => (
-                <tr key={c.id}>
+              {deptComplaints.length === 0 ? (
+                <tr>
+                  <td colSpan="8" style={{ textAlign: "center", padding: "32px", color: "var(--text-muted)" }}>
+                    No active grievances reported for this department.
+                  </td>
+                </tr>
+              ) : (
+                deptComplaints.map((c) => (
+                  <tr key={c.id}>
                   <td>
                     <Badge variant="gray">{c.ticketNo}</Badge>
                     <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{c.createdAt}</div>
@@ -106,7 +146,7 @@ export default function HODComplaints() {
                     </button>
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>

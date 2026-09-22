@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { Badge, Modal, StatCard } from "../common/UIPrimitives";
 
-export default function AdminSubjects() {
+export default function AdminSubjects({ onNavigate }) {
   const {
     subjects,
     departments,
@@ -46,12 +46,12 @@ export default function AdminSubjects() {
   const [formData, setFormData] = useState({
     name: "",
     code: "",
-    departmentId: "dept-ce",
+    departmentId: "dept-vlsi",
     semester: 5,
     credits: 4,
     type: "Theory",
     teacherId: "tea-1",
-    teacherName: "Prof. R. K. Patil",
+    teacherName: "Prof. T. A. Mohije",
     weeklyHours: 4,
     description: ""
   });
@@ -80,9 +80,9 @@ export default function AdminSubjects() {
   const year4Count = subjects.filter((s) => s.semester === 7 || s.semester === 8).length;
 
   const handleOpenAdd = () => {
-    const defaultDept = selectedDept !== "all" ? selectedDept : "dept-ce";
+    const defaultDept = selectedDept !== "all" ? selectedDept : "dept-vlsi";
     const defaultSem = selectedSem !== "all" ? Number(selectedSem) : 5;
-    const firstTeacher = teachers[0] || { id: "tea-1", name: "Prof. R. K. Patil" };
+    const firstTeacher = teachers[0] || { id: "tea-1", name: "Prof. T. A. Mohije" };
 
     setFormData({
       name: "",
@@ -104,12 +104,12 @@ export default function AdminSubjects() {
     setFormData({
       name: sub.name,
       code: sub.code,
-      departmentId: sub.departmentId || "dept-ce",
+      departmentId: sub.departmentId || "dept-vlsi",
       semester: sub.semester || 1,
       credits: sub.credits || 3,
       type: sub.type || "Theory",
       teacherId: sub.teacherId || "tea-1",
-      teacherName: sub.teacherName || "Prof. R. K. Patil",
+      teacherName: sub.teacherName || "Prof. T. A. Mohije",
       weeklyHours: sub.weeklyHours || 4,
       description: sub.description || ""
     });
@@ -210,6 +210,63 @@ export default function AdminSubjects() {
           <PlusCircle size={18} />
           <span>Add New Subject</span>
         </button>
+      </div>
+
+      {/* Common First Year Quick Access Alert Banner */}
+      <div
+        style={{
+          background: "linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.12) 100%)",
+          border: "1px solid rgba(99, 102, 241, 0.3)",
+          borderRadius: "14px",
+          padding: "16px 20px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "12px"
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+          <div
+            style={{
+              width: "42px",
+              height: "42px",
+              borderRadius: "10px",
+              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "white"
+            }}
+          >
+            <Layers size={22} />
+          </div>
+          <div>
+            <div style={{ fontWeight: "700", color: "var(--color-text-primary)", fontSize: "0.95rem", display: "flex", alignItems: "center", gap: "8px" }}>
+              <span>First Year B.Tech Common Curriculum Module</span>
+              <span className="badge badge-purple" style={{ fontSize: "0.72rem" }}>All 8 Branches Unified</span>
+            </div>
+            <p style={{ margin: "2px 0 0 0", fontSize: "0.83rem", color: "var(--color-text-secondary)" }}>
+              Semester I (11 subjects) and Semester II (10 subjects) are centralized. Updating a common subject updates it across all branches automatically without duplicate records.
+            </p>
+          </div>
+        </div>
+
+        {onNavigate && (
+          <button
+            onClick={() => onNavigate("common-curriculum")}
+            className="btn btn-primary"
+            style={{
+              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+              border: "none",
+              boxShadow: "0 4px 12px rgba(99, 102, 241, 0.3)",
+              fontWeight: "600",
+              fontSize: "0.85rem"
+            }}
+          >
+            Open Common First Year Master →
+          </button>
+        )}
       </div>
 
       {/* 4 Academic Year Stats Grid */}

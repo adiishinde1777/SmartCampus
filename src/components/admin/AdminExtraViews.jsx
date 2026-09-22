@@ -42,6 +42,7 @@ export function AdminUsers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [yearFilter, setYearFilter] = useState("all"); // 'all' | '2nd-year' | '3rd-year' | 'final-year'
 
   // Modals state
   const [editingUser, setEditingUser] = useState(null);
@@ -61,45 +62,56 @@ export function AdminUsers() {
     role: "student",
     name: "",
     email: "",
-    password: "password123",
+    dob: "",
+    prn: "",
+    rollNo: "",
+    password: "",
     phone: "",
     avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
-    rollNo: "",
-    departmentId: "dept-ce",
-    departmentName: "Computer Engineering",
-    semester: 5,
+    departmentId: "dept-vlsi",
+    departmentName: "Electronic Engineering (VLSI Design And Technology)",
+    semester: 1,
     division: "A",
+    batch: "FE",
     cgpa: 8.0,
     bloodGroup: "O+",
-    mentor: "Prof. R. K. Patil",
+    mentor: "",
     address: "",
     parentName: "",
     parentPhone: "",
     parentEmail: "",
     parentId: "",
-    designation: "Assistant Professor",
-    assignedDivisions: "Sem 5 - Div A",
+    parentOccupation: "",
     relation: "Father",
     occupation: "",
+    designation: "Assistant Professor",
+    assignedDivisions: "Sem 1 - Div A",
     studentId: "",
     studentName: "",
-    collegeName: "ABC Institute of Technology"
+    collegeName: "CSMSS Chh. Shahu College of Engineering"
   });
 
   // Filtered Users List
   const filtered = users.filter((u) => {
     const term = searchTerm.toLowerCase();
     const match =
-      u.name.toLowerCase().includes(term) ||
-      u.email.toLowerCase().includes(term) ||
+      (u.name && u.name.toLowerCase().includes(term)) ||
+      (u.email && u.email.toLowerCase().includes(term)) ||
       (u.rollNo && u.rollNo.toLowerCase().includes(term)) ||
+      (u.prn && u.prn.toLowerCase().includes(term)) ||
       (u.phone && u.phone.toLowerCase().includes(term)) ||
       (u.departmentName && u.departmentName.toLowerCase().includes(term)) ||
-      (u.designation && u.designation.toLowerCase().includes(term));
+      (u.designation && u.designation.toLowerCase().includes(term)) ||
+      (u.studentName && u.studentName.toLowerCase().includes(term));
 
     if (!match) return false;
     if (roleFilter !== "all" && u.role !== roleFilter) return false;
     if (departmentFilter !== "all" && u.departmentId !== departmentFilter) return false;
+    if (yearFilter !== "all" && u.role === "student") {
+      if (yearFilter === "2nd-year" && !(u.semester === 3 || u.semester === 4 || u.year?.includes("Second") || u.className?.includes("SE") || u.batch?.includes("SE"))) return false;
+      if (yearFilter === "3rd-year" && !(u.semester === 5 || u.semester === 6 || u.year?.includes("Third") || u.className?.includes("TE") || u.batch?.includes("TE"))) return false;
+      if (yearFilter === "final-year" && !(u.semester === 7 || u.semester === 8 || u.year?.includes("Final") || u.className?.includes("BE") || u.batch?.includes("BE"))) return false;
+    }
     return true;
   });
 
@@ -113,6 +125,8 @@ export function AdminUsers() {
     principal: users.filter((u) => u.role === "principal").length,
     admin: users.filter((u) => u.role === "admin").length
   };
+
+  const studentList = users.filter((u) => u.role === "student");
 
   // Open Edit Modal
   const handleOpenEdit = (user) => {
@@ -177,7 +191,15 @@ export function AdminUsers() {
       const stu = users.find((u) => u.id === payload.studentId);
       if (stu) {
         payload.studentName = stu.name;
+        payload.dob = stu.dob;
+        payload.password = stu.dob;
+        payload.departmentId = stu.departmentId;
+        payload.departmentName = stu.departmentName;
       }
+    }
+
+    if (payload.dob && !payload.password) {
+      payload.password = payload.dob;
     }
 
     updateUser(editingUser.id, payload);
@@ -187,33 +209,38 @@ export function AdminUsers() {
   // Open Add Modal
   const handleOpenAdd = (presetRole = "student") => {
     setShowPassword(false);
+    const defaultDept = departments[0] || { id: "dept-vlsi", name: "Electronic Engineering (VLSI Design And Technology)" };
     setAddFormData({
       role: presetRole,
       name: "",
       email: "",
-      password: "password123",
+      dob: "",
+      prn: "",
+      rollNo: "",
+      password: "",
       phone: "",
       avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
-      rollNo: "",
-      departmentId: "dept-ce",
-      departmentName: "Computer Engineering",
-      semester: 5,
+      departmentId: defaultDept.id,
+      departmentName: defaultDept.name,
+      semester: 1,
       division: "A",
+      batch: "FE",
       cgpa: 8.0,
       bloodGroup: "O+",
-      mentor: "Prof. R. K. Patil",
+      mentor: "",
       address: "",
       parentName: "",
       parentPhone: "",
       parentEmail: "",
       parentId: "",
+      parentOccupation: "",
       designation: presetRole === "hod" ? "Head of Department" : presetRole === "principal" ? "Principal & Director" : "Assistant Professor",
-      assignedDivisions: "Sem 5 - Div A",
+      assignedDivisions: "Sem 1 - Div A",
       relation: "Father",
       occupation: "",
       studentId: "",
       studentName: "",
-      collegeName: "ABC Institute of Technology"
+      collegeName: "CSMSS Chh. Shahu College of Engineering"
     });
     setIsAddModalOpen(true);
   };
@@ -235,9 +262,24 @@ export function AdminUsers() {
     if (payload.semester) payload.semester = Number(payload.semester);
     if (payload.cgpa) payload.cgpa = Number(payload.cgpa);
 
-    if (payload.role === "parent" && payload.studentId) {
-      const stu = users.find((u) => u.id === payload.studentId);
-      if (stu) payload.studentName = stu.name;
+    // Role-specific credential rules
+    if (payload.role === "student") {
+      payload.prn = payload.rollNo || payload.prn;
+      payload.password = payload.dob || payload.password || "password123";
+    } else if (payload.role === "parent") {
+      if (payload.studentId) {
+        const stu = users.find((u) => u.id === payload.studentId);
+        if (stu) {
+          payload.studentName = stu.name;
+          payload.dob = stu.dob;
+          payload.password = stu.dob;
+          payload.departmentId = stu.departmentId;
+          payload.departmentName = stu.departmentName;
+        }
+      }
+      if (!payload.password && payload.dob) payload.password = payload.dob;
+    } else if (["teacher", "hod", "principal"].includes(payload.role)) {
+      payload.password = payload.dob || payload.password || "password123";
     }
 
     addUser(payload);
@@ -268,8 +310,6 @@ export function AdminUsers() {
     }
   };
 
-  const studentList = users.filter((u) => u.role === "student");
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       {/* Header with summary and Action Buttons */}
@@ -283,13 +323,13 @@ export function AdminUsers() {
             Stakeholder Directory & Data Management
           </h2>
           <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "2px" }}>
-            Edit, provision, and update full profile records and photos for Students, Parents, Teachers, HODs, Principals, and Admins.
+            Add, update, and manage complete profile records for Students, Parents, Teachers, HODs, Principals, and Admins.
           </p>
         </div>
 
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
           <button onClick={() => handleOpenAdd("student")} className="btn btn-primary btn-sm" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <UserPlus size={15} /> Provision New User
+            <UserPlus size={15} /> Add New User
           </button>
         </div>
       </div>
@@ -333,7 +373,7 @@ export function AdminUsers() {
               type="text"
               className="form-control"
               style={{ border: "none", boxShadow: "none", width: "100%" }}
-              placeholder="Search by name, email, roll no, phone, department..."
+              placeholder="Search by name, email, roll no, PRN, phone, department..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -352,6 +392,19 @@ export function AdminUsers() {
               ))}
             </select>
 
+            <select
+              className="form-control"
+              style={{ width: "150px", fontSize: "0.82rem" }}
+              value={yearFilter}
+              onChange={(e) => setYearFilter(e.target.value)}
+              title="Filter students by academic year"
+            >
+              <option value="all">All Years</option>
+              <option value="2nd-year">2nd Year (SE)</option>
+              <option value="3rd-year">3rd Year (TE)</option>
+              <option value="final-year">Final Year (BE)</option>
+            </select>
+
             <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
               {["all", "student", "teacher", "parent", "hod", "principal", "admin"].map((r) => (
                 <button
@@ -368,7 +421,7 @@ export function AdminUsers() {
         </div>
       </div>
 
-      {/* Users Directory Table */}
+      {/* Registered Users Directory Table */}
       <div className="card">
         <div className="card-header">
           <div className="card-title">
@@ -388,16 +441,16 @@ export function AdminUsers() {
               <tr>
                 <th>User Details</th>
                 <th>Role</th>
-                <th>Department / Designation / Relation</th>
-                <th>Key Info</th>
+                <th>Department / Affiliation / Ward</th>
+                <th>Login Credentials</th>
                 <th>Phone & Contact</th>
-                <th style={{ textAlign: "right", minWidth: "160px" }}>Actions</th>
+                <th style={{ textAlign: "right", minWidth: "140px" }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: "center", padding: "32px", color: "var(--text-muted)" }}>
+                  <td colSpan="6" style={{ textAlign: "center", padding: "36px", color: "var(--text-muted)" }}>
                     No users found matching your search and filter criteria.
                   </td>
                 </tr>
@@ -406,11 +459,31 @@ export function AdminUsers() {
                   <tr key={u.id} style={{ transition: "background 0.15s" }}>
                     <td>
                       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <img
-                          src={u.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"}
-                          alt={u.name}
-                          style={{ width: "38px", height: "38px", borderRadius: "50%", objectFit: "cover", border: "1px solid var(--border-subtle)" }}
-                        />
+                        {u.avatar ? (
+                          <img
+                            src={u.avatar}
+                            alt={u.name}
+                            style={{ width: "38px", height: "38px", borderRadius: "50%", objectFit: "cover", border: "1px solid var(--border-subtle)" }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: "38px",
+                              height: "38px",
+                              borderRadius: "50%",
+                              background: u.role === "student" ? "linear-gradient(135deg, #2563eb, #1d4ed8)" : "linear-gradient(135deg, #475569, #334155)",
+                              color: "white",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontWeight: "700",
+                              fontSize: "0.8rem",
+                              flexShrink: 0
+                            }}
+                          >
+                            {u.name ? u.name.split(" ").slice(0, 2).map((n) => n[0]).join("") : "U"}
+                          </div>
+                        )}
                         <div>
                           <div style={{ fontWeight: "700", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "6px" }}>
                             {u.name}
@@ -420,7 +493,7 @@ export function AdminUsers() {
                               </span>
                             )}
                           </div>
-                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{u.email}</div>
+                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{u.email || "No email"}</div>
                           <div style={{ fontSize: "0.7rem", color: "#94a3b8", fontFamily: "monospace" }}>ID: {u.id}</div>
                         </div>
                       </div>
@@ -432,60 +505,90 @@ export function AdminUsers() {
                     </td>
                     <td>
                       <div style={{ fontWeight: "600", fontSize: "0.85rem" }}>
-                        {u.role === "student" && (u.departmentName || "Engineering")}
-                        {u.role === "teacher" && (u.designation || "Faculty")}
-                        {u.role === "parent" && (
-                          <span style={{ color: "#d97706" }}>
-                            {u.relation || "Parent"} of <strong>{u.studentName || "Student"}</strong>
-                          </span>
+                        {u.role === "student" && (
+                          <div>
+                            <div>{u.departmentName || "Engineering"}</div>
+                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                              Sem {u.semester || 1} • Div {u.division || "A"} • Roll: {u.rollNo || u.prn || "N/A"}
+                            </div>
+                          </div>
                         )}
-                        {u.role === "hod" && (u.designation || `HOD - ${u.departmentName}`)}
-                        {u.role === "principal" && (u.designation || u.collegeName)}
-                        {u.role === "admin" && (u.designation || "System Administrator")}
+                        {u.role === "teacher" && (
+                          <div>
+                            <div>{u.designation || "Faculty"}</div>
+                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                              {u.departmentName} {u.assignedDivisions ? `• Divs: ${Array.isArray(u.assignedDivisions) ? u.assignedDivisions.join(", ") : u.assignedDivisions}` : ""}
+                            </div>
+                          </div>
+                        )}
+                        {u.role === "parent" && (
+                          <div>
+                            <span style={{ color: "#d97706", fontWeight: "700" }}>
+                              {u.relation || "Parent"} of: {u.studentName || "Student"}
+                            </span>
+                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                              {u.departmentName || "Engineering"} {u.occupation ? `• Occ: ${u.occupation}` : ""}
+                            </div>
+                          </div>
+                        )}
+                        {u.role === "hod" && (
+                          <div>
+                            <div>Head of Department (HOD)</div>
+                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{u.departmentName}</div>
+                          </div>
+                        )}
+                        {u.role === "principal" && (
+                          <div>
+                            <div>{u.designation || "Principal & Director"}</div>
+                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{u.collegeName || "CSMSS College of Engineering"}</div>
+                          </div>
+                        )}
+                        {u.role === "admin" && (
+                          <div>
+                            <div>{u.designation || "System Administrator"}</div>
+                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Central ERP Operations</div>
+                          </div>
+                        )}
                       </div>
-                      {u.departmentName && u.role !== "student" && (
-                        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{u.departmentName}</div>
-                      )}
                     </td>
                     <td>
-                      {u.role === "student" && (
-                        <div style={{ fontSize: "0.78rem" }}>
-                          <div><strong>Roll:</strong> {u.rollNo}</div>
-                          <div style={{ color: "var(--text-muted)" }}>Sem {u.semester} • Div {u.division} • CGPA: {u.cgpa}</div>
-                        </div>
-                      )}
-                      {u.role === "teacher" && (
-                        <div style={{ fontSize: "0.78rem" }}>
-                          <div><strong>Divisions:</strong> {Array.isArray(u.assignedDivisions) ? u.assignedDivisions.join(", ") : (u.assignedDivisions || "Sem 5 - Div A")}</div>
-                        </div>
-                      )}
-                      {u.role === "parent" && (
-                        <div style={{ fontSize: "0.78rem" }}>
-                          <div><strong>Occupation:</strong> {u.occupation || "Professional"}</div>
-                          <div style={{ color: "var(--text-muted)" }}>{u.address || "Pune, MH"}</div>
-                        </div>
-                      )}
-                      {u.role === "hod" && (
-                        <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
-                          Department Head • Faculty Lead
-                        </div>
-                      )}
-                      {u.role === "principal" && (
-                        <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
-                          Academic Director • Campus Head
-                        </div>
-                      )}
-                      {u.role === "admin" && (
-                        <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
-                          Master ERP Access
-                        </div>
-                      )}
+                      <div style={{ background: "#f8fafc", padding: "6px 10px", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "0.78rem", display: "inline-block" }}>
+                        {u.role === "student" && (
+                          <div>
+                            <div><strong>User:</strong> <code style={{ color: "#1d4ed8" }}>{u.rollNo || u.prn || "PRN"}</code></div>
+                            <div><strong>Pass:</strong> <code style={{ color: "#475569" }}>{u.dob || u.password || "DOB"}</code></div>
+                          </div>
+                        )}
+                        {u.role === "parent" && (
+                          <div>
+                            <div><strong>User:</strong> <code style={{ color: "#b45309" }}>{u.phone || "Parent Mobile"}</code></div>
+                            <div><strong>Pass:</strong> <code style={{ color: "#475569" }}>{u.dob || u.password || "Student DOB"}</code></div>
+                          </div>
+                        )}
+                        {["teacher", "hod", "principal"].includes(u.role) && (
+                          <div>
+                            <div><strong>User:</strong> <code style={{ color: "#0f766e" }}>{u.phone || "Mobile"}</code></div>
+                            <div><strong>Pass:</strong> <code style={{ color: "#475569" }}>{u.dob || u.password || "DOB"}</code></div>
+                          </div>
+                        )}
+                        {u.role === "admin" && (
+                          <div>
+                            <div><strong>User:</strong> <code style={{ color: "#b91c1c" }}>admin</code></div>
+                            <div><strong>Pass:</strong> <code style={{ color: "#475569" }}>{u.password || "admin123"}</code></div>
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td>
-                      <div style={{ fontSize: "0.82rem", display: "flex", alignItems: "center", gap: "4px" }}>
-                        <Phone size={12} color="var(--text-muted)" />
+                      <div style={{ fontSize: "0.82rem", display: "flex", alignItems: "center", gap: "5px" }}>
+                        <Phone size={13} color="var(--text-muted)" />
                         <span>{u.phone || "N/A"}</span>
                       </div>
+                      {u.address && (
+                        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "2px" }}>
+                          {u.address}
+                        </div>
+                      )}
                     </td>
                     <td style={{ textAlign: "right" }}>
                       <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
@@ -499,10 +602,10 @@ export function AdminUsers() {
                             alignItems: "center",
                             gap: "4px"
                           }}
-                          title={`Edit ${u.name}'s data and photo`}
+                          title={`Edit ${u.name}'s profile data`}
                         >
                           <Edit size={13} />
-                          <span>Edit Data</span>
+                          <span>Edit</span>
                         </button>
 
                         <button
@@ -535,12 +638,12 @@ export function AdminUsers() {
       </div>
 
       {/* ==================================================== */}
-      {/* EDIT USER MODAL (WITH GALLERY UPLOAD FOR ALL ROLES) */}
+      {/* EDIT USER MODAL                                      */}
       {/* ==================================================== */}
       <Modal
         isOpen={Boolean(editingUser)}
         onClose={() => setEditingUser(null)}
-        title={`Edit ${editingUser?.role?.toUpperCase()} Data & Photo: ${editingUser?.name}`}
+        title={`Edit ${editingUser?.role?.toUpperCase()} Profile: ${editingUser?.name}`}
         maxWidth="750px"
         footer={
           <>
@@ -635,7 +738,7 @@ export function AdminUsers() {
             {/* SECTION 1: CORE CREDENTIALS & CONTACT */}
             <div>
               <h4 style={{ fontSize: "0.95rem", fontWeight: "700", marginBottom: "12px", color: "var(--primary-800)", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "6px" }}>
-                1. Account & Contact Information
+                1. General Account Details
               </h4>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
@@ -651,61 +754,55 @@ export function AdminUsers() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Email Address *</label>
+                  <label className="form-label">Email Address</label>
                   <input
                     type="email"
                     className="form-control"
                     value={editFormData.email || ""}
                     onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-                    required
                   />
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Phone Number *</label>
+                  <label className="form-label">
+                    {editingUser.role === "student" ? "Student Mobile Number" : "Mobile Phone (Login Username) *"}
+                  </label>
                   <input
                     type="text"
                     className="form-control"
                     value={editFormData.phone || ""}
                     onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
-                    required
+                    required={editingUser.role !== "student"}
                   />
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span>Account Password</span>
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      style={{ background: "none", border: "none", color: "var(--primary-600)", fontSize: "0.72rem", cursor: "pointer" }}
-                    >
-                      {showPassword ? "Hide" : "Show"}
-                    </button>
+                  <label className="form-label">
+                    {editingUser.role === "parent" ? "Student's Date of Birth (Parent Password)" : "Date of Birth (Login Password - YYYY-MM-DD)"}
                   </label>
                   <input
-                    type={showPassword ? "text" : "password"}
+                    type="text"
                     className="form-control"
-                    value={editFormData.password || ""}
-                    onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
-                    required
+                    value={editFormData.dob || editFormData.password || ""}
+                    onChange={(e) => setEditFormData({ ...editFormData, dob: e.target.value, password: e.target.value })}
+                    placeholder="YYYY-MM-DD (e.g. 2004-08-22)"
                   />
                 </div>
 
                 <div className="form-group" style={{ gridColumn: "span 2" }}>
-                  <label className="form-label">Avatar Photo URL / Base64</label>
+                  <label className="form-label">Residential Address</label>
                   <input
                     type="text"
                     className="form-control"
-                    value={editFormData.avatar || ""}
-                    onChange={(e) => setEditFormData({ ...editFormData, avatar: e.target.value })}
-                    placeholder="https://images.unsplash.com/..."
+                    value={editFormData.address || ""}
+                    onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                    placeholder="e.g. N-6 CIDCO, Chhatrapati Sambhajinagar"
                   />
                 </div>
               </div>
             </div>
 
-            {/* SECTION 2: ROLE SPECIFIC ACADEMIC / ADMINISTRATIVE DATA */}
+            {/* SECTION 2: ROLE SPECIFIC FIELDS */}
             <div>
               <h4 style={{ fontSize: "0.95rem", fontWeight: "700", marginBottom: "12px", color: "var(--primary-800)", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "6px" }}>
                 2. {editingUser.role.toUpperCase()} Specific Attributes
@@ -715,21 +812,22 @@ export function AdminUsers() {
               {editingUser.role === "student" && (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
                   <div className="form-group">
-                    <label className="form-label">Roll Number *</label>
+                    <label className="form-label">PRN Number (Student Username) *</label>
                     <input
                       type="text"
                       className="form-control"
-                      value={editFormData.rollNo || ""}
-                      onChange={(e) => setEditFormData({ ...editFormData, rollNo: e.target.value })}
+                      value={editFormData.rollNo || editFormData.prn || ""}
+                      onChange={(e) => setEditFormData({ ...editFormData, rollNo: e.target.value, prn: e.target.value })}
+                      placeholder="e.g. 24025331378056"
                       required
                     />
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Department</label>
+                    <label className="form-label">Department *</label>
                     <select
                       className="form-control"
-                      value={editFormData.departmentId || "dept-ce"}
+                      value={editFormData.departmentId || ""}
                       onChange={(e) => setEditFormData({ ...editFormData, departmentId: e.target.value })}
                     >
                       {departments.map((d) => (
@@ -742,7 +840,7 @@ export function AdminUsers() {
                     <label className="form-label">Semester</label>
                     <select
                       className="form-control"
-                      value={editFormData.semester || 5}
+                      value={editFormData.semester || 1}
                       onChange={(e) => setEditFormData({ ...editFormData, semester: e.target.value })}
                     >
                       {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
@@ -790,23 +888,14 @@ export function AdminUsers() {
                     </select>
                   </div>
 
-                  <div className="form-group">
+                  <div className="form-group" style={{ gridColumn: "span 2" }}>
                     <label className="form-label">Assigned Faculty Mentor</label>
                     <input
                       type="text"
                       className="form-control"
                       value={editFormData.mentor || ""}
                       onChange={(e) => setEditFormData({ ...editFormData, mentor: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Residential Address</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={editFormData.address || ""}
-                      onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                      placeholder="e.g. Prof. T. A. Mohije"
                     />
                   </div>
 
@@ -825,7 +914,7 @@ export function AdminUsers() {
                         />
                       </div>
                       <div>
-                        <label className="form-label" style={{ fontSize: "0.75rem" }}>Parent Phone</label>
+                        <label className="form-label" style={{ fontSize: "0.75rem" }}>Parent Phone (Parent Username)</label>
                         <input
                           type="text"
                           className="form-control"
@@ -851,6 +940,19 @@ export function AdminUsers() {
               {editingUser.role === "teacher" && (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
                   <div className="form-group">
+                    <label className="form-label">Department *</label>
+                    <select
+                      className="form-control"
+                      value={editFormData.departmentId || ""}
+                      onChange={(e) => setEditFormData({ ...editFormData, departmentId: e.target.value })}
+                    >
+                      {departments.map((d) => (
+                        <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
                     <label className="form-label">Designation *</label>
                     <select
                       className="form-control"
@@ -865,19 +967,6 @@ export function AdminUsers() {
                     </select>
                   </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Department *</label>
-                    <select
-                      className="form-control"
-                      value={editFormData.departmentId || "dept-ce"}
-                      onChange={(e) => setEditFormData({ ...editFormData, departmentId: e.target.value })}
-                    >
-                      {departments.map((d) => (
-                        <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
-                      ))}
-                    </select>
-                  </div>
-
                   <div className="form-group" style={{ gridColumn: "span 2" }}>
                     <label className="form-label">Assigned Divisions (comma-separated)</label>
                     <input
@@ -885,7 +974,7 @@ export function AdminUsers() {
                       className="form-control"
                       value={editFormData.assignedDivisions || ""}
                       onChange={(e) => setEditFormData({ ...editFormData, assignedDivisions: e.target.value })}
-                      placeholder="Sem 5 - Div A, Sem 5 - Div B"
+                      placeholder="e.g. Sem 5 - Div A, Sem 6 - Div B"
                     />
                   </div>
                 </div>
@@ -894,6 +983,34 @@ export function AdminUsers() {
               {/* PARENT EDIT FIELDS */}
               {editingUser.role === "parent" && (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                  <div className="form-group" style={{ gridColumn: "span 2" }}>
+                    <label className="form-label">Linked Student / Ward *</label>
+                    <select
+                      className="form-control"
+                      value={editFormData.studentId || ""}
+                      onChange={(e) => {
+                        const sId = e.target.value;
+                        const targetStudent = users.find((u) => u.id === sId);
+                        setEditFormData({
+                          ...editFormData,
+                          studentId: sId,
+                          studentName: targetStudent ? targetStudent.name : "",
+                          dob: targetStudent ? targetStudent.dob : editFormData.dob,
+                          password: targetStudent ? targetStudent.dob : editFormData.password,
+                          departmentId: targetStudent ? targetStudent.departmentId : editFormData.departmentId,
+                          departmentName: targetStudent ? targetStudent.departmentName : editFormData.departmentName
+                        });
+                      }}
+                    >
+                      <option value="">-- Select Enrolled Student --</option>
+                      {studentList.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} (Roll: {s.rollNo || s.prn} • {s.departmentName})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div className="form-group">
                     <label className="form-label">Relationship to Student</label>
                     <select
@@ -908,30 +1025,14 @@ export function AdminUsers() {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Occupation</label>
+                    <label className="form-label">Parent Occupation</label>
                     <input
                       type="text"
                       className="form-control"
                       value={editFormData.occupation || ""}
                       onChange={(e) => setEditFormData({ ...editFormData, occupation: e.target.value })}
-                      placeholder="e.g. Senior Civil Engineer"
+                      placeholder="e.g. Agriculture / Business / Service"
                     />
-                  </div>
-
-                  <div className="form-group" style={{ gridColumn: "span 2" }}>
-                    <label className="form-label">Linked Student / Ward *</label>
-                    <select
-                      className="form-control"
-                      value={editFormData.studentId || ""}
-                      onChange={(e) => setEditFormData({ ...editFormData, studentId: e.target.value })}
-                    >
-                      <option value="">-- Select Enrolled Student --</option>
-                      {studentList.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name} ({s.rollNo} - {s.departmentName})
-                        </option>
-                      ))}
-                    </select>
                   </div>
                 </div>
               )}
@@ -943,7 +1044,7 @@ export function AdminUsers() {
                     <label className="form-label">Department Head Of *</label>
                     <select
                       className="form-control"
-                      value={editFormData.departmentId || "dept-ce"}
+                      value={editFormData.departmentId || ""}
                       onChange={(e) => setEditFormData({ ...editFormData, departmentId: e.target.value })}
                     >
                       {departments.map((d) => (
@@ -982,7 +1083,7 @@ export function AdminUsers() {
                     <input
                       type="text"
                       className="form-control"
-                      value={editFormData.collegeName || "ABC Institute of Technology"}
+                      value={editFormData.collegeName || "CSMSS Chh. Shahu College of Engineering"}
                       onChange={(e) => setEditFormData({ ...editFormData, collegeName: e.target.value })}
                     />
                   </div>
@@ -1015,7 +1116,7 @@ export function AdminUsers() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         title="Provision New Stakeholder Account"
-        maxWidth="750px"
+        maxWidth="780px"
         footer={
           <>
             <button type="button" onClick={() => setIsAddModalOpen(false)} className="btn btn-secondary btn-md">
@@ -1023,7 +1124,7 @@ export function AdminUsers() {
             </button>
             <button type="button" onClick={handleSaveAdd} className="btn btn-primary btn-md" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <UserPlus size={16} />
-              <span>Create User Account</span>
+              <span>Save & Provision Account</span>
             </button>
           </>
         }
@@ -1035,24 +1136,65 @@ export function AdminUsers() {
               Select Stakeholder Role Category *
             </label>
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              {["student", "teacher", "parent", "hod", "principal", "admin"].map((r) => (
+              {[
+                { r: "student", label: "🎓 Student" },
+                { r: "teacher", label: "👨‍🏫 Teacher / Faculty" },
+                { r: "parent", label: "👨‍👩‍👧 Parent / Guardian" },
+                { r: "hod", label: "🏛️ Head of Dept (HOD)" },
+                { r: "principal", label: "🏫 Principal & Director" },
+                { r: "admin", label: "⚙️ System Admin" }
+              ].map(({ r, label }) => (
                 <button
                   key={r}
                   type="button"
                   onClick={() => setAddFormData({ ...addFormData, role: r })}
                   className={`btn btn-sm ${addFormData.role === r ? "btn-primary" : "btn-secondary"}`}
-                  style={{ textTransform: "uppercase", fontWeight: "700", fontSize: "0.75rem" }}
+                  style={{ fontWeight: "700", fontSize: "0.78rem" }}
                 >
-                  {r}
+                  {label}
                 </button>
               ))}
             </div>
           </div>
 
+          {/* Credentials Info Callout Banner */}
+          <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", padding: "12px 16px", borderRadius: "10px", fontSize: "0.82rem", color: "#1e40af" }}>
+            {addFormData.role === "student" && (
+              <div>
+                <strong>🎓 Student Login Format:</strong> Username = <strong>PRN / Roll Number</strong> • Password = <strong>Birthdate (YYYY-MM-DD)</strong>
+              </div>
+            )}
+            {addFormData.role === "parent" && (
+              <div>
+                <strong>👨‍👩‍👧 Parent Login Format:</strong> Username = <strong>Parent Mobile Number</strong> • Password = <strong>Linked Student's Birthdate (YYYY-MM-DD)</strong>
+              </div>
+            )}
+            {addFormData.role === "teacher" && (
+              <div>
+                <strong>👨‍🏫 Teacher Login Format:</strong> Username = <strong>Faculty Mobile Number</strong> • Password = <strong>Teacher's Birthdate (YYYY-MM-DD)</strong>
+              </div>
+            )}
+            {addFormData.role === "hod" && (
+              <div>
+                <strong>🏛️ HOD Login Format:</strong> Username = <strong>HOD Mobile Number</strong> • Password = <strong>HOD's Birthdate (YYYY-MM-DD)</strong>
+              </div>
+            )}
+            {addFormData.role === "principal" && (
+              <div>
+                <strong>🏫 Principal Login Format:</strong> Username = <strong>Principal Mobile Number</strong> • Password = <strong>Principal's Birthdate (YYYY-MM-DD)</strong>
+              </div>
+            )}
+            {addFormData.role === "admin" && (
+              <div>
+                <strong>⚙️ Admin Login Format:</strong> Username = <strong>admin</strong> • Password = <strong>admin123</strong>
+              </div>
+            )}
+          </div>
+
           {/* Photo & Basic Info */}
           <div>
             <h4 style={{ fontSize: "0.95rem", fontWeight: "700", marginBottom: "12px", color: "var(--primary-800)" }}>
-              1. Basic Credentials & Gallery Photo
+              1. Basic Information & Photo
             </h4>
 
             <div style={{ display: "flex", gap: "16px", alignItems: "center", marginBottom: "16px", background: "#f8fafc", padding: "12px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
@@ -1074,7 +1216,7 @@ export function AdminUsers() {
                 className="btn btn-secondary btn-sm"
                 style={{ fontSize: "0.75rem", display: "flex", alignItems: "center", gap: "6px" }}
               >
-                <Upload size={13} /> Upload Photo from Gallery
+                <Upload size={13} /> Upload Photo from Gallery / Device
               </button>
             </div>
 
@@ -1086,70 +1228,90 @@ export function AdminUsers() {
                   className="form-control"
                   value={addFormData.name}
                   onChange={(e) => setAddFormData({ ...addFormData, name: e.target.value })}
-                  placeholder="e.g. Rajesh Patil"
+                  placeholder={addFormData.role === "parent" ? "e.g. Santosh Shinde" : "e.g. Aditya Shinde"}
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Email Address *</label>
+                <label className="form-label">Email Address</label>
                 <input
                   type="email"
                   className="form-control"
                   value={addFormData.email}
                   onChange={(e) => setAddFormData({ ...addFormData, email: e.target.value })}
-                  placeholder="rajesh.patil@campus.edu"
-                  required
+                  placeholder="name@campus.edu"
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Phone Number *</label>
+                <label className="form-label">
+                  {addFormData.role === "student"
+                    ? "Student Mobile Number"
+                    : "Mobile Number (Login Username) *"}
+                </label>
                 <input
                   type="text"
                   className="form-control"
                   value={addFormData.phone}
                   onChange={(e) => setAddFormData({ ...addFormData, phone: e.target.value })}
-                  placeholder="+91 98765 43210"
-                  required
+                  placeholder="e.g. 7378535499"
+                  required={addFormData.role !== "student"}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Login Password *</label>
+                <label className="form-label">
+                  {addFormData.role === "parent"
+                    ? "Student's Date of Birth (Parent Password) *"
+                    : "Date of Birth (Login Password - YYYY-MM-DD) *"}
+                </label>
                 <input
                   type="text"
                   className="form-control"
-                  value={addFormData.password}
-                  onChange={(e) => setAddFormData({ ...addFormData, password: e.target.value })}
-                  required
+                  value={addFormData.dob}
+                  onChange={(e) => setAddFormData({ ...addFormData, dob: e.target.value, password: e.target.value })}
+                  placeholder="YYYY-MM-DD (e.g. 2004-08-22)"
+                  required={addFormData.role !== "admin"}
+                />
+              </div>
+
+              <div className="form-group" style={{ gridColumn: "span 2" }}>
+                <label className="form-label">Residential Address</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={addFormData.address}
+                  onChange={(e) => setAddFormData({ ...addFormData, address: e.target.value })}
+                  placeholder="e.g. CSMSS Campus Area, Chhatrapati Sambhajinagar"
                 />
               </div>
             </div>
           </div>
 
-          {/* Dynamic Role Specific Section */}
+          {/* DYNAMIC ROLE-SPECIFIC INFORMATION */}
           <div>
             <h4 style={{ fontSize: "0.95rem", fontWeight: "700", marginBottom: "12px", color: "var(--primary-800)" }}>
               2. {addFormData.role.toUpperCase()} Specific Information
             </h4>
 
+            {/* STUDENT SPECIFIC FORM */}
             {addFormData.role === "student" && (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
                 <div className="form-group">
-                  <label className="form-label">Roll Number *</label>
+                  <label className="form-label">PRN / Roll Number (Student Username) *</label>
                   <input
                     type="text"
                     className="form-control"
                     value={addFormData.rollNo}
-                    onChange={(e) => setAddFormData({ ...addFormData, rollNo: e.target.value })}
-                    placeholder="CE-2024-099"
+                    onChange={(e) => setAddFormData({ ...addFormData, rollNo: e.target.value, prn: e.target.value })}
+                    placeholder="e.g. 24025331378056 or VLSI3152"
                     required
                   />
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Department</label>
+                  <label className="form-label">Department *</label>
                   <select
                     className="form-control"
                     value={addFormData.departmentId}
@@ -1159,6 +1321,288 @@ export function AdminUsers() {
                       <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
                     ))}
                   </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Semester</label>
+                  <select
+                    className="form-control"
+                    value={addFormData.semester}
+                    onChange={(e) => setAddFormData({ ...addFormData, semester: e.target.value })}
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
+                      <option key={s} value={s}>Semester {s}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Division</label>
+                  <select
+                    className="form-control"
+                    value={addFormData.division}
+                    onChange={(e) => setAddFormData({ ...addFormData, division: e.target.value })}
+                  >
+                    {["A", "B", "C", "D"].map((div) => (
+                      <option key={div} value={div}>Division {div}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Current CGPA</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="10"
+                    className="form-control"
+                    value={addFormData.cgpa}
+                    onChange={(e) => setAddFormData({ ...addFormData, cgpa: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Blood Group</label>
+                  <select
+                    className="form-control"
+                    value={addFormData.bloodGroup}
+                    onChange={(e) => setAddFormData({ ...addFormData, bloodGroup: e.target.value })}
+                  >
+                    {["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map((bg) => (
+                      <option key={bg} value={bg}>{bg}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ gridColumn: "span 2", background: "#fffbeb", padding: "14px", borderRadius: "8px", border: "1px solid #fde68a" }}>
+                  <h5 style={{ fontSize: "0.85rem", fontWeight: "700", color: "#92400e", marginBottom: "8px" }}>
+                    Linked Parent / Guardian Information (Auto-creates Parent Account)
+                  </h5>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
+                    <div>
+                      <label className="form-label" style={{ fontSize: "0.75rem" }}>Parent Name</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={addFormData.parentName}
+                        onChange={(e) => setAddFormData({ ...addFormData, parentName: e.target.value })}
+                        placeholder="e.g. Santosh Shinde"
+                      />
+                    </div>
+                    <div>
+                      <label className="form-label" style={{ fontSize: "0.75rem" }}>Parent Mobile (Parent Username) *</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={addFormData.parentPhone}
+                        onChange={(e) => setAddFormData({ ...addFormData, parentPhone: e.target.value })}
+                        placeholder="e.g. 9822000000"
+                      />
+                    </div>
+                    <div>
+                      <label className="form-label" style={{ fontSize: "0.75rem" }}>Parent Email</label>
+                      <input
+                        type="email"
+                        className="form-control"
+                        value={addFormData.parentEmail}
+                        onChange={(e) => setAddFormData({ ...addFormData, parentEmail: e.target.value })}
+                        placeholder="parent@gmail.com"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PARENT SPECIFIC FORM */}
+            {addFormData.role === "parent" && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                <div className="form-group" style={{ gridColumn: "span 2" }}>
+                  <label className="form-label" style={{ fontWeight: "700", color: "#92400e" }}>
+                    Select Enrolled Student / Ward *
+                  </label>
+                  <select
+                    className="form-control"
+                    value={addFormData.studentId}
+                    onChange={(e) => {
+                      const sId = e.target.value;
+                      const targetStudent = users.find((u) => u.id === sId);
+                      if (targetStudent) {
+                        setAddFormData({
+                          ...addFormData,
+                          studentId: sId,
+                          studentName: targetStudent.name,
+                          dob: targetStudent.dob || addFormData.dob,
+                          password: targetStudent.dob || addFormData.password,
+                          departmentId: targetStudent.departmentId,
+                          departmentName: targetStudent.departmentName
+                        });
+                      } else {
+                        setAddFormData({ ...addFormData, studentId: sId, studentName: "" });
+                      }
+                    }}
+                    required
+                  >
+                    <option value="">-- Choose Enrolled Student --</option>
+                    {studentList.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} (PRN/Roll: {s.rollNo || s.prn} • {s.departmentName})
+                      </option>
+                    ))}
+                  </select>
+                  {addFormData.studentId && (
+                    <div style={{ marginTop: "6px", fontSize: "0.78rem", color: "#059669", fontWeight: "600" }}>
+                      ✓ Linked to {addFormData.studentName} ({addFormData.departmentName}). Parent password automatically synced to student birthdate ({addFormData.dob || "Provided DOB"}).
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Relationship to Student</label>
+                  <select
+                    className="form-control"
+                    value={addFormData.relation}
+                    onChange={(e) => setAddFormData({ ...addFormData, relation: e.target.value })}
+                  >
+                    <option value="Father">Father</option>
+                    <option value="Mother">Mother</option>
+                    <option value="Guardian">Guardian</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Occupation</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={addFormData.occupation}
+                    onChange={(e) => setAddFormData({ ...addFormData, occupation: e.target.value })}
+                    placeholder="e.g. Farmer / Business / Service"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* TEACHER SPECIFIC FORM */}
+            {addFormData.role === "teacher" && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                <div className="form-group">
+                  <label className="form-label">Assigned Department *</label>
+                  <select
+                    className="form-control"
+                    value={addFormData.departmentId}
+                    onChange={(e) => setAddFormData({ ...addFormData, departmentId: e.target.value })}
+                  >
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Designation *</label>
+                  <select
+                    className="form-control"
+                    value={addFormData.designation}
+                    onChange={(e) => setAddFormData({ ...addFormData, designation: e.target.value })}
+                  >
+                    <option value="Professor">Professor</option>
+                    <option value="Associate Professor">Associate Professor</option>
+                    <option value="Assistant Professor">Assistant Professor</option>
+                    <option value="Lecturer">Lecturer</option>
+                    <option value="Adjunct Faculty">Adjunct Faculty</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ gridColumn: "span 2" }}>
+                  <label className="form-label">Assigned Teaching Divisions / Batches</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={addFormData.assignedDivisions}
+                    onChange={(e) => setAddFormData({ ...addFormData, assignedDivisions: e.target.value })}
+                    placeholder="e.g. Sem 5 - Div A, Sem 6 - Div B"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* HOD SPECIFIC FORM */}
+            {addFormData.role === "hod" && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                <div className="form-group">
+                  <label className="form-label">Department Head Of *</label>
+                  <select
+                    className="form-control"
+                    value={addFormData.departmentId}
+                    onChange={(e) => setAddFormData({ ...addFormData, departmentId: e.target.value })}
+                  >
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Designation Title</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={addFormData.designation || "Head of Department"}
+                    onChange={(e) => setAddFormData({ ...addFormData, designation: e.target.value })}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* PRINCIPAL SPECIFIC FORM */}
+            {addFormData.role === "principal" && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                <div className="form-group">
+                  <label className="form-label">Designation Title</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={addFormData.designation || "Principal & Director"}
+                    onChange={(e) => setAddFormData({ ...addFormData, designation: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">College / Institute Name</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={addFormData.collegeName || "CSMSS Chh. Shahu College of Engineering"}
+                    onChange={(e) => setAddFormData({ ...addFormData, collegeName: e.target.value })}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* ADMIN SPECIFIC FORM */}
+            {addFormData.role === "admin" && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                <div className="form-group">
+                  <label className="form-label">Admin Username</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={addFormData.name}
+                    onChange={(e) => setAddFormData({ ...addFormData, name: e.target.value })}
+                    placeholder="admin"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Designation Title</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={addFormData.designation || "ERP & Systems Administrator"}
+                    onChange={(e) => setAddFormData({ ...addFormData, designation: e.target.value })}
+                  />
                 </div>
               </div>
             )}
@@ -1197,11 +1641,32 @@ export function AdminUsers() {
         {viewingUser && (
           <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-              <img
-                src={viewingUser.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"}
-                alt={viewingUser.name}
-                style={{ width: "64px", height: "64px", borderRadius: "50%", objectFit: "cover", border: "2px solid var(--primary-500)" }}
-              />
+              {viewingUser.avatar ? (
+                <img
+                  src={viewingUser.avatar}
+                  alt={viewingUser.name}
+                  style={{ width: "64px", height: "64px", borderRadius: "50%", objectFit: "cover", border: "2px solid var(--primary-500)" }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: "64px",
+                    height: "64px",
+                    borderRadius: "50%",
+                    background: viewingUser.role === "student" ? "linear-gradient(135deg, #2563eb, #1d4ed8)" : "linear-gradient(135deg, #475569, #334155)",
+                    color: "white",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: "800",
+                    fontSize: "1.3rem",
+                    border: "2px solid var(--primary-500)",
+                    flexShrink: 0
+                  }}
+                >
+                  {viewingUser.name ? viewingUser.name.split(" ").slice(0, 2).map((n) => n[0]).join("") : "U"}
+                </div>
+              )}
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <h3 style={{ fontSize: "1.2rem", fontWeight: "800" }}>{viewingUser.name}</h3>
@@ -1221,6 +1686,18 @@ export function AdminUsers() {
                 <span style={{ color: "var(--text-muted)", display: "block", fontSize: "0.75rem" }}>Designation / Department</span>
                 <strong>{viewingUser.departmentName || viewingUser.designation || viewingUser.collegeName || "N/A"}</strong>
               </div>
+              {viewingUser.studentName && (
+                <div style={{ gridColumn: "span 2" }}>
+                  <span style={{ color: "var(--text-muted)", display: "block", fontSize: "0.75rem" }}>Linked Ward</span>
+                  <strong style={{ color: "#d97706" }}>{viewingUser.studentName}</strong>
+                </div>
+              )}
+              {viewingUser.address && (
+                <div style={{ gridColumn: "span 2" }}>
+                  <span style={{ color: "var(--text-muted)", display: "block", fontSize: "0.75rem" }}>Address</span>
+                  <div>{viewingUser.address}</div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1322,7 +1799,7 @@ export function AdminDepartments() {
             setAddFormData({
               name: "",
               code: "",
-              hod: "Dr. V. S. Rao",
+              hod: "Dr. Shrikant Honade",
               studentCount: 180,
               facultyCount: 12,
               avgAttendance: 80.0,
@@ -1552,7 +2029,7 @@ export function AdminDepartments() {
                 className="form-control"
                 value={editFormData.hod || ""}
                 onChange={(e) => setEditFormData({ ...editFormData, hod: e.target.value })}
-                placeholder="e.g. Dr. V. S. Rao"
+                placeholder="e.g. Dr. Shrikant Honade"
               />
             </div>
 

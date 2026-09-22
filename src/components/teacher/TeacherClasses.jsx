@@ -15,7 +15,7 @@ export default function TeacherClasses({ onNavigate }) {
 
   const teacher = currentUser;
   const mySubjects = subjects.filter((s) => s.teacherId === teacher?.id || s.teacherName === teacher?.name);
-  const students = users.filter((u) => u.role === "student" && u.departmentId === "dept-ce");
+  const students = users.filter((u) => u.role === "student" && u.departmentId === (teacher?.departmentId || "dept-vlsi"));
   const threshold = systemSettings.attendanceThreshold;
 
   return (
@@ -50,7 +50,7 @@ export default function TeacherClasses({ onNavigate }) {
           return (
             <div key={sub.id} className="card" style={{ borderTop: "4px solid var(--primary-600)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                <Badge variant="purple">Sem {sub.semester} - Div A</Badge>
+                <Badge variant="purple">TE VLSI – Semester {sub.semester} (3rd Year)</Badge>
                 <Badge variant={classAvg >= threshold ? "success" : "danger"}>Class Avg: {classAvg}%</Badge>
               </div>
 

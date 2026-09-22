@@ -11,16 +11,34 @@ import {
   CheckCircle2,
   Clock,
   ArrowRight,
-  ShieldAlert
+  ShieldAlert,
+  FileText,
+  Stethoscope
 } from "lucide-react";
 import { StatCard, Badge } from "../common/UIPrimitives";
 
 export default function ParentDashboard({ onNavigate }) {
-  const { currentUser, users, attendance, subjects, marks, assignments, notifications, systemSettings } = useSmartCampus();
+  const {
+    currentUser,
+    users,
+    attendance,
+    subjects,
+    marks,
+    assignments,
+    notifications,
+    systemSettings,
+    doctorLetters
+  } = useSmartCampus();
 
   const parent = currentUser;
   const ward = users.find((u) => u.id === parent?.studentId) || users[0];
   const threshold = systemSettings.attendanceThreshold;
+
+  // Ward doctor letters
+  const wardLetters = (doctorLetters || []).filter(
+    (l) => l.studentId === ward?.id || l.parentId === parent?.id
+  );
+  const verifiedLettersCount = wardLetters.filter((l) => l.status === "Verified").length;
 
   // Calculate ward attendance
   const wardAtt = attendance[ward?.id] || {};
@@ -28,16 +46,17 @@ export default function ParentDashboard({ onNavigate }) {
   let totalAttended = 0;
   const subjectList = [];
 
-  subjects.forEach((sub) => {
+  (subjects || []).forEach((sub) => {
+    if (!sub) return;
     const sData = wardAtt[sub.id] || { total: 20, attended: 16, percentage: 80 };
-    totalLectures += sData.total;
-    totalAttended += sData.attended;
+    totalLectures += sData.total || 0;
+    totalAttended += sData.attended || 0;
     subjectList.push({
       ...sub,
-      total: sData.total,
-      attended: sData.attended,
-      percentage: sData.percentage,
-      isLow: sData.percentage < threshold
+      total: sData.total || 0,
+      attended: sData.attended || 0,
+      percentage: sData.percentage || 0,
+      isLow: (sData.percentage || 0) < threshold
     });
   });
 
@@ -77,11 +96,32 @@ export default function ParentDashboard({ onNavigate }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          <img
-            src={ward?.avatar}
-            alt={ward?.name}
-            style={{ width: "64px", height: "64px", borderRadius: "50%", objectFit: "cover", border: "3px solid #10b981" }}
-          />
+          {ward?.avatar ? (
+            <img
+              src={ward.avatar}
+              alt={ward?.name}
+              style={{ width: "64px", height: "64px", borderRadius: "50%", objectFit: "cover", border: "3px solid #10b981" }}
+            />
+          ) : (
+            <div
+              style={{
+                width: "64px",
+                height: "64px",
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #059669, #047857)",
+                color: "white",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: "800",
+                fontSize: "1.25rem",
+                border: "3px solid #10b981",
+                flexShrink: 0
+              }}
+            >
+              {ward?.name ? ward.name.split(" ").slice(0, 2).map((n) => n[0]).join("") : "W"}
+            </div>
+          )}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
               <Badge variant="success">Monitoring Ward: {ward?.name}</Badge>
@@ -91,7 +131,7 @@ export default function ParentDashboard({ onNavigate }) {
               Parent Portal: {parent?.name}
             </h2>
             <p style={{ fontSize: "0.85rem", color: "#a7f3d0", marginTop: "2px" }}>
-              {ward?.departmentName} (Sem {ward?.semester} - Div {ward?.division}) • SMS & WhatsApp Sync Active
+              {ward?.className || `${ward?.departmentName} (3rd Year - Sem ${ward?.semester})`} • SMS & WhatsApp Sync Active
             </p>
           </div>
         </div>
@@ -146,6 +186,158 @@ export default function ParentDashboard({ onNavigate }) {
           variant={overallAttendance >= threshold ? "success" : "danger"}
           onClick={() => onNavigate("academic-status")}
         />
+      </div>
+
+      {/* Doctor's Letters & Medical Certificates Quick Action Card */}
+      <div
+        className="card"
+        style={{
+          background: "linear-gradient(135deg, #064e3b 0%, #0f172a 100%)",
+          color: "white",
+          padding: "22px 28px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "18px",
+          borderRadius: "14px",
+          boxShadow: "0 8px 24px -4px rgba(6, 78, 59, 0.35)",
+          border: "1px solid rgba(16, 185, 129, 0.3)"
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div
+            style={{
+              width: "50px",
+              height: "50px",
+              borderRadius: "12px",
+              background: "linear-gradient(135deg, #10b981, #059669)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "white",
+              boxShadow: "0 4px 12px rgba(16, 185, 129, 0.4)",
+              flexShrink: 0
+            }}
+          >
+            <Stethoscope size={26} />
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <h3 style={{ fontSize: "1.2rem", fontWeight: "800", color: "white" }}>
+                Doctor's Letters & Medical Certificates 🩺
+              </h3>
+              <span
+                style={{
+                  background: verifiedLettersCount > 0 ? "rgba(16, 185, 129, 0.25)" : "rgba(255, 255, 255, 0.15)",
+                  color: verifiedLettersCount > 0 ? "#a7f3d0" : "white",
+                  padding: "2px 10px",
+                  borderRadius: "12px",
+                  fontSize: "0.72rem",
+                  fontWeight: "700",
+                  border: "1px solid rgba(16, 185, 129, 0.4)"
+                }}
+              >
+                {wardLetters.length} Document(s) • {verifiedLettersCount} Verified
+              </span>
+            </div>
+            <p style={{ fontSize: "0.86rem", color: "#a7f3d0", marginTop: "3px", maxWidth: "600px" }}>
+              Upload sick leave doctor notes, fitness certificates, and medical consultation letters for institutional attendance excusal.
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <button
+            onClick={() => onNavigate("doctor-letters")}
+            className="btn btn-sm"
+            style={{
+              background: "#10b981",
+              color: "white",
+              fontWeight: "800",
+              border: "none",
+              padding: "8px 18px",
+              boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)"
+            }}
+          >
+            Upload Doctor Letter
+          </button>
+          <button
+            onClick={() => onNavigate("doctor-letters")}
+            className="btn btn-sm"
+            style={{
+              background: "rgba(255,255,255,0.12)",
+              color: "white",
+              border: "1px solid rgba(255,255,255,0.3)",
+              padding: "8px 16px"
+            }}
+          >
+            View All Letters <ArrowRight size={14} style={{ marginLeft: "4px" }} />
+          </button>
+        </div>
+      </div>
+
+      {/* Student Health Information Card */}
+      <div
+        className="card"
+        style={{
+          background: "linear-gradient(135deg, #064e3b 0%, #047857 100%)",
+          color: "white",
+          padding: "20px 28px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "16px",
+          boxShadow: "0 8px 20px -4px rgba(6, 78, 59, 0.3)"
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div
+            style={{
+              width: "46px",
+              height: "46px",
+              borderRadius: "12px",
+              background: "rgba(255, 255, 255, 0.18)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "white"
+            }}
+          >
+            <ShieldAlert size={24} />
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <h3 style={{ fontSize: "1.15rem", fontWeight: "800", color: "white" }}>
+                Student Health Information
+              </h3>
+              <span style={{ background: "rgba(255,255,255,0.2)", padding: "2px 8px", borderRadius: "10px", fontSize: "0.72rem", fontWeight: "700" }}>
+                Confidential
+              </span>
+            </div>
+            <p style={{ fontSize: "0.86rem", color: "#a7f3d0", marginTop: "3px" }}>
+              This information is shared only with authorized college personnel for student safety and event-related support.
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <button
+            onClick={() => onNavigate("health-info")}
+            className="btn btn-sm"
+            style={{ background: "#ffffff", color: "#065f46", fontWeight: "700", border: "none" }}
+          >
+            Add Health Info
+          </button>
+          <button
+            onClick={() => onNavigate("health-info")}
+            className="btn btn-sm"
+            style={{ background: "rgba(255,255,255,0.18)", color: "white", border: "1px solid rgba(255,255,255,0.3)" }}
+          >
+            Upload Proof / View
+          </button>
+        </div>
       </div>
 
       {/* Real-time SMS & WhatsApp Live Simulation Drawer */}
