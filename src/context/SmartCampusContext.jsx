@@ -1116,6 +1116,9 @@ export function SmartCampusProvider({ children }) {
       ...deptData
     };
 
+    // Persist department to MySQL database
+    api.addDepartment(newDept).catch((err) => console.warn('[MySQL Department Sync Warning]', err.message));
+
     setState((prev) => {
       const audit = logAudit(
         "Created Academic Department",
