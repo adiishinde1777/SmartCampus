@@ -112,52 +112,28 @@ export default function LoginPage() {
   const fields = getFieldLabels();
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "radial-gradient(circle at 10% 20%, #0b1329 0%, #151c38 50%, #030712 100%)",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "24px",
-        color: "white"
-      }}
-    >
+    <div className="login-page-container">
       <div className="login-grid-wrapper">
         
         {/* Left Hero Pitch & Branding */}
-        <div style={{ padding: "8px" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(59, 130, 246, 0.15)", border: "1px solid rgba(59, 130, 246, 0.3)", padding: "6px 14px", borderRadius: "30px", marginBottom: "20px" }}>
+        <div style={{ padding: "4px" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(59, 130, 246, 0.15)", border: "1px solid rgba(59, 130, 246, 0.3)", padding: "6px 14px", borderRadius: "30px", marginBottom: "16px" }}>
             <Sparkles size={16} color="#60a5fa" />
-            <span style={{ fontSize: "0.82rem", fontWeight: "700", color: "#93c5fd", letterSpacing: "0.05em" }}>
+            <span style={{ fontSize: "0.78rem", fontWeight: "700", color: "#93c5fd", letterSpacing: "0.05em" }}>
               CAMPUS AUTOMATION & MANAGEMENT SYSTEM
             </span>
           </div>
 
-          <h1 style={{ fontSize: "2.4rem", fontWeight: "800", lineHeight: 1.15, color: "white", marginBottom: "16px", letterSpacing: "-0.02em" }}>
+          <h1 className="login-hero-title">
             SMART CAMPUS
           </h1>
 
-          <p style={{ fontSize: "1rem", color: "#94a3b8", lineHeight: 1.6, marginBottom: "24px" }}>
+          <p style={{ fontSize: "0.95rem", color: "#94a3b8", lineHeight: 1.5, marginBottom: "20px" }}>
             CSMSS Chh. Shahu College of Engineering • Integrated Academic, Faculty, Student & Parent Communication Portal
           </p>
 
           {/* Student Online Registration Card */}
-          <div
-            style={{
-              background: "rgba(255, 255, 255, 0.05)",
-              border: "1px solid rgba(255, 255, 255, 0.12)",
-              borderRadius: "16px",
-              padding: "16px 18px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: "12px",
-              marginBottom: "20px"
-            }}
-          >
+          <div className="enroll-prompt-card">
             <div>
               <div style={{ fontWeight: "700", fontSize: "0.95rem", color: "white" }}>
                 New Student Enrollment Form
@@ -178,42 +154,29 @@ export default function LoginPage() {
           </div>
 
           {/* DEVELOPED BY ADITYA SHINDE BRANDING BADGE */}
-          <div
-            style={{
-              background: "linear-gradient(135deg, rgba(37, 99, 235, 0.2) 0%, rgba(30, 64, 175, 0.3) 100%)",
-              border: "1.5px solid rgba(96, 165, 250, 0.4)",
-              backdropFilter: "blur(12px)",
-              borderRadius: "18px",
-              padding: "16px 20px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: "14px",
-              boxShadow: "0 10px 30px -5px rgba(37, 99, 235, 0.3)"
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+          <div className="dev-badge-card">
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
               <div
                 style={{
-                  width: "44px",
-                  height: "44px",
+                  width: "42px",
+                  height: "42px",
                   borderRadius: "12px",
                   background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
                   color: "white",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  boxShadow: "0 4px 12px rgba(37, 99, 235, 0.4)"
+                  boxShadow: "0 4px 12px rgba(37, 99, 235, 0.4)",
+                  flexShrink: 0
                 }}
               >
-                <Code size={24} />
+                <Code size={22} />
               </div>
               <div>
-                <div style={{ fontSize: "0.72rem", color: "#93c5fd", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <div style={{ fontSize: "0.7rem", color: "#93c5fd", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                   SYSTEM ARCHITECT & DEVELOPER
                 </div>
-                <div style={{ fontSize: "1.15rem", fontWeight: "800", color: "white", letterSpacing: "0.01em" }}>
+                <div style={{ fontSize: "1.05rem", fontWeight: "800", color: "white", letterSpacing: "0.01em" }}>
                   Developed by Aditya Shinde
                 </div>
               </div>
@@ -244,16 +207,7 @@ export default function LoginPage() {
         </div>
 
         {/* Right Authentication Card */}
-        <div
-          style={{
-            background: "white",
-            color: "#0f172a",
-            borderRadius: "24px",
-            padding: "38px",
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.6)",
-            border: "1px solid #e2e8f0"
-          }}
-        >
+        <div className="login-auth-card">
           <div style={{ marginBottom: "24px", textAlign: "center" }}>
             <h2 style={{ fontSize: "1.55rem", fontWeight: "800", color: "#0f172a" }}>
               Sign In to Portal
