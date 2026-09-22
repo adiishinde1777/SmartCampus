@@ -23,33 +23,35 @@ export default function TopNavbar({ currentView, onNavigate, onToggleMobile, onO
         </button>
 
         <div className="navbar-breadcrumb">
-          <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+          <span className="hide-on-mobile" style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
             {systemSettings?.collegeName || "CSMSS Chh. Shahu College of Engineering"} •
           </span>
-          <span className="active-crumb" style={{ textTransform: "capitalize" }}>
+          <span className="active-crumb" style={{ textTransform: "capitalize", fontWeight: "700" }}>
             {currentView ? currentView.replace(/-/g, " ") : "Dashboard"}
           </span>
         </div>
       </div>
 
-      <div className="navbar-right">
+      <div className="navbar-right" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         {/* Active Role Identifier Badge */}
         <div
+          className="role-badge-nav"
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: "6px",
-            padding: "5px 12px",
+            gap: "5px",
+            padding: "4px 10px",
             background: "rgba(37, 99, 235, 0.08)",
             border: "1px solid rgba(37, 99, 235, 0.2)",
             borderRadius: "20px",
-            fontSize: "0.78rem",
+            fontSize: "0.75rem",
             fontWeight: "700",
             color: "var(--primary-700)"
           }}
         >
-          <ShieldCheck size={14} color="var(--primary-600)" />
-          <span style={{ textTransform: "uppercase" }}>{activeRole} ACCESS</span>
+          <ShieldCheck size={13} color="var(--primary-600)" />
+          <span style={{ textTransform: "uppercase" }}>{activeRole}</span>
+          <span className="hide-on-mobile" style={{ textTransform: "uppercase" }}> ACCESS</span>
         </div>
 
         {/* Notification Bell */}
