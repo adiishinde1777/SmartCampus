@@ -1,12 +1,30 @@
 import { query } from '../db.js';
 
-// Normalizes birthdate strings into digits for flexible comparison
-// e.g. "2004-05-18", "18-05-2004", "18/05/2004", "18052004"
+// Normalizes birthdate strings into DDMMYYYY for flexible comparison
+// Handles "16.04.2006", "2.1.2000", "2000-01-02", "02-01-2000", "2/1/2000"
 function normalizeDate(dateStr) {
   if (!dateStr) return '';
-  const clean = String(dateStr).trim().replace(/[^0-9]/g, '');
+  const str = String(dateStr).trim();
+  
+  const parts = str.split(/[.\-\/]/);
+  if (parts.length === 3) {
+    let day, month, year;
+    if (parts[0].length === 4) {
+      // YYYY-MM-DD
+      year = parts[0];
+      month = parts[1].padStart(2, '0');
+      day = parts[2].padStart(2, '0');
+    } else {
+      // DD.MM.YYYY or D.M.YYYY
+      day = parts[0].padStart(2, '0');
+      month = parts[1].padStart(2, '0');
+      year = parts[2];
+    }
+    return `${day}${month}${year}`;
+  }
+
+  const clean = str.replace(/[^0-9]/g, '');
   if (clean.length === 8) {
-    // If YYYYMMDD -> convert to DDMMYYYY for comparison
     if (clean.startsWith('19') || clean.startsWith('20')) {
       const yyyy = clean.substring(0, 4);
       const mm = clean.substring(4, 6);
@@ -22,7 +40,8 @@ function verifyDob(providedDob, storedDob) {
   if (!providedDob || !storedDob) return false;
   const p = normalizeDate(providedDob);
   const s = normalizeDate(storedDob);
-  return p === s || String(providedDob).trim() === String(storedDob).trim();
+  if (p && s && p === s) return true;
+  return String(providedDob).trim().toLowerCase() === String(storedDob).trim().toLowerCase();
 }
 
 function cleanPhone(num) {
@@ -67,11 +86,12 @@ export async function login(req, res) {
     }
 
     // 2. STUDENT LOGIN RULE:
-    // Username: PRN Number; Password: Student's Birthdate (DOB)
+    // Username: PRN Number or Mobile Number; Password: Student's Birthdate (DOB)
     if (role === 'student') {
+      const phoneDigits = cleanPhone(cleanUsername);
       const students = await query(
-        `SELECT * FROM users WHERE role = 'student' AND (prn = ? OR roll_no = ? OR email = ?) LIMIT 1`,
-        [cleanUsername, cleanUsername, cleanUsername]
+        `SELECT * FROM users WHERE role = 'student' AND (prn = ? OR phone = ? OR roll_no = ? OR email = ?) LIMIT 1`,
+        [cleanUsername, phoneDigits || cleanUsername, cleanUsername, cleanUsername]
       );
 
       const student = students[0];
