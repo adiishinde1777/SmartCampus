@@ -1493,7 +1493,7 @@ html, body {
   background: radial-gradient(circle at 10% 20%, #0b1329 0%, #151c38 50%, #030712 100%);
   display: flex;
   flex-direction: column;
-  justifyContent: center;
+  justify-content: center;
   align-items: center;
   padding: 32px 24px;
   color: white;
