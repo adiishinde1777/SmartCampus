@@ -1182,6 +1182,9 @@ export function SmartCampusProvider({ children }) {
       description: subjectData.description || `${subjectData.name} for Semester ${sem} students.`
     };
 
+    // Persist subject to MySQL database
+    api.addSubject(newSub).catch((err) => console.warn('[MySQL Subject Sync Warning]', err.message));
+
     setState((prev) => {
       const audit = logAudit(
         "Created Academic Subject",
