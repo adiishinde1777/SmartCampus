@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import mysql from 'mysql2/promise';
-import { INITIAL_SUBJECTS } from '../src/data/initialData.js';
+import { SUBJECTS } from '../src/data/initialData.js';
 
 dotenv.config({ path: './.env' });
 
