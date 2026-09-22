@@ -167,29 +167,20 @@ export default function StudentRegisterPage({ onBackToLogin }) {
 
   return (
     <div
+      className="login-page-container"
       style={{
         minHeight: "100vh",
         background: "radial-gradient(circle at 10% 20%, #0f172a 0%, #1e1b4b 50%, #020617 100%)",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        padding: "32px 16px",
+        padding: "16px 12px",
         color: "white"
       }}
     >
-      <div
-        style={{
-          maxWidth: "840px",
-          width: "100%",
-          background: "white",
-          color: "#0f172a",
-          borderRadius: "24px",
-          padding: "36px",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.6)"
-        }}
-      >
+      <div className="register-form-card">
         {/* Top Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", borderBottom: "1px solid #e2e8f0", paddingBottom: "16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "14px", marginBottom: "24px", borderBottom: "1px solid #e2e8f0", paddingBottom: "16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <div
               style={{
@@ -200,16 +191,17 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                 color: "#2563eb",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center"
+                justifyContent: "center",
+                flexShrink: 0
               }}
             >
               <GraduationCap size={26} />
             </div>
             <div>
-              <h2 style={{ fontSize: "1.4rem", fontWeight: "800", color: "#0f172a", margin: 0 }}>
+              <h2 style={{ fontSize: "1.25rem", fontWeight: "800", color: "#0f172a", margin: 0 }}>
                 Student Enrollment & Onboarding Form
               </h2>
-              <p style={{ fontSize: "0.82rem", color: "#64748b", margin: "2px 0 0" }}>
+              <p style={{ fontSize: "0.8rem", color: "#64748b", margin: "2px 0 0" }}>
                 CSMSS Chh. Shahu College of Engineering • Academic Portal
               </p>
             </div>
