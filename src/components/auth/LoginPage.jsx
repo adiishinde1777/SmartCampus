@@ -124,10 +124,10 @@ export default function LoginPage() {
         color: "white"
       }}
     >
-      <div style={{ maxWidth: "1040px", width: "100%", display: "grid", gridTemplateColumns: "1.1fr 1fr", gap: "40px", alignItems: "center" }}>
+      <div className="login-grid-wrapper">
         
         {/* Left Hero Pitch & Branding */}
-        <div style={{ padding: "16px" }}>
+        <div style={{ padding: "8px" }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(59, 130, 246, 0.15)", border: "1px solid rgba(59, 130, 246, 0.3)", padding: "6px 14px", borderRadius: "30px", marginBottom: "20px" }}>
             <Sparkles size={16} color="#60a5fa" />
             <span style={{ fontSize: "0.82rem", fontWeight: "700", color: "#93c5fd", letterSpacing: "0.05em" }}>
@@ -135,11 +135,11 @@ export default function LoginPage() {
             </span>
           </div>
 
-          <h1 style={{ fontSize: "2.8rem", fontWeight: "800", lineHeight: 1.15, color: "white", marginBottom: "16px", letterSpacing: "-0.02em" }}>
+          <h1 style={{ fontSize: "2.4rem", fontWeight: "800", lineHeight: 1.15, color: "white", marginBottom: "16px", letterSpacing: "-0.02em" }}>
             SMART CAMPUS
           </h1>
 
-          <p style={{ fontSize: "1.08rem", color: "#94a3b8", lineHeight: 1.6, marginBottom: "24px" }}>
+          <p style={{ fontSize: "1rem", color: "#94a3b8", lineHeight: 1.6, marginBottom: "24px" }}>
             CSMSS Chh. Shahu College of Engineering • Integrated Academic, Faculty, Student & Parent Communication Portal
           </p>
 
@@ -149,11 +149,13 @@ export default function LoginPage() {
               background: "rgba(255, 255, 255, 0.05)",
               border: "1px solid rgba(255, 255, 255, 0.12)",
               borderRadius: "16px",
-              padding: "18px 20px",
+              padding: "16px 18px",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: "24px"
+              flexWrap: "wrap",
+              gap: "12px",
+              marginBottom: "20px"
             }}
           >
             <div>
@@ -182,11 +184,12 @@ export default function LoginPage() {
               border: "1.5px solid rgba(96, 165, 250, 0.4)",
               backdropFilter: "blur(12px)",
               borderRadius: "18px",
-              padding: "18px 22px",
+              padding: "16px 20px",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: "16px",
+              flexWrap: "wrap",
+              gap: "14px",
               boxShadow: "0 10px 30px -5px rgba(37, 99, 235, 0.3)"
             }}
           >

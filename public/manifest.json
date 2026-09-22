@@ -1,0 +1,22 @@
+{
+  "short_name": "SmartCampus",
+  "name": "SmartCampus ERP - CSMSS COE",
+  "description": "Integrated Academic, Attendance & Parent Communication ERP System",
+  "icons": [
+    {
+      "src": "/assets/logos/csmss_college_logo.jpg",
+      "type": "image/jpeg",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/assets/logos/csmss_college_logo.jpg",
+      "type": "image/jpeg",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0b1329",
+  "theme_color": "#1e3a8a",
+  "display": "standalone",
+  "orientation": "portrait-primary"
+}

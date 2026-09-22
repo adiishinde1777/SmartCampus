@@ -6,6 +6,7 @@ import UnifiedNotifications from "./components/common/UnifiedNotifications";
 import Sidebar from "./components/layout/Sidebar";
 import TopNavbar from "./components/layout/TopNavbar";
 import NotificationDrawer from "./components/layout/NotificationDrawer";
+import MobileBottomNav from "./components/layout/MobileBottomNav";
 import LoginPage from "./components/auth/LoginPage";
 
 // Student Views
@@ -239,10 +240,21 @@ function MainApp() {
 
   return (
     <div className="app-container">
+      {/* Mobile Drawer Overlay Backdrop */}
+      {isMobileOpen && (
+        <div
+          className="mobile-overlay-backdrop"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
       {/* Sidebar Navigation */}
       <Sidebar
         currentView={currentView}
-        setCurrentView={setCurrentView}
+        setCurrentView={(view) => {
+          setCurrentView(view);
+          setIsMobileOpen(false);
+        }}
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
       />
@@ -264,6 +276,16 @@ function MainApp() {
           </ErrorBoundary>
         </main>
       </div>
+
+      {/* Mobile Sticky Bottom Navigation Bar */}
+      <MobileBottomNav
+        currentView={currentView}
+        onNavigate={(view) => {
+          setCurrentView(view);
+          setIsMobileOpen(false);
+        }}
+        onToggleMobile={() => setIsMobileOpen(!isMobileOpen)}
+      />
 
       {/* Slide-over Notification Drawer */}
       <NotificationDrawer
