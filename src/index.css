@@ -1459,23 +1459,232 @@ select.form-control {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Universal Viewport & Overflow Security */
+html, body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden !important;
+  position: relative;
+  -webkit-text-size-adjust: 100%;
+}
+
+#root {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden !important;
+}
+
+.app-container {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden !important;
+}
+
+.main-content-wrapper {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden !important;
+}
+
+/* Dedicated Mobile Component Classes */
+.login-page-container {
+  min-height: 100vh;
+  background: radial-gradient(circle at 10% 20%, #0b1329 0%, #151c38 50%, #030712 100%);
+  display: flex;
+  flex-direction: column;
+  justifyContent: center;
+  align-items: center;
+  padding: 32px 24px;
+  color: white;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+.login-auth-card {
+  background: white;
+  color: #0f172a;
+  border-radius: 24px;
+  padding: 36px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  border: 1px solid #e2e8f0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.login-hero-title {
+  font-size: 2.3rem;
+  font-weight: 800;
+  line-height: 1.15;
+  color: white;
+  margin-bottom: 14px;
+  letter-spacing: -0.02em;
+}
+
+.dev-badge-card {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.2) 0%, rgba(30, 64, 175, 0.3) 100%);
+  border: 1.5px solid rgba(96, 165, 250, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 18px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  box-shadow: 0 10px 30px -5px rgba(37, 99, 235, 0.3);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.enroll-prompt-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.register-form-card {
+  max-width: 840px;
+  width: 100%;
+  background: white;
+  color: #0f172a;
+  border-radius: 24px;
+  padding: 36px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  box-sizing: border-box;
+}
+
+/* Master Mobile Rules for all screen sizes <= 768px */
 @media (max-width: 768px) {
   .hide-on-mobile {
     display: none !important;
   }
-  .form-control {
-    font-size: 16px !important; /* Prevents auto-zoom in iOS Safari */
-    height: 44px; /* Touch-friendly tap target */
+
+  /* Force multi-column grids to 1 clean vertical column on mobile */
+  [style*="grid-template-columns"],
+  [style*="gridTemplateColumns"] {
+    grid-template-columns: 1fr !important;
   }
+
+  .keep-grid-mobile {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)) !important;
+  }
+
+  /* Touch-friendly forms & prevent iOS safari auto-zoom */
+  .form-control, input, select, textarea {
+    font-size: 16px !important;
+    min-height: 44px;
+    box-sizing: border-box !important;
+    max-width: 100% !important;
+  }
+
   .btn {
-    min-height: 40px;
+    min-height: 42px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    box-sizing: border-box;
   }
+
+  /* Responsive Cards & Containers */
+  .card, .stat-card {
+    padding: 16px !important;
+    border-radius: 14px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
   .stats-grid {
     grid-template-columns: 1fr !important;
-    gap: 14px !important;
+    gap: 12px !important;
+  }
+
+  .page-body {
+    padding: 12px 12px 85px 12px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .top-navbar {
+    height: 58px !important;
+    padding: 0 12px !important;
+  }
+
+  /* Responsive Login Page Adjustments */
+  .login-page-container {
+    padding: 16px 12px !important;
+  }
+
+  .login-auth-card {
+    padding: 22px 16px !important;
+    border-radius: 18px !important;
+  }
+
+  .login-hero-title {
+    font-size: 1.75rem !important;
+  }
+
+  .dev-badge-card {
+    padding: 14px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .dev-badge-card a {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .enroll-prompt-card {
+    padding: 14px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .enroll-prompt-card button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .register-form-card {
+    padding: 20px 14px !important;
+    border-radius: 16px !important;
+  }
+
+  /* Horizontal Scrolling for Data Tables without breaking screen width */
+  table {
+    display: block;
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Modals on Mobile */
+  .modal-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
+  .modal-card {
+    max-width: 100% !important;
+    width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 90vh !important;
   }
 }
 
