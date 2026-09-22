@@ -739,6 +739,16 @@ export function SmartCampusProvider({ children }) {
 
     const audit = logAudit("Published Notice", `Notice "${noticeData.title}" (${noticeData.category})`, "Notices");
 
+    // Persist notice to MySQL database
+    api.createNotice({
+      title: newNotice.title,
+      content: newNotice.content,
+      targetAudience: newNotice.department,
+      postedBy: newNotice.author,
+      role: state.currentUser ? state.currentUser.role : 'admin',
+      priority: newNotice.priority
+    }).catch((err) => console.warn('[MySQL Notice Sync Warning]', err.message));
+
     setState((prev) => ({
       ...prev,
       notices: [newNotice, ...prev.notices],
