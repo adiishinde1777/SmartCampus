@@ -341,9 +341,6 @@ export default function StudentRegisterPage({ onBackToLogin }) {
         )}
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-          {/* Invisible Google ReCAPTCHA Mount for Firebase Phone Auth */}
-          <div id="recaptcha-container-student"></div>
-
           {/* SECTION 1: Student Information */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
