@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import api from "../../services/api";
 import { useSmartCampus } from "../../context/SmartCampusContext";
 import {
@@ -16,9 +16,7 @@ import {
   AlertCircle,
   ShieldCheck,
   Lock,
-  Smartphone,
-  RefreshCw,
-  Check
+  Smartphone
 } from "lucide-react";
 export default function StudentRegisterPage({ onBackToLogin }) {
   const { departments, addUser, addRegisteredUsers } = useSmartCampus();
