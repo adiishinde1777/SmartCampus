@@ -1049,6 +1049,9 @@ export function SmartCampusProvider({ children }) {
 
       if (!updatedUserObj) return prev;
 
+      // Asynchronously update Firebase Firestore Cloud Database
+      saveUserToFirestore(updatedUserObj).catch((err) => console.warn('[Firestore Update Warning]', err.message));
+
       // Cross-sync: If student was updated, sync parent references
       if (updatedUserObj.role === "student" && updatedUserObj.parentId) {
         const parentIdx = updatedUsers.findIndex((p) => p.id === updatedUserObj.parentId);
@@ -1057,6 +1060,7 @@ export function SmartCampusProvider({ children }) {
             ...updatedUsers[parentIdx],
             studentName: updatedUserObj.name
           };
+          saveUserToFirestore(updatedUsers[parentIdx]).catch(() => {});
         }
       }
 
@@ -1071,6 +1075,7 @@ export function SmartCampusProvider({ children }) {
             parentPhone: updatedUserObj.phone || updatedUsers[stuIdx].parentPhone,
             parentEmail: updatedUserObj.email || updatedUsers[stuIdx].parentEmail
           };
+          saveUserToFirestore(updatedUsers[stuIdx]).catch(() => {});
         }
       }
 
@@ -1090,7 +1095,7 @@ export function SmartCampusProvider({ children }) {
 
       const audit = logAudit(
         "Updated User Profile",
-        `Admin modified details for ${updatedUserObj.name} (${updatedUserObj.role.toUpperCase()})`,
+        `Admin modified details for ${updatedUserObj.name} (${updatedUserObj.role.toUpperCase()}) in Firestore & MySQL`,
         "User Management"
       );
 
@@ -1105,7 +1110,7 @@ export function SmartCampusProvider({ children }) {
 
     addToast(
       "User Updated Successfully",
-      `Profile data for ${updatedData.name || "user"} has been updated in MySQL and across ERP.`,
+      `Profile data for ${updatedData.name || "user"} has been updated in Firestore, MySQL, and across ERP.`,
       "success"
     );
   };
@@ -1132,6 +1137,8 @@ export function SmartCampusProvider({ children }) {
 
     // Asynchronously save to MySQL database
     api.addUser(newUser).catch((err) => console.warn('[MySQL Save Warning]', err.message));
+    // Asynchronously save to Firebase Firestore Cloud Database
+    saveUserToFirestore(newUser).catch((err) => console.warn('[Firestore Save Warning]', err.message));
 
     setState((prev) => {
       const updatedUsers = [newUser, ...prev.users];
@@ -1141,7 +1148,7 @@ export function SmartCampusProvider({ children }) {
         const parentId = `par-${newUser.id}`;
         const parentExists = updatedUsers.some((u) => u.id === parentId || u.phone === newUser.parentPhone);
         if (!parentExists) {
-          updatedUsers.push({
+          const parentUser = {
             id: parentId,
             role: "parent",
             name: newUser.parentName || `Parent of ${newUser.name}`,
@@ -1154,13 +1161,15 @@ export function SmartCampusProvider({ children }) {
             departmentId: newUser.departmentId,
             departmentName: newUser.departmentName,
             canLogin: true
-          });
+          };
+          updatedUsers.push(parentUser);
+          saveUserToFirestore(parentUser).catch((err) => console.warn('[Firestore Parent Save Warning]', err.message));
         }
       }
 
       const audit = logAudit(
         "Provisioned New User",
-        `Created new ${newUser.role.toUpperCase()} account for ${newUser.name} in MySQL`,
+        `Created new ${newUser.role.toUpperCase()} account for ${newUser.name} in Firestore & MySQL`,
         "User Management"
       );
 
@@ -1171,11 +1180,15 @@ export function SmartCampusProvider({ children }) {
       };
     });
 
-    addToast("User Provisioned", `New ${userData.role.toUpperCase()} account created for ${userData.name} in MySQL.`, "success");
+    addToast("User Provisioned", `New ${userData.role.toUpperCase()} account created for ${userData.name} in Firestore & MySQL.`, "success");
     return newUser;
   };
 
   const addRegisteredUsers = (student, parent) => {
+    // Persist to Firebase Firestore
+    if (student) saveUserToFirestore(student).catch((err) => console.warn('[Firestore Student Register Sync Warning]', err.message));
+    if (parent) saveUserToFirestore(parent).catch((err) => console.warn('[Firestore Parent Register Sync Warning]', err.message));
+
     setState((prev) => {
       let updatedUsers = [student, ...prev.users.filter((u) => u.id !== student.id && (!u.phone || u.phone !== student.phone))];
       if (parent) {
@@ -1200,12 +1213,14 @@ export function SmartCampusProvider({ children }) {
 
     // Asynchronously delete from MySQL
     api.deleteUser(userId).catch((err) => console.warn('[MySQL Delete Warning]', err.message));
+    // Asynchronously delete from Firebase Firestore
+    deleteUserFromFirestore(userId).catch((err) => console.warn('[Firestore Delete Warning]', err.message));
 
     setState((prev) => {
       const updatedUsers = prev.users.filter((u) => u.id !== userId && u.parentId !== userId);
       const audit = logAudit(
         "Removed User Account",
-        `Admin decommissioned user: ${userName} (${userRole.toUpperCase()}) from MySQL`,
+        `Admin decommissioned user: ${userName} (${userRole.toUpperCase()}) from Firestore & MySQL`,
         "User Management"
       );
 
@@ -1216,7 +1231,7 @@ export function SmartCampusProvider({ children }) {
       };
     });
 
-    addToast("User Removed", `Account for ${userName} removed from MySQL database.`, "warning");
+    addToast("User Removed", `Account for ${userName} removed from Firestore & MySQL database.`, "warning");
     return true;
   };
 
