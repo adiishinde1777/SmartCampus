@@ -284,7 +284,7 @@ export default function LoginPage() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <label className="form-label" style={{ fontWeight: "700" }}>{fields.passLabel} (Optional)</label>
                 <span style={{ fontSize: "0.72rem", color: "#16a34a", fontWeight: "700" }}>
-                  Direct Mobile Login
+                  Direct Login
                 </span>
               </div>
               <input
@@ -292,11 +292,11 @@ export default function LoginPage() {
                 className="form-control"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password or leave empty to login directly with mobile"
+                placeholder="Enter your password or leave blank for instant mobile sign in"
                 style={{ padding: "10px 14px" }}
               />
               <small style={{ color: "#64748b", fontSize: "0.74rem", marginTop: "4px", display: "block" }}>
-                💡 Direct Mobile Login: Enter your registered mobile number and click sign in. No OTP required!
+                💡 Enter your registered mobile number and click sign in to enter the portal.
               </small>
             </div>
 
