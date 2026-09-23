@@ -1,29 +1,40 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAnalytics, isSupported } from "firebase/analytics";
 import {
   getAuth,
   RecaptchaVerifier,
   signInWithPhoneNumber
 } from "firebase/auth";
 
-// Firebase Project Configuration
-// Values can be set in frontend/.env or customized here
+// Live Firebase Project Configuration for smart-campus-erp-system
 export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDemoKeyForSmartCampusTesting12345",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "smartcampus-csmss.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "smartcampus-csmss",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "smartcampus-csmss.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "102938475610",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:102938475610:web:abcdef1234567890"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyB3C9n1Ynrqcq7GKSKNZtAwph9vHJ5oRB0",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "smart-campus-erp-system.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "smart-campus-erp-system",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "smart-campus-erp-system.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "533568998200",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:533568998200:web:de192fce9307a1c27a4fcd",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-7T3BL0PV86"
 };
 
 // Initialize Firebase App
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Check if live credentials have been added by the developer/admin
+// Safe Analytics Initialization for browser environments
+export let analytics = null;
+if (typeof window !== "undefined") {
+  isSupported().then((supported) => {
+    if (supported) {
+      analytics = getAnalytics(app);
+      console.log("[Firebase Analytics] Active and connected.");
+    }
+  }).catch(() => {});
+}
+
+// Check if live credentials have been added
 export const isFirebaseConfigured = () => {
-  const key = import.meta.env.VITE_FIREBASE_API_KEY;
-  return Boolean(key && !key.includes("DemoKey"));
+  return Boolean(firebaseConfig.apiKey && firebaseConfig.apiKey.startsWith("AIzaSyB"));
 };
 
 /**
