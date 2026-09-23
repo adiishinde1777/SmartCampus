@@ -920,6 +920,11 @@ export function SmartCampusProvider({ children }) {
       priority: newNotice.priority
     }).catch((err) => console.warn('[MySQL Notice Sync Warning]', err.message));
 
+    // Persist notice to Firebase Firestore
+    saveDocToFirestore(FIRESTORE_COLLECTIONS.NOTICES, newNotice.id, newNotice).catch((err) =>
+      console.warn('[Firestore Notice Sync Warning]', err.message)
+    );
+
     setState((prev) => ({
       ...prev,
       notices: [newNotice, ...prev.notices],
@@ -951,6 +956,11 @@ export function SmartCampusProvider({ children }) {
     };
 
     const audit = logAudit("Applied for Leave", `${student.name}: ${leaveData.reason} (${leaveData.startDate})`, "Leave");
+
+    // Persist leave application to Firebase Firestore
+    saveDocToFirestore(FIRESTORE_COLLECTIONS.LEAVES, newLeave.id, newLeave).catch((err) =>
+      console.warn('[Firestore Leave Sync Warning]', err.message)
+    );
 
     setState((prev) => ({
       ...prev,
