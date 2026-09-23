@@ -123,9 +123,11 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
       };
 
       // 1. Submit to Backend MySQL API if available
+      let registeredFaculty = payload;
       try {
         const res = await api.submitFacultyRegistration(payload);
         if (res?.faculty) {
+          registeredFaculty = res.faculty;
           addUser(res.faculty);
         } else {
           addUser(payload);
@@ -134,6 +136,11 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
         console.warn("[Faculty Register API Fallback to Local State]", apiErr.message);
         addUser(payload);
       }
+
+      // 2. Persist faculty profile to Firebase Firestore Cloud Database
+      saveUserToFirestore(registeredFaculty).catch((fsErr) =>
+        console.warn("[Firestore Faculty Register Warning]", fsErr.message)
+      );
 
       // 2. Dispatch Welcome & Login Credentials SMS via API & log
       const welcomeSms = `CSMSS SmartCampus: Dear ${formData.name.trim()}, your ${role.toUpperCase()} account is activated! Login Username: ${cleanPhone}, Password: ${formData.password.trim()}. Portal: CSMSS Chh. Shahu College of Engineering.`;
