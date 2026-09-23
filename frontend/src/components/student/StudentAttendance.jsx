@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Badge } from "../common/UIPrimitives";
 import PrintHeader, { PrintSignatures } from "../common/PrintHeader";
+import { getAcademicSession, getStudentClassTitle } from "../../utils/academicSession";
 
 export default function StudentAttendance() {
   const {
@@ -118,7 +119,7 @@ export default function StudentAttendance() {
       {/* Official College Print Header (Appears only on print) */}
       <PrintHeader
         title="STUDENT OFFICIAL ATTENDANCE & COMPLIANCE TRANSCRIPT"
-        subtitle={`Student: ${student?.name} (Roll: ${student?.rollNo || "VL3152"} • PRN: ${student?.prn || "24025331378056"}) • Class: TE VLSI Sem 5`}
+        subtitle={`Student: ${student?.name} (Roll: ${student?.rollNo || student?.prn || "—"} • PRN: ${student?.prn || "—"}) • Class: ${getStudentClassTitle(student)} • Session: ${getAcademicSession(student?.year, student?.semester)}`}
         documentType="ATTENDANCE REGISTER RECORD"
       />
 

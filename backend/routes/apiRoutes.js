@@ -478,6 +478,20 @@ router.post('/register-student', async (req, res) => {
       ]
     ).catch((e) => console.warn('[Audit Log Warning]', e.message));
 
+    const getBatchSession = (year, semester) => {
+      const y = String(year || '').toLowerCase();
+      const s = Number(semester);
+      if (y.includes('1') || y.includes('first') || y.includes('fe') || s === 1 || s === 2) return '2026-2030';
+      if (y.includes('2') || y.includes('second') || y.includes('se') || s === 3 || s === 4) return '2025-2029';
+      if (y.includes('3') || y.includes('third') || y.includes('te') || s === 5 || s === 6) return '2024-2028';
+      if (y.includes('4') || y.includes('final') || y.includes('fourth') || y.includes('be') || s === 7 || s === 8) return '2023-2027';
+      return '2026-2030';
+    };
+
+    const yrPrefix = (body.year || '').includes('2') || body.semester === 3 ? 'SE' : (body.year || '').includes('3') || body.semester === 5 ? 'TE' : (body.year || '').includes('4') || body.semester === 7 ? 'BE' : 'FE';
+    const computedClass = body.className || `${yrPrefix} ${body.departmentName || 'Engineering'} – Semester ${body.semester || 1} (${body.year || '1st Year'}) – Div ${body.division || 'A'}`;
+    const computedSession = body.academicSession || getBatchSession(body.year, body.semester);
+
     const studentRecord = {
       id: studentId,
       role: 'student',
@@ -489,10 +503,13 @@ router.post('/register-student', async (req, res) => {
       password: studentPass,
       departmentId: body.departmentId || 'dept-vlsi',
       departmentName: body.departmentName || 'Electronic Engineering (VLSI Design And Technology)',
+      departmentCode: body.departmentCode || '',
       semester: body.semester ? Number(body.semester) : 1,
       year: body.year || '1st Year',
       division: body.division || 'A',
       batch: body.batch || 'A1',
+      className: computedClass,
+      academicSession: computedSession,
       rollNo: body.rollNo || null,
       gender: body.gender || 'Male',
       bloodGroup: body.bloodGroup || 'O+',

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Badge, StatCard } from "../common/UIPrimitives";
 import PrintHeader, { PrintSignatures } from "../common/PrintHeader";
+import { getAcademicSession, getStudentClassTitle } from "../../utils/academicSession";
 
 export default function StudentMarks({ onNavigate }) {
   const { currentUser, marks, subjects } = useSmartCampus();
@@ -93,7 +94,7 @@ export default function StudentMarks({ onNavigate }) {
       {/* Printable College Header */}
       <PrintHeader
         title="STUDENT ACADEMIC GRADEBOOK & CONTINUOUS INTERNAL EVALUATION (CIE)"
-        subtitle={`Student: ${student?.name || "Aditya Shinde"} | PRN: ${student?.prn || student?.prnNo || "CSMSS-VLSI-2023-01"} | Roll: ${student?.rollNo || "VL3101"} | Class: ${student?.className || "TE VLSI (3rd Year)"}`}
+        subtitle={`Student: ${student?.name || "Student"} | PRN: ${student?.prn || student?.prnNo || "—"} | Roll: ${student?.rollNo || "—"} | Class: ${getStudentClassTitle(student)} | Session: ${getAcademicSession(student?.year, student?.semester)}`}
       />
 
       {/* Page Header */}

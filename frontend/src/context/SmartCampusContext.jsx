@@ -228,6 +228,21 @@ export function SmartCampusProvider({ children }) {
     const pass = (password || "").trim();
     const cleanDigits = input.replace(/\D/g, "").slice(-10);
 
+    // Parent login guard: if parent attempts login before Class Teacher sets password
+    if (selectedRole === "parent") {
+      const parentRecord = state.users.find((u) => {
+        if (u.role !== "parent") return false;
+        const uPhone = (u.phone || "").replace(/\D/g, "").slice(-10);
+        return (cleanDigits && uPhone === cleanDigits) || u.phone === input;
+      });
+      if (parentRecord && (!parentRecord.password || parentRecord.canLogin === false)) {
+        return {
+          success: false,
+          message: "पालक लॉगिन पासवर्ड अद्याप वर्गशिक्षकांनी (Class Teacher) सेट केलेला नाही. कृपया वर्गशिक्षकांशी संपर्क साधा. (Parent login password has not been assigned by the Class Teacher yet. Please contact Class Teacher)."
+        };
+      }
+    }
+
     // Check if user exists in local client state
     const localUser = state.users.find((u) => {
       if (selectedRole && u.role !== selectedRole) return false;
@@ -243,6 +258,12 @@ export function SmartCampusProvider({ children }) {
         u.phone === input;
 
       if (!matchIdentifier) return false;
+
+      // For parents: Password must be explicitly assigned by Teacher
+      if (selectedRole === "parent") {
+        if (!u.password || u.canLogin === false) return false;
+        return u.password === pass;
+      }
 
       // If user did not provide a password, allow direct mobile login!
       if (!pass) return true;
@@ -1183,13 +1204,13 @@ export function SmartCampusProvider({ children }) {
             name: newUser.parentName || `Parent of ${newUser.name}`,
             phone: newUser.parentPhone,
             email: newUser.parentEmail || "",
-            dob: newUser.dob, // Parent password is student's DOB
-            password: newUser.dob,
+            password: null, // DO NOT set password on registration - Class Teacher assigns it
             studentId: newUser.id,
             studentName: newUser.name,
             departmentId: newUser.departmentId,
             departmentName: newUser.departmentName,
-            canLogin: true
+            canLogin: false,
+            isPasswordSet: false
           };
           updatedUsers.push(parentUser);
           saveUserToFirestore(parentUser).catch((err) => console.warn('[Firestore Parent Save Warning]', err.message));
@@ -1216,12 +1237,23 @@ export function SmartCampusProvider({ children }) {
   const addRegisteredUsers = (student, parent) => {
     // Persist to Firebase Firestore
     if (student) saveUserToFirestore(student).catch((err) => console.warn('[Firestore Student Register Sync Warning]', err.message));
-    if (parent) saveUserToFirestore(parent).catch((err) => console.warn('[Firestore Parent Register Sync Warning]', err.message));
+    
+    // Ensure parent record has no password until assigned by Class Teacher
+    let cleanParent = parent;
+    if (cleanParent) {
+      cleanParent = {
+        ...cleanParent,
+        password: null,
+        canLogin: false,
+        isPasswordSet: false
+      };
+      saveUserToFirestore(cleanParent).catch((err) => console.warn('[Firestore Parent Register Sync Warning]', err.message));
+    }
 
     setState((prev) => {
       let updatedUsers = [student, ...prev.users.filter((u) => u.id !== student.id && (!u.phone || u.phone !== student.phone))];
-      if (parent) {
-        updatedUsers = [parent, ...updatedUsers.filter((u) => u.id !== parent.id && (!u.phone || u.phone !== parent.phone))];
+      if (cleanParent) {
+        updatedUsers = [cleanParent, ...updatedUsers.filter((u) => u.id !== cleanParent.id && (!u.phone || u.phone !== cleanParent.phone))];
       }
       return {
         ...prev,

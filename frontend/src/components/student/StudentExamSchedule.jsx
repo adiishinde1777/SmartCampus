@@ -142,14 +142,14 @@ export default function StudentExamSchedule() {
               Candidate Seating Desk
             </div>
             <div style={{ fontSize: "1rem", fontWeight: "700", color: "#f8fafc", marginBottom: "4px" }}>
-              {student?.name} ({student?.rollNo || "VLSI3152"})
+              {student?.name} ({student?.rollNo || student?.prn || "Student"})
             </div>
             <div style={{ fontSize: "0.78rem", color: "#cbd5e1", marginBottom: "8px" }}>
-              PRN: <strong style={{ fontFamily: "monospace", color: "#e2e8f0" }}>{student?.prn || "20240101901"}</strong>
+              PRN: <strong style={{ fontFamily: "monospace", color: "#e2e8f0" }}>{student?.prn || "—"}</strong>
             </div>
             <div style={{ display: "flex", gap: "6px" }}>
               <span style={{ background: "rgba(34, 197, 94, 0.25)", color: "#86efac", padding: "2px 8px", borderRadius: "6px", fontWeight: "700", fontSize: "0.72rem" }}>
-                Seat No: 501-VLSI-42
+                Seat No: {studentSem}01-{(student?.rollNo || "01").slice(-4)}
               </span>
               <span style={{ background: "rgba(59, 130, 246, 0.25)", color: "#bfdbfe", padding: "2px 8px", borderRadius: "6px", fontWeight: "700", fontSize: "0.72rem" }}>
                 Hall B-204
@@ -422,13 +422,13 @@ export default function StudentExamSchedule() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: "16px", marginBottom: "16px", fontSize: "0.82rem" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                   <div><strong>Candidate Name:</strong> {student?.name}</div>
-                  <div><strong>Seat Number:</strong> 501-VLSI-42</div>
-                  <div><strong>Permanent Reg No (PRN):</strong> {student?.prn || "20240101901"}</div>
-                  <div><strong>Class Roll No:</strong> {student?.rollNo || "VLSI3152"}</div>
-                  <div><strong>Branch / Discipline:</strong> VLSI Design & Tech</div>
-                  <div><strong>Semester / Year:</strong> Semester 5 (TE)</div>
+                  <div><strong>Seat Number:</strong> {studentSem}01-{(student?.rollNo || "01").slice(-4)}</div>
+                  <div><strong>Permanent Reg No (PRN):</strong> {student?.prn || "—"}</div>
+                  <div><strong>Class Roll No:</strong> {student?.rollNo || student?.prn || "—"}</div>
+                  <div><strong>Branch / Discipline:</strong> {student?.departmentName || "Engineering"}</div>
+                  <div><strong>Semester / Year:</strong> Semester {studentSem} ({student?.year || "1st Year"})</div>
                   <div><strong>Exam Center:</strong> Center 089 (Main Block)</div>
-                  <div><strong>Allotted Room:</strong> Hall B-204 (Desk #42)</div>
+                  <div><strong>Allotted Room:</strong> Hall B-204 (Desk #{(student?.rollNo || "01").slice(-2)})</div>
                 </div>
 
                 {/* Candidate Photo & Barcode Mockup */}

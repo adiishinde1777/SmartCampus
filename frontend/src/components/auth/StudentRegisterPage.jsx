@@ -3,6 +3,12 @@ import api from "../../services/api";
 import { saveUserToFirestore } from "../../services/firebase";
 import { useSmartCampus } from "../../context/SmartCampusContext";
 import {
+  getAcademicSession,
+  getYearPrefix,
+  getYearDisplay,
+  getStudentClassTitle
+} from "../../utils/academicSession";
+import {
   GraduationCap,
   User,
   Calendar,
@@ -17,12 +23,14 @@ import {
   AlertCircle,
   ShieldCheck,
   Lock,
-  Smartphone
+  Smartphone,
+  Info
 } from "lucide-react";
+
 export default function StudentRegisterPage({ onBackToLogin }) {
   const { departments, addUser, addRegisteredUsers } = useSmartCampus();
 
-  const defaultDept = departments[0] || { id: "dept-vlsi", name: "Electronic Engineering (VLSI Design And Technology)", divisions: ["A"] };
+  const defaultDept = departments[0] || { id: "dept-vlsi", code: "VLSI", name: "Electronic Engineering (VLSI Design And Technology)", divisions: ["A"] };
 
   const [formData, setFormData] = useState({
     name: "",
@@ -85,64 +93,145 @@ export default function StudentRegisterPage({ onBackToLogin }) {
     }));
   };
 
+  const currentAcademicSession = getAcademicSession(formData.year, formData.semester);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (!formData.name.trim() || !formData.phone.trim()) {
-      setError("Please fill in Student Full Name and Student Mobile Number.");
+    // 1. ALL QUESTIONS / FIELDS ARE STRICTLY COMPULSORY
+    if (!formData.name.trim()) {
+      setError("विद्यार्थ्याचे पूर्ण नाव भरणे बंधनकारक आहे. (Student Full Name is compulsory).");
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      setError("विद्यार्थ्याचा ईमेल / Gmail आयडी भरणे बंधनकारक आहे. (Student Gmail / Email address is compulsory).");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      setError("कृपया वैध Gmail / ईमेल आयडी प्रविष्ट करा. (Please enter a valid Gmail / Email address).");
       return;
     }
 
     const cleanPhone = (formData.phone || "").replace(/\D/g, "").slice(-10);
     if (!cleanPhone || cleanPhone.length !== 10) {
-      setError("Please enter a valid 10-digit Student Mobile Number.");
+      setError("विद्यार्थ्याचा १० अंकी मोबाईल नंबर भरणे बंधनकारक आहे. (Student 10-digit Mobile Number is compulsory).");
       return;
     }
 
     if (!formData.password) {
-      setError("Please create a password for your account.");
+      setError("विद्यार्थी लॉगिन पासवर्ड तयार करणे बंधनकारक आहे. (Please create a password for student account).");
       return;
     }
 
-    if (formData.confirmPassword && formData.password !== formData.confirmPassword) {
-      setError("Student passwords do not match. Please re-enter.");
+    if (!formData.confirmPassword) {
+      setError("कृपया पासवर्ड कन्फर्म करा. (Please confirm your password).");
       return;
     }
 
-    if (!formData.parentName || !formData.parentPhone) {
-      setError("Parent Name and Parent Mobile Number are required for communication.");
+    if (formData.password !== formData.confirmPassword) {
+      setError("पासवर्ड जुळत नाहीत. कृपया पुन्हा तपासा. (Student passwords do not match. Please re-enter).");
+      return;
+    }
+
+    if (!formData.prn.trim()) {
+      setError("विद्यार्थी PRN नंबर भरणे बंधनकारक आहे. (Student PRN Number is compulsory).");
+      return;
+    }
+
+    if (!formData.rollNo.trim()) {
+      setError("हजेरी / रोल नंबर भरणे बंधनकारक आहे. (Student Roll Number is compulsory).");
+      return;
+    }
+
+    if (!formData.dob) {
+      setError("जन्मतारीख निवडणे बंधनकारक आहे. (Student Date of Birth is compulsory).");
+      return;
+    }
+
+    if (!formData.departmentId) {
+      setError("कृपया विभाग / शाखा निवडा. (Please select Department / Branch).");
+      return;
+    }
+
+    if (!formData.year) {
+      setError("कृपया शैक्षणिक वर्ष निवडा. (Please select Academic Year).");
+      return;
+    }
+
+    if (!formData.division) {
+      setError("कृपया डिव्हिजन निवडा. (Please select Division).");
+      return;
+    }
+
+    if (!formData.address.trim()) {
+      setError("निवासाचा पूर्ण पत्ता भरणे बंधनकारक आहे. (Residential Address is compulsory).");
+      return;
+    }
+
+    if (!formData.parentName.trim()) {
+      setError("पालकांचे पूर्ण नाव भरणे बंधनकारक आहे. (Parent / Guardian Full Name is compulsory).");
+      return;
+    }
+
+    const cleanParentPhone = (formData.parentPhone || "").replace(/\D/g, "").slice(-10);
+    if (!cleanParentPhone || cleanParentPhone.length !== 10) {
+      setError("पालकांचा १० अंकी मोबाईल नंबर भरणे बंधनकारक आहे. (Parent 10-digit Mobile Number is compulsory).");
+      return;
+    }
+
+    if (!formData.parentEmail.trim()) {
+      setError("पालकांचा ईमेल आयडी भरणे बंधनकारक आहे. (Parent Email ID is compulsory).");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.parentEmail.trim())) {
+      setError("कृपया वैध पालक ईमेल आयडी प्रविष्ट करा. (Please enter a valid Parent Email address).");
+      return;
+    }
+
+    if (!formData.parentOccupation.trim()) {
+      setError("पालकांचा व्यवसाय / नोकरी भरणे बंधनकारक आहे. (Parent Occupation / Profession is compulsory).");
       return;
     }
 
     setLoading(true);
 
     try {
+      const yrPrefix = getYearPrefix(formData.year, formData.semester);
+      const session = getAcademicSession(formData.year, formData.semester);
+      const computedClassName = `${yrPrefix} ${selectedDept.code || selectedDept.name} – Semester ${formData.semester} (${formData.year}) – Div ${formData.division}`;
+
       const studentPayload = {
         role: "student",
-        name: formData.name,
-        prn: formData.prn || `PRN-${Date.now().toString().slice(-6)}`,
-        dob: formData.dob || "2005-01-01",
-        rollNo: formData.rollNo || "",
+        name: formData.name.trim(),
+        prn: formData.prn.trim(),
+        dob: formData.dob,
+        rollNo: formData.rollNo.trim(),
         gender: formData.gender,
         bloodGroup: formData.bloodGroup,
-        phone: formData.phone.trim(),
+        phone: cleanPhone,
         email: formData.email.trim(),
         password: formData.password.trim(),
-        address: formData.address,
+        address: formData.address.trim(),
         departmentId: formData.departmentId,
         departmentName: selectedDept.name,
+        departmentCode: selectedDept.code || "",
         year: formData.year,
-        semester: formData.semester,
+        semester: Number(formData.semester),
         division: formData.division,
-        batch: formData.batch,
-        parentName: formData.parentName,
-        parentPhone: formData.parentPhone.trim(),
+        batch: formData.batch || `${formData.division}1`,
+        className: computedClassName,
+        academicSession: session,
+        parentName: formData.parentName.trim(),
+        parentPhone: cleanParentPhone,
         parentEmail: formData.parentEmail.trim(),
-        parentOccupation: formData.parentOccupation
+        parentOccupation: formData.parentOccupation.trim()
       };
 
-      // 1. Directly persist student & parent into MySQL database
+      // 1. Persist student & parent into MySQL database
       let res = null;
       try {
         res = await api.submitStudentRegistration(studentPayload);
@@ -150,30 +239,49 @@ export default function StudentRegisterPage({ onBackToLogin }) {
         console.warn("[MySQL Student Registration Fallback]", dbErr.message);
       }
 
-      // 2. Directly persist student & parent into Firebase Firestore Cloud Database
+      // 2. Direct Firestore storage with NULL password for parent (Teacher sets password later)
       const studentToStore = res?.student || studentPayload;
       saveUserToFirestore(studentToStore).catch((err) => console.warn('[Firestore Student Register Warning]', err.message));
-      if (res?.parent) {
-        saveUserToFirestore(res.parent).catch((err) => console.warn('[Firestore Parent Register Warning]', err.message));
-      }
+      
+      const parentToStore = res?.parent || {
+        id: `par-${studentToStore.id || ('stu-' + Date.now())}`,
+        role: "parent",
+        name: formData.parentName.trim(),
+        phone: cleanParentPhone,
+        email: formData.parentEmail.trim(),
+        studentId: studentToStore.id,
+        studentName: formData.name.trim(),
+        departmentId: formData.departmentId,
+        departmentName: selectedDept.name,
+        password: null, // NO password created yet - Teacher must assign it!
+        canLogin: false,
+        isPasswordSet: false
+      };
+
+      saveUserToFirestore(parentToStore).catch((err) => console.warn('[Firestore Parent Register Warning]', err.message));
 
       // 3. Update live React context users
-      if (res?.student && addRegisteredUsers) {
-        addRegisteredUsers(res.student, res.parent);
+      if (addRegisteredUsers) {
+        addRegisteredUsers(studentToStore, parentToStore);
       } else {
         addUser(studentPayload);
       }
 
       setSuccessData({
-        name: formData.name,
-        studentPhone: formData.phone,
-        parentPhone: formData.parentPhone,
+        name: formData.name.trim(),
+        studentPhone: cleanPhone,
+        studentEmail: formData.email.trim(),
+        parentName: formData.parentName.trim(),
+        parentPhone: cleanParentPhone,
         department: selectedDept.name,
         year: formData.year,
-        division: formData.division
+        semester: formData.semester,
+        division: formData.division,
+        className: computedClassName,
+        academicSession: session
       });
     } catch (err) {
-      setError(err.message || "Failed to submit registration. Please verify details.");
+      setError(err.message || "नोंदणी सबमिट करण्यात त्रुटी आली. कृपया सर्व माहिती तपासा. (Failed to submit registration).");
     } finally {
       setLoading(false);
     }
@@ -194,7 +302,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
       >
         <div
           style={{
-            maxWidth: "600px",
+            maxWidth: "640px",
             width: "100%",
             background: "white",
             color: "#0f172a",
@@ -221,10 +329,10 @@ export default function StudentRegisterPage({ onBackToLogin }) {
           </div>
 
           <h2 style={{ fontSize: "1.6rem", fontWeight: "800", color: "#0f172a" }}>
-            Registration Successful!
+            Registration Successful! 🎉
           </h2>
           <p style={{ color: "#64748b", marginTop: "6px", fontSize: "0.9rem" }}>
-            Student and Parent accounts have been created and are ready for immediate mobile login.
+            विद्यार्थी नोंदणी यशस्वीरीत्या पूर्ण झाली आहे. (Student enrollment successfully saved).
           </p>
 
           <div
@@ -242,16 +350,26 @@ export default function StudentRegisterPage({ onBackToLogin }) {
             }}
           >
             <div>
-              <span style={{ color: "#64748b" }}>Student Name:</span> <strong>{successData.name}</strong>
+              <span style={{ color: "#64748b" }}>विद्यार्थ्याचे नाव (Student):</span> <strong>{successData.name}</strong>
             </div>
             <div>
-              <span style={{ color: "#64748b" }}>Branch & Year:</span> <strong>{successData.department} • {successData.year} (Div {successData.division})</strong>
+              <span style={{ color: "#64748b" }}>ईमेल (Gmail):</span> <strong>{successData.studentEmail}</strong>
             </div>
+            <div>
+              <span style={{ color: "#64748b" }}>शाखा व वर्ग (Class):</span> <strong>{successData.className}</strong>
+            </div>
+            <div>
+              <span style={{ color: "#64748b" }}>शैक्षणिक सत्र (Academic Session):</span> <strong style={{ color: "#2563eb" }}>{successData.academicSession}</strong>
+            </div>
+            
             <div style={{ borderTop: "1px dashed #cbd5e1", paddingTop: "8px", marginTop: "4px" }}>
-              <span style={{ color: "#64748b" }}>📱 Student Login ID:</span> <strong style={{ color: "#2563eb" }}>{successData.studentPhone}</strong>
+              <span style={{ color: "#64748b" }}>📱 विद्यार्थी लॉगिन आयडी:</span> <strong style={{ color: "#2563eb" }}>{successData.studentPhone}</strong>
             </div>
             <div>
-              <span style={{ color: "#64748b" }}>👨‍👩‍👧 Parent Login ID:</span> <strong style={{ color: "#059669" }}>{successData.parentPhone}</strong>
+              <span style={{ color: "#64748b" }}>👨‍👩‍👧 पालक लॉगिन आयडी:</span> <strong style={{ color: "#059669" }}>{successData.parentPhone}</strong>
+            </div>
+            <div style={{ background: "#fef3c7", padding: "10px 12px", borderRadius: "8px", border: "1px solid #fde68a", fontSize: "0.8rem", color: "#92400e", marginTop: "4px" }}>
+              🔒 <strong>पालक पासवर्ड सूचना (Parent Password Notice):</strong> पालकांचा पासवर्ड वर्गशिक्षकांकडून (Class Teacher) दिला जाईल. वर्गशिक्षकांनी पासवर्ड सेट केल्यानंतरच पालक लॉगिन करू शकतील.
             </div>
           </div>
 
@@ -281,7 +399,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
         color: "white"
       }}
     >
-      <div className="register-form-card" style={{ maxWidth: "820px", width: "100%" }}>
+      <div className="register-form-card" style={{ maxWidth: "840px", width: "100%" }}>
         {/* Top Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "14px", marginBottom: "24px", borderBottom: "1px solid #e2e8f0", paddingBottom: "16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -305,7 +423,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                 Student Enrollment & Onboarding Form
               </h2>
               <p style={{ fontSize: "0.8rem", color: "#64748b", margin: "2px 0 0" }}>
-                CSMSS Chh. Shahu College of Engineering • Academic Portal
+                CSMSS Chh. Shahu College of Engineering • सर्व माहिती भरणे अनिवार्य आहे (All fields compulsory)
               </p>
             </div>
           </div>
@@ -343,11 +461,16 @@ export default function StudentRegisterPage({ onBackToLogin }) {
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
           {/* SECTION 1: Student Information */}
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
-              <User size={18} color="#2563eb" />
-              <h3 style={{ fontSize: "1.05rem", fontWeight: "700", color: "#1e293b", margin: 0 }}>
-                1. Student Profile & Credentials
-              </h3>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px", flexWrap: "wrap", gap: "8px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <User size={18} color="#2563eb" />
+                <h3 style={{ fontSize: "1.05rem", fontWeight: "700", color: "#1e293b", margin: 0 }}>
+                  1. Student Profile & Credentials
+                </h3>
+              </div>
+              <span style={{ fontSize: "0.76rem", background: "#fee2e2", color: "#b91c1c", padding: "2px 8px", borderRadius: "8px", fontWeight: "700" }}>
+                * All Fields Compulsory
+              </span>
             </div>
 
             <div className="register-form-grid">
@@ -359,6 +482,23 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                   className="form-control"
                   placeholder="e.g. Aditya Santosh Shinde"
                   value={formData.name}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              {/* STUDENT GMAIL / EMAIL FIELD */}
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "700", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Mail size={15} color="#2563eb" />
+                  <span>Student Gmail / Email ID *</span>
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  className="form-control"
+                  placeholder="e.g. studentname@gmail.com"
+                  value={formData.email}
                   onChange={handleChange}
                   required
                 />
@@ -396,7 +536,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                   type="password"
                   name="password"
                   className="form-control"
-                  placeholder="Choose any password"
+                  placeholder="Choose any secure password"
                   value={formData.password}
                   onChange={handleChange}
                   required
@@ -404,7 +544,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
               </div>
 
               <div className="form-group">
-                <label className="form-label" style={{ fontWeight: "700" }}>Confirm Password</label>
+                <label className="form-label" style={{ fontWeight: "700" }}>Confirm Password *</label>
                 <input
                   type="password"
                   name="confirmPassword"
@@ -412,11 +552,12 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                   placeholder="Re-enter password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
+                  required
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Student PRN Number</label>
+                <label className="form-label" style={{ fontWeight: "700" }}>Student PRN Number *</label>
                 <input
                   type="text"
                   name="prn"
@@ -424,39 +565,43 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                   placeholder="e.g. 24025331733722"
                   value={formData.prn}
                   onChange={handleChange}
+                  required
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Roll Number</label>
+                <label className="form-label" style={{ fontWeight: "700" }}>Roll Number *</label>
                 <input
                   type="text"
                   name="rollNo"
                   className="form-control"
-                  placeholder="e.g. VL3152"
+                  placeholder="e.g. VL3152 or CS2104"
                   value={formData.rollNo}
                   onChange={handleChange}
+                  required
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Date of Birth</label>
+                <label className="form-label" style={{ fontWeight: "700" }}>Date of Birth *</label>
                 <input
                   type="date"
                   name="dob"
                   className="form-control"
                   value={formData.dob}
                   onChange={handleChange}
+                  required
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Department / Branch *</label>
+                <label className="form-label" style={{ fontWeight: "700" }}>Department / Branch *</label>
                 <select
                   name="departmentId"
                   className="form-control"
                   value={formData.departmentId}
                   onChange={handleDepartmentChange}
+                  required
                 >
                   {departments.map((dept) => (
                     <option key={dept.id} value={dept.id}>
@@ -473,12 +618,16 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                   className="form-control"
                   value={formData.year}
                   onChange={handleYearChange}
+                  required
                 >
-                  <option value="1st Year">1st Year (First Year - FE)</option>
-                  <option value="2nd Year">2nd Year (Second Year - SE)</option>
-                  <option value="3rd Year">3rd Year (Third Year - TE)</option>
-                  <option value="4th Year">4th Year (Final Year - BE)</option>
+                  <option value="1st Year">1st Year (First Year - FE) • Session 2026-2030</option>
+                  <option value="2nd Year">2nd Year (Second Year - SE) • Session 2025-2029</option>
+                  <option value="3rd Year">3rd Year (Third Year - TE) • Session 2024-2028</option>
+                  <option value="4th Year">4th Year (Final Year - BE) • Session 2023-2027</option>
                 </select>
+                <div style={{ marginTop: "4px", fontSize: "0.74rem", color: "#2563eb", fontWeight: "600" }}>
+                  📅 Academic Batch Session: <strong>{currentAcademicSession}</strong>
+                </div>
               </div>
 
               <div className="form-group">
@@ -488,6 +637,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                   className="form-control"
                   value={formData.division}
                   onChange={handleChange}
+                  required
                 >
                   {availableDivisions.map((div) => (
                     <option key={div} value={div}>
@@ -495,23 +645,19 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                     </option>
                   ))}
                 </select>
-                {selectedDept.id === "dept-vlsi" && (
-                  <small style={{ color: "#64748b", fontSize: "0.74rem" }}>
-                    VLSI department has a single active Division A
-                  </small>
-                )}
               </div>
             </div>
 
             <div className="form-group" style={{ marginTop: "14px" }}>
-              <label className="form-label">Residential Address</label>
+              <label className="form-label" style={{ fontWeight: "700" }}>Residential Address *</label>
               <textarea
                 name="address"
                 className="form-control"
                 rows={2}
-                placeholder="Full residential address, City, Pincode"
+                placeholder="Full residential address, City, District, Pincode"
                 value={formData.address}
                 onChange={handleChange}
+                required
               />
             </div>
           </div>
@@ -526,12 +672,12 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                 </h3>
               </div>
               <span style={{ fontSize: "0.78rem", background: "#fef3c7", color: "#b45309", padding: "3px 10px", borderRadius: "12px", fontWeight: "600" }}>
-                Password issued by Teacher
+                Password issued by Class Teacher
               </span>
             </div>
 
             <div style={{ background: "#f8fafc", padding: "12px 16px", borderRadius: "10px", border: "1px solid #e2e8f0", fontSize: "0.82rem", color: "#475569", marginBottom: "16px" }}>
-              ℹ️ <strong>Parent Password Notice:</strong> The parent login password is generated and sent by the College / Class Teacher. Only parent contact information is collected here.
+              ℹ️ <strong>पालक पासवर्ड सूचना (Parent Password Policy):</strong> पालकांचे लॉगिन युझरनेम त्यांचा मोबाईल नंबर असेल. पालकांचा पासवर्ड वर्गशिक्षकांकडून (Class Teacher) त्यांच्या पोर्टलवरून दिला जाईल. वर्गशिक्षकांनी पासवर्ड सेट केल्यानंतरच पालकांना लॉगिन करता येईल.
             </div>
 
             <div className="register-form-grid">
@@ -541,7 +687,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                   type="text"
                   name="parentName"
                   className="form-control"
-                  placeholder="e.g. Santosh Shinde"
+                  placeholder="e.g. Santosh B. Shinde"
                   value={formData.parentName}
                   onChange={handleChange}
                   required
@@ -553,8 +699,9 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                 <input
                   type="tel"
                   name="parentPhone"
+                  maxLength={10}
                   className="form-control"
-                  placeholder="e.g. 9422000000"
+                  placeholder="10-digit Parent Mobile"
                   value={formData.parentPhone}
                   onChange={handleChange}
                   required
@@ -565,26 +712,28 @@ export default function StudentRegisterPage({ onBackToLogin }) {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Parent Email ID (Optional)</label>
+                <label className="form-label" style={{ fontWeight: "700" }}>Parent Email ID *</label>
                 <input
                   type="email"
                   name="parentEmail"
                   className="form-control"
-                  placeholder="e.g. parent@example.com"
+                  placeholder="e.g. parent@gmail.com"
                   value={formData.parentEmail}
                   onChange={handleChange}
+                  required
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Parent Occupation / Profession</label>
+                <label className="form-label" style={{ fontWeight: "700" }}>Parent Occupation / Profession *</label>
                 <input
                   type="text"
                   name="parentOccupation"
                   className="form-control"
-                  placeholder="e.g. Farmer / Business / Service"
+                  placeholder="e.g. Farmer / Business / Government Service"
                   value={formData.parentOccupation}
                   onChange={handleChange}
+                  required
                 />
               </div>
             </div>
@@ -601,18 +750,17 @@ export default function StudentRegisterPage({ onBackToLogin }) {
             <button
               type="submit"
               disabled={loading}
-              className="btn btn-primary btn-lg"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                minWidth: "180px",
-                justifyContent: "center",
-                cursor: "pointer"
-              }}
+              className="btn btn-primary"
+              style={{ minWidth: "220px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
             >
-              <Send size={18} />
-              <span>{loading ? "Registering..." : "Submit Enrollment"}</span>
+              {loading ? (
+                <>Submitting Registration...</>
+              ) : (
+                <>
+                  <Send size={18} />
+                  <span>Submit Enrollment</span>
+                </>
+              )}
             </button>
           </div>
         </form>

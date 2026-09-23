@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Badge } from "../common/UIPrimitives";
 import EditProfileModal from "../common/EditProfileModal";
+import { getAcademicSession, getStudentClassTitle } from "../../utils/academicSession";
 
 export default function StudentProfile() {
   const { currentUser, switchStudentSemester } = useSmartCampus();
@@ -109,16 +110,16 @@ export default function StudentProfile() {
               )}
             </div>
             <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", margin: "4px 0" }}>
-              Roll No: <strong>{student?.rollNo}</strong> {student?.prn && <>• PRN: <strong style={{ fontFamily: "monospace", color: "var(--color-primary)" }}>{student.prn}</strong></>} • {student?.departmentName}
+              Roll No: <strong>{student?.rollNo || student?.prn || "—"}</strong> {student?.prn && <>• PRN: <strong style={{ fontFamily: "monospace", color: "var(--color-primary)" }}>{student.prn}</strong></>} • {student?.departmentName || "Engineering"}
             </p>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "8px", fontSize: "0.82rem", color: "var(--text-muted)", flexWrap: "wrap" }}>
-              <span>Class: <strong>{student?.className || "TE VLSI – Semester 5"}</strong></span>
+              <span>Class: <strong>{getStudentClassTitle(student)}</strong></span>
               <span>•</span>
-              <span>Batch: <strong>{student?.batch || "TA2"} ({student?.tgBatch || "TG-2"})</strong></span>
+              <span>Academic Session: <strong style={{ color: "var(--primary-700)" }}>{getAcademicSession(student?.year, student?.semester)}</strong></span>
               <span>•</span>
-              <span>Class Teacher: <strong>{student?.classTeacher || "PROF. G R BHALEKAR"}</strong></span>
+              <span>Batch: <strong>{student?.batch || `${student?.division || "A"}1`} ({student?.tgBatch || "TG-1"})</strong></span>
               <span>•</span>
-              <span>Cumulative CGPA: <strong style={{ color: "var(--primary-700)" }}>{student?.cgpa} / 10.0</strong></span>
+              <span>Class Teacher: <strong>{student?.classTeacher || "Faculty In-Charge"}</strong></span>
             </div>
           </div>
         </div>

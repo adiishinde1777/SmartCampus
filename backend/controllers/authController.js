@@ -204,12 +204,19 @@ export async function login(req, res) {
         });
       }
 
-      // If password provided, verify it
+      // Check if password has been assigned by teacher
       const parentStoredPass = record.password;
-      if (cleanPassword && parentStoredPass && cleanPassword !== parentStoredPass) {
+      if (!parentStoredPass) {
+        return res.status(403).json({
+          success: false,
+          message: "पालक लॉगिन पासवर्ड अद्याप वर्गशिक्षकांनी (Class Teacher) सेट केलेला नाही. कृपया वर्गशिक्षकांशी संपर्क साधा. (Parent login password has not been assigned by Class Teacher yet.)"
+        });
+      }
+
+      if (!cleanPassword || cleanPassword !== parentStoredPass) {
         return res.status(401).json({
           success: false,
-          message: "Incorrect Parent Password. Please verify the password provided by your teacher."
+          message: "Incorrect Parent Password. Please enter the password provided by your ward's Class Teacher."
         });
       }
 
@@ -223,7 +230,8 @@ export async function login(req, res) {
         studentId: record.role === 'student' ? record.id : record.student_id,
         studentName: record.role === 'student' ? record.name : record.student_name,
         departmentId: record.department_id,
-        departmentName: record.department_name
+        departmentName: record.department_name,
+        canLogin: true
       };
 
       await recordLoginAudit(parentUser, 'parent');
@@ -346,9 +354,47 @@ export async function login(req, res) {
   }
 }
 
-function sanitizeUser(user) {
-  if (!user) return null;
-  const clone = { ...user };
-  delete clone.password; // Do not return password field to client
+function getBatchSession(year, semester) {
+  const y = String(year || '').toLowerCase();
+  const s = Number(semester);
+  if (y.includes('1') || y.includes('first') || y.includes('fe') || s === 1 || s === 2) return '2026-2030';
+  if (y.includes('2') || y.includes('second') || y.includes('se') || s === 3 || s === 4) return '2025-2029';
+  if (y.includes('3') || y.includes('third') || y.includes('te') || s === 5 || s === 6) return '2024-2028';
+  if (y.includes('4') || y.includes('final') || y.includes('fourth') || y.includes('be') || s === 7 || s === 8) return '2023-2027';
+  return '2026-2030';
+}
+
+function sanitizeUser(u) {
+  if (!u) return null;
+  const session = u.academic_session || u.academicSession || getBatchSession(u.year, u.semester);
+  const deptCode = u.department_code || u.departmentCode || '';
+  const yr = u.year || '1st Year';
+  const sem = u.semester || 1;
+  const div = u.division || 'A';
+  const deptName = u.department_name || u.departmentName || 'Engineering';
+
+  let yrPrefix = 'FE';
+  if (String(yr).includes('2') || sem === 3 || sem === 4) yrPrefix = 'SE';
+  if (String(yr).includes('3') || sem === 5 || sem === 6) yrPrefix = 'TE';
+  if (String(yr).includes('4') || sem === 7 || sem === 8) yrPrefix = 'BE';
+
+  const computedClassName = u.class_name || u.className || `${yrPrefix} ${deptCode || (deptName.includes('VLSI') ? 'VLSI' : deptName.includes('Computer') ? 'CSE' : deptName)} – Semester ${sem} (${yr}) – Div ${div}`;
+
+  const clone = {
+    ...u,
+    rollNo: u.roll_no || u.rollNo || '',
+    departmentId: u.department_id || u.departmentId || '',
+    departmentName: deptName,
+    departmentCode: deptCode,
+    bloodGroup: u.blood_group || u.bloodGroup || '',
+    parentName: u.parent_name || u.parentName || '',
+    parentPhone: u.parent_phone || u.parentPhone || '',
+    parentEmail: u.parent_email || u.parentEmail || '',
+    parentOccupation: u.parent_occupation || u.parentOccupation || '',
+    className: computedClassName,
+    academicSession: session,
+    assignedDivisions: u.assigned_divisions ? (Array.isArray(u.assigned_divisions) ? u.assigned_divisions : String(u.assigned_divisions).split(',')) : (u.assignedDivisions || [])
+  };
+  delete clone.password;
   return clone;
 }

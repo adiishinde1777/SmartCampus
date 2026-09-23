@@ -21,6 +21,7 @@ import {
   GraduationCap
 } from "lucide-react";
 import { StatCard, Badge } from "../common/UIPrimitives";
+import { getAcademicSession, getStudentClassTitle } from "../../utils/academicSession";
 
 export default function StudentDashboard({ onNavigate }) {
   const {
@@ -219,14 +220,14 @@ export default function StudentDashboard({ onNavigate }) {
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
             <span style={{ fontSize: "0.8rem", background: "rgba(255,255,255,0.15)", padding: "3px 10px", borderRadius: "20px", fontWeight: "600" }}>
-              {student?.rollNo} • {student?.departmentName}
+              {student?.rollNo || student?.prn || "Student"} • {student?.departmentName || "Engineering"}
             </span>
           </div>
           <h2 style={{ fontSize: "1.75rem", fontWeight: "800", color: "white" }}>
             Good Morning, {student?.name} 👋
           </h2>
           <p style={{ fontSize: "0.9rem", color: "#93c5fd", marginTop: "4px" }}>
-            {student?.className || `TE VLSI – Semester ${student?.semester} (3rd Year)`} • Academic Session {systemSettings.academicYear}
+            {getStudentClassTitle(student)} • Academic Session {getAcademicSession(student?.year, student?.semester)}
           </p>
         </div>
 
