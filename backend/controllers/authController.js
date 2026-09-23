@@ -50,9 +50,34 @@ function cleanPhone(num) {
   return digits.length > 10 ? digits.slice(-10) : digits;
 }
 
+async function recordLoginAudit(user, role) {
+  try {
+    const timestampStr = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) + " " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    const logId = 'aud-log-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
+    await query(
+      `INSERT INTO audit_logs (id, timestamp, user, role, action, details, module)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        logId,
+        timestampStr,
+        user.name || user.id,
+        (role || user.role || 'USER').toUpperCase(),
+        'USER_LOGIN',
+        `User ${user.name} logged into SmartCampus portal via ${(role || user.role || '').toUpperCase()}`,
+        'Authentication'
+      ]
+    );
+    if (user.id) {
+      await query(`UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [user.id]).catch(() => {});
+    }
+  } catch (e) {
+    console.warn('[Login Audit Notice]', e.message);
+  }
+}
+
 export async function login(req, res) {
   try {
-    const { username, password, role } = req.body;
+    const { username, password, role, cachedUser } = req.body;
     const cleanUsername = String(username || '').trim();
     const cleanPassword = String(password || '').trim();
 
@@ -66,13 +91,26 @@ export async function login(req, res) {
     // 1. ADMIN LOGIN RULE:
     // Username: admin or admin email; Password: stored password
     if (role === 'admin' || cleanUsername.toLowerCase() === 'admin') {
-      const admins = await query(
+      let admins = await query(
         `SELECT * FROM users WHERE role = 'admin' AND (prn = ? OR email = ? OR phone = ? OR id = ?) LIMIT 1`,
         [cleanUsername, cleanUsername, cleanUsername, cleanUsername]
       );
 
+      // Auto-bootstrap admin into MySQL if missing
+      if (admins.length === 0 && (cleanUsername.toLowerCase() === 'admin' || cleanUsername === '7378535499') && cleanPassword === 'admin123') {
+        const defaultAdminId = 'adm-1';
+        await query(
+          `INSERT INTO users (id, role, name, email, phone, prn, dob, password, designation, is_verified)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE password = VALUES(password)`,
+          [defaultAdminId, 'admin', 'System Administrator', 'admin@campus.edu', '7378535499', 'admin', '1985-01-01', 'admin123', 'System Administrator', true]
+        );
+        admins = await query(`SELECT * FROM users WHERE id = ? LIMIT 1`, [defaultAdminId]);
+      }
+
       const adminUser = admins[0];
       if (adminUser && (adminUser.password === cleanPassword || cleanPassword === 'admin123')) {
+        await recordLoginAudit(adminUser, 'admin');
         return res.json({
           success: true,
           message: 'Admin authentication successful.',
@@ -86,19 +124,45 @@ export async function login(req, res) {
     }
 
     // 2. STUDENT LOGIN RULE:
-    // Username: PRN Number or Mobile Number; Password: Student's Birthdate (DOB)
+    // Username: PRN Number or Mobile Number; Password: Student's Password
     if (role === 'student') {
       const phoneDigits = cleanPhone(cleanUsername);
-      const students = await query(
+      let students = await query(
         `SELECT * FROM users WHERE role = 'student' AND (prn = ? OR phone = ? OR roll_no = ? OR email = ?) LIMIT 1`,
         [cleanUsername, phoneDigits || cleanUsername, cleanUsername, cleanUsername]
       );
+
+      // If student not found in MySQL, but client passed cached student profile (e.g. from local registration)
+      if (students.length === 0 && cachedUser && cachedUser.role === 'student') {
+        const cPhone = cleanPhone(cachedUser.phone);
+        const matchUser = (cPhone && cPhone === phoneDigits) || (cachedUser.prn && cachedUser.prn.toLowerCase() === cleanUsername.toLowerCase());
+        const matchPass = cleanPassword === cachedUser.password || verifyDob(cleanPassword, cachedUser.dob);
+        if (matchUser && matchPass) {
+          // Auto-persist into MySQL so they exist in database forever
+          const sId = cachedUser.id || ('stu-' + Date.now());
+          await query(
+            `INSERT INTO users (id, role, name, email, phone, prn, dob, password, department_id, department_name, semester, year, division, batch, roll_no, gender, blood_group, is_verified)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE name = VALUES(name), phone = VALUES(phone)`,
+            [
+              sId, 'student', cachedUser.name, cachedUser.email || null, cachedUser.phone || null,
+              cachedUser.prn || null, cachedUser.dob || null, cachedUser.password || 'password123',
+              cachedUser.departmentId || null, cachedUser.departmentName || null,
+              cachedUser.semester || 1, cachedUser.year || '1st Year', cachedUser.division || 'A',
+              cachedUser.batch || 'A1', cachedUser.rollNo || null, cachedUser.gender || 'Male',
+              cachedUser.bloodGroup || 'O+', true
+            ]
+          ).catch((e) => console.warn('[Auto-Persist Student on Login]', e.message));
+
+          students = await query(`SELECT * FROM users WHERE id = ? LIMIT 1`, [sId]);
+        }
+      }
 
       const student = students[0];
       if (!student) {
         return res.status(404).json({
           success: false,
-          message: `Student with PRN "${cleanUsername}" not found. Please register or verify your PRN.`
+          message: `Student with Mobile/PRN "${cleanUsername}" not found. Please register via New Student Enrollment Form.`
         });
       }
 
@@ -111,6 +175,7 @@ export async function login(req, res) {
         });
       }
 
+      await recordLoginAudit(student, 'student');
       return res.json({
         success: true,
         message: 'Student login successful.',
@@ -172,6 +237,7 @@ export async function login(req, res) {
         departmentName: record.department_name
       };
 
+      await recordLoginAudit(parentUser, 'parent');
       return res.json({
         success: true,
         message: 'Parent portal login successful.',
@@ -204,6 +270,7 @@ export async function login(req, res) {
         });
       }
 
+      await recordLoginAudit(teacher, 'teacher');
       return res.json({
         success: true,
         message: 'Faculty login successful.',
@@ -236,6 +303,7 @@ export async function login(req, res) {
         });
       }
 
+      await recordLoginAudit(hod, 'hod');
       return res.json({
         success: true,
         message: 'HOD portal login successful.',
@@ -268,6 +336,7 @@ export async function login(req, res) {
         });
       }
 
+      await recordLoginAudit(principal, 'principal');
       return res.json({
         success: true,
         message: 'Principal executive login successful.',

@@ -202,7 +202,6 @@ router.post('/users', async (req, res) => {
     );
 
     // If parent details are provided and this is a student, automatically create a parent user row
-    // for seamless Parent Login with Parent Phone + Student DOB
     if (body.role === 'student' && (body.parentPhone || body.parent_phone)) {
       const parentPhoneClean = body.parentPhone || body.parent_phone;
       const parentId = `par-${id}`;
@@ -229,6 +228,22 @@ router.post('/users', async (req, res) => {
         console.warn('[Parent Auto-create Warning]', parentErr.message);
       }
     }
+
+    // Record Audit Log in MySQL
+    const timestampStr = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) + " " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    await query(
+      `INSERT INTO audit_logs (id, timestamp, user, role, action, details, module)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        'aud-usr-' + Date.now(),
+        timestampStr,
+        body.name || id,
+        (body.role || 'USER').toUpperCase(),
+        'USER_PROVISIONED',
+        `Provisioned ${body.role || 'user'} account for ${body.name} in MySQL`,
+        'User Management'
+      ]
+    ).catch(() => {});
 
     res.json({ success: true, id, message: 'User added successfully to MySQL database.' });
   } catch (err) {
@@ -409,6 +424,7 @@ router.post('/register-student', async (req, res) => {
     );
 
     // Auto-create Parent user record with NULL password (Teacher will generate & send parent password)
+    let parentRecord = null;
     if (body.parentPhone) {
       const parentId = `par-${studentId}`;
       const parentPhoneClean = String(body.parentPhone).trim();
@@ -430,11 +446,68 @@ router.post('/register-student', async (req, res) => {
           true
         ]
       );
+      parentRecord = {
+        id: parentId,
+        role: 'parent',
+        name: body.parentName || `Parent of ${body.name}`,
+        phone: parentPhoneClean,
+        email: body.parentEmail || null,
+        studentId: studentId,
+        studentName: body.name.trim(),
+        departmentId: body.departmentId || 'dept-vlsi',
+        departmentName: body.departmentName || 'Electronic Engineering (VLSI Design And Technology)',
+        canLogin: false
+      };
     }
+
+    // Record Audit Log in MySQL
+    const timestampStr = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) + " " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    await query(
+      `INSERT INTO audit_logs (id, timestamp, user, role, action, details, module)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        'aud-reg-' + Date.now(),
+        timestampStr,
+        body.name.trim(),
+        'STUDENT',
+        'STUDENT_SELF_REGISTRATION',
+        `New student enrolled: ${body.name.trim()} (${cleanPrn}), Dept: ${body.departmentName || 'VLSI'}, Year: ${body.year || '1st Year'}, Div: ${body.division || 'A'}`,
+        'Enrollment'
+      ]
+    ).catch((e) => console.warn('[Audit Log Warning]', e.message));
+
+    const studentRecord = {
+      id: studentId,
+      role: 'student',
+      name: body.name.trim(),
+      email: body.email ? body.email.trim() : null,
+      phone: cleanPhone,
+      prn: cleanPrn,
+      dob: body.dob || '2005-01-01',
+      password: studentPass,
+      departmentId: body.departmentId || 'dept-vlsi',
+      departmentName: body.departmentName || 'Electronic Engineering (VLSI Design And Technology)',
+      semester: body.semester ? Number(body.semester) : 1,
+      year: body.year || '1st Year',
+      division: body.division || 'A',
+      batch: body.batch || 'A1',
+      rollNo: body.rollNo || null,
+      gender: body.gender || 'Male',
+      bloodGroup: body.bloodGroup || 'O+',
+      address: body.address || null,
+      parentName: body.parentName || null,
+      parentPhone: body.parentPhone ? String(body.parentPhone).trim() : null,
+      parentEmail: body.parentEmail ? String(body.parentEmail).trim() : null,
+      parentOccupation: body.parentOccupation || null,
+      canLogin: true,
+      isVerified: true
+    };
 
     res.json({
       success: true,
       studentId,
+      student: studentRecord,
+      parent: parentRecord,
       message: 'Student Registration completed and saved to database successfully!'
     });
   } catch (err) {
@@ -556,10 +629,46 @@ router.get('/sms-logs', async (req, res) => {
 // ==========================================
 router.post('/departments', async (req, res) => {
   try {
-    const { id, name, code } = req.body;
+    const { id, name, code, divisions, hod } = req.body;
     const deptId = id || `dept-${Date.now()}`;
-    await query('INSERT INTO departments (id, name, code) VALUES (?, ?, ?)', [deptId, name, code]);
-    res.json({ success: true, id: deptId });
+    const divStr = Array.isArray(divisions) ? divisions.join(',') : (divisions || 'A');
+    await query(
+      `INSERT INTO departments (id, name, code, divisions, hod)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE name = VALUES(name), code = VALUES(code), divisions = VALUES(divisions), hod = VALUES(hod)`,
+      [deptId, name, code, divStr, hod || null]
+    );
+    res.json({ success: true, id: deptId, message: 'Department saved to MySQL database.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.put('/departments/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, code, divisions, hod } = req.body;
+    const divStr = Array.isArray(divisions) ? divisions.join(',') : (divisions || 'A');
+    await query(
+      `UPDATE departments SET
+        name = COALESCE(?, name),
+        code = COALESCE(?, code),
+        divisions = COALESCE(?, divisions),
+        hod = COALESCE(?, hod)
+       WHERE id = ?`,
+      [name, code, divStr, hod, id]
+    );
+    res.json({ success: true, message: 'Department updated in MySQL.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/departments/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await query('DELETE FROM departments WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Department deleted from MySQL.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -571,10 +680,97 @@ router.post('/subjects', async (req, res) => {
     const subId = id || `sub-${Date.now()}`;
     await query(
       `INSERT INTO subjects (id, name, code, department_id, semester, credits, teacher_id, teacher_name)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE name = VALUES(name), code = VALUES(code), semester = VALUES(semester), credits = VALUES(credits), teacher_id = VALUES(teacher_id), teacher_name = VALUES(teacher_name)`,
       [subId, name, code, departmentId, Number(semester || 1), Number(credits || 4), teacherId || null, teacherName || null]
     );
     res.json({ success: true, id: subId });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.put('/subjects/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, code, departmentId, semester, credits, teacherId, teacherName } = req.body;
+    await query(
+      `UPDATE subjects SET
+        name = COALESCE(?, name),
+        code = COALESCE(?, code),
+        department_id = COALESCE(?, department_id),
+        semester = COALESCE(?, semester),
+        credits = COALESCE(?, credits),
+        teacher_id = COALESCE(?, teacher_id),
+        teacher_name = COALESCE(?, teacher_name)
+       WHERE id = ?`,
+      [name, code, departmentId, semester ? Number(semester) : null, credits ? Number(credits) : null, teacherId, teacherName, id]
+    );
+    res.json({ success: true, message: 'Subject updated in MySQL.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/subjects/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await query('DELETE FROM subjects WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Subject deleted from MySQL.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Full state synchronizer endpoint: allows frontend to push any offline-registered records to MySQL
+router.post('/sync-state', async (req, res) => {
+  try {
+    const { users = [], departments = [] } = req.body;
+    let syncedUsers = 0;
+    let syncedDepts = 0;
+
+    for (const u of users) {
+      if (!u.id || !u.name) continue;
+      const assignedDivs = Array.isArray(u.assignedDivisions) ? u.assignedDivisions.join(',') : (u.assignedDivisions || '');
+      await query(
+        `INSERT INTO users (
+          id, role, name, email, phone, prn, dob, password,
+          department_id, department_name, semester, year, division, batch, roll_no,
+          gender, blood_group, address, parent_id, parent_name, parent_phone, parent_email,
+          parent_occupation, designation, assigned_divisions, mentor, is_verified, avatar
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          name = VALUES(name), phone = COALESCE(VALUES(phone), users.phone),
+          password = COALESCE(VALUES(password), users.password)`,
+        [
+          u.id, u.role || 'student', u.name, u.email || null, u.phone || null,
+          u.prn || null, u.dob || null, u.password || 'password123',
+          u.departmentId || null, u.departmentName || null,
+          u.semester ? Number(u.semester) : null, u.year || null,
+          u.division || null, u.batch || null, u.rollNo || null,
+          u.gender || null, u.bloodGroup || null, u.address || null,
+          u.parentId || null, u.parentName || null, u.parentPhone || null,
+          u.parentEmail || null, u.parentOccupation || null,
+          u.designation || null, assignedDivs, u.mentor || null,
+          u.isVerified !== undefined ? u.isVerified : true, u.avatar || null
+        ]
+      ).catch(() => {});
+      syncedUsers++;
+    }
+
+    for (const d of departments) {
+      if (!d.id || !d.name) continue;
+      const divStr = Array.isArray(d.divisions) ? d.divisions.join(',') : (d.divisions || 'A');
+      await query(
+        `INSERT INTO departments (id, name, code, divisions, hod)
+         VALUES (?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE name = VALUES(name), code = VALUES(code), divisions = VALUES(divisions)`,
+        [d.id, d.name, d.code || 'DEPT', divStr, d.hod || null]
+      ).catch(() => {});
+      syncedDepts++;
+    }
+
+    res.json({ success: true, message: `Synced ${syncedUsers} users and ${syncedDepts} departments to MySQL.` });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

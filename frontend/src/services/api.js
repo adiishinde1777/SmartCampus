@@ -90,9 +90,23 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(deptData)
   }),
+  updateDepartment: (id, deptData) => request(`/departments/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(deptData)
+  }),
+  deleteDepartment: (id) => request(`/departments/${id}`, {
+    method: 'DELETE'
+  }),
   addSubject: (subjectData) => request('/subjects', {
     method: 'POST',
     body: JSON.stringify(subjectData)
+  }),
+  updateSubject: (id, subjectData) => request(`/subjects/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(subjectData)
+  }),
+  deleteSubject: (id) => request(`/subjects/${id}`, {
+    method: 'DELETE'
   }),
   submitMarks: (marksData) => request('/marks', {
     method: 'POST',
@@ -101,6 +115,12 @@ export const api = {
   createNotice: (noticeData) => request('/notices', {
     method: 'POST',
     body: JSON.stringify(noticeData)
+  }),
+
+  // Full-state synchronization
+  syncState: (stateData) => request('/sync-state', {
+    method: 'POST',
+    body: JSON.stringify(stateData)
   })
 };
 

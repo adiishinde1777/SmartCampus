@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 export default function StudentRegisterPage({ onBackToLogin }) {
-  const { departments, addUser } = useSmartCampus();
+  const { departments, addUser, addRegisteredUsers } = useSmartCampus();
 
   const defaultDept = departments[0] || { id: "dept-vlsi", name: "Electronic Engineering (VLSI Design And Technology)", divisions: ["A"] };
 
@@ -135,13 +135,18 @@ export default function StudentRegisterPage({ onBackToLogin }) {
         parentOccupation: formData.parentOccupation
       };
 
-      // 1. Immediately register student & parent into live state & persistence
-      addUser(studentPayload);
+      // 1. Directly persist student & parent into MySQL database
+      const res = await api.submitStudentRegistration(studentPayload);
+      if (!res.success) {
+        throw new Error(res.message || "Failed to submit registration to database.");
+      }
 
-      // 2. Asynchronously sync to backend API if live
-      api.submitStudentRegistration(studentPayload).catch((err) => {
-        console.warn("[API Registration notice]", err.message);
-      });
+      // 2. Update live React context users
+      if (res.student && addRegisteredUsers) {
+        addRegisteredUsers(res.student, res.parent);
+      } else {
+        addUser(studentPayload);
+      }
 
       setSuccessData({
         name: formData.name,

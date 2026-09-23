@@ -92,6 +92,17 @@ export function SmartCampusProvider({ children }) {
       .then((res) => {
         if (res?.success && res?.data) {
           const d = res.data;
+
+          // Check if local storage has any user or department not yet present in MySQL (e.g. offline created)
+          const dbUserIds = new Set((d.users || []).map(u => u.id));
+          const dbUserPhones = new Set((d.users || []).map(u => u.phone).filter(Boolean));
+          const localUsersToSync = (state.users || []).filter(u => !dbUserIds.has(u.id) && (!u.phone || !dbUserPhones.has(u.phone)));
+
+          if (localUsersToSync.length > 0) {
+            api.syncState({ users: localUsersToSync, departments: state.departments })
+              .catch(err => console.warn('[Auto-Sync to MySQL Notice]', err.message));
+          }
+
           setState((prev) => ({
             ...prev,
             users: Array.isArray(d.users) && d.users.length > 0 ? d.users : prev.users,
@@ -160,8 +171,29 @@ export function SmartCampusProvider({ children }) {
     const input = (emailOrId || "").trim();
     const pass = (password || "").trim();
 
+    // Check if user exists in local client state
+    const localUser = state.users.find((u) => {
+      if (selectedRole && u.role !== selectedRole) return false;
+      if (selectedRole === "admin") {
+        return (u.prn === input || u.email === input || u.phone === input || input.toLowerCase() === "admin") && (pass === "admin123" || u.password === pass);
+      }
+      if (selectedRole === "student") {
+        const matchUsername = u.phone === input || u.prn === input || u.rollNo === input || u.email === input;
+        const matchPass = u.password === pass || u.dob === pass;
+        return matchUsername && matchPass;
+      }
+      if (selectedRole === "parent") {
+        const matchPhone = u.phone === input || u.parentPhone === input;
+        const matchPass = u.password === pass || u.dob === pass;
+        return matchPhone && matchPass;
+      }
+      const matchPhone = u.phone === input || u.email === input || u.prn === input;
+      const matchPass = u.password === pass || u.dob === pass;
+      return matchPhone && matchPass;
+    });
+
     try {
-      const res = await api.login({ username: input, password: pass, role: selectedRole });
+      const res = await api.login({ username: input, password: pass, role: selectedRole, cachedUser: localUser });
       if (res.success && res.user) {
         setState((prev) => ({
           ...prev,
@@ -173,35 +205,14 @@ export function SmartCampusProvider({ children }) {
       }
       return { success: false, message: res.message || "Invalid credentials." };
     } catch (err) {
-      // Local fallback in case server connection is momentarily offline
-      const user = state.users.find((u) => {
-        if (selectedRole && u.role !== selectedRole) return false;
-        if (selectedRole === "admin") {
-          return (u.prn === input || u.email === input || u.phone === input || input.toLowerCase() === "admin") && (pass === "admin123" || u.password === pass);
-        }
-        if (selectedRole === "student") {
-          const matchUsername = u.phone === input || u.prn === input || u.rollNo === input || u.email === input;
-          const matchPass = u.password === pass || u.dob === pass;
-          return matchUsername && matchPass;
-        }
-        if (selectedRole === "parent") {
-          const matchPhone = u.phone === input || u.parentPhone === input;
-          const matchPass = u.password === pass || u.dob === pass;
-          return matchPhone && matchPass;
-        }
-        const matchPhone = u.phone === input || u.email === input || u.prn === input;
-        const matchPass = u.password === pass || u.dob === pass;
-        return matchPhone && matchPass;
-      });
-
-      if (user) {
+      if (localUser) {
         setState((prev) => ({
           ...prev,
-          currentUser: user,
-          activeRole: user.role
+          currentUser: localUser,
+          activeRole: localUser.role
         }));
-        addToast("Login Successful", `Welcome back, ${user.name}!`, "success");
-        return { success: true, user };
+        addToast("Login Successful", `Welcome back, ${localUser.name}! (Offline mode)`, "info");
+        return { success: true, user: localUser };
       }
 
       if (selectedRole === "parent") {
@@ -1073,6 +1084,19 @@ export function SmartCampusProvider({ children }) {
     return newUser;
   };
 
+  const addRegisteredUsers = (student, parent) => {
+    setState((prev) => {
+      let updatedUsers = [student, ...prev.users.filter((u) => u.id !== student.id && (!u.phone || u.phone !== student.phone))];
+      if (parent) {
+        updatedUsers = [parent, ...updatedUsers.filter((u) => u.id !== parent.id && (!u.phone || u.phone !== parent.phone))];
+      }
+      return {
+        ...prev,
+        users: updatedUsers
+      };
+    });
+  };
+
   const deleteUser = (userId) => {
     if (state.currentUser?.id === userId) {
       addToast("Cannot Delete Active User", "You cannot delete the user account you are currently logged in as.", "danger");
@@ -1109,6 +1133,9 @@ export function SmartCampusProvider({ children }) {
   // DEPARTMENT MANAGEMENT ENGINE (ADMIN EDIT/ADD/DELETE)
   // ==========================================
   const updateDepartment = (departmentId, updatedData) => {
+    // Persist department update to MySQL database
+    api.updateDepartment(departmentId, updatedData).catch((err) => console.warn('[MySQL Department Update Warning]', err.message));
+
     setState((prev) => {
       let updatedDeptObj = null;
       const updatedDepartments = prev.departments.map((d) => {
@@ -1196,6 +1223,9 @@ export function SmartCampusProvider({ children }) {
     const targetDept = state.departments.find((d) => d.id === departmentId);
     const deptName = targetDept ? targetDept.name : departmentId;
 
+    // Delete from MySQL database
+    api.deleteDepartment(departmentId).catch((err) => console.warn('[MySQL Department Delete Warning]', err.message));
+
     setState((prev) => {
       const updatedDepts = prev.departments.filter((d) => d.id !== departmentId);
       const audit = logAudit(
@@ -1259,6 +1289,9 @@ export function SmartCampusProvider({ children }) {
   };
 
   const updateSubject = (subjectId, updatedData) => {
+    // Persist subject update to MySQL database
+    api.updateSubject(subjectId, updatedData).catch((err) => console.warn('[MySQL Subject Update Warning]', err.message));
+
     setState((prev) => {
       let updatedSubObj = null;
       const updatedSubjects = prev.subjects.map((s) => {
@@ -1312,6 +1345,9 @@ export function SmartCampusProvider({ children }) {
   const deleteSubject = (subjectId) => {
     const targetSub = state.subjects.find((s) => s.id === subjectId);
     const subName = targetSub ? targetSub.name : subjectId;
+
+    // Delete from MySQL database
+    api.deleteSubject(subjectId).catch((err) => console.warn('[MySQL Subject Delete Warning]', err.message));
 
     setState((prev) => {
       const updatedSubjects = prev.subjects.filter((s) => s.id !== subjectId);
@@ -2888,6 +2924,7 @@ export function SmartCampusProvider({ children }) {
         updateSystemSettings,
         updateUser,
         addUser,
+        addRegisteredUsers,
         deleteUser,
         updateDepartment,
         addDepartment,
