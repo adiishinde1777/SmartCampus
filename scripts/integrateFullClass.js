@@ -155,7 +155,7 @@ const parsedStudents = lines.map((line, idx) => {
 console.log('Processed', parsedStudents.length, 'students successfully.');
 
 // Write to a separate data file for cleanliness and high-performance import
-const outputFilePath = './src/data/teVlsiStudents.js';
+const outputFilePath = './frontend/src/data/teVlsiStudents.js';
 const fileContent = `// TE VLSI – Semester 5 – Academic Year 2026-27
 // Complete 72 Students Database for CSMSS Chh. Shahu College of Engineering
 // Department: Electronics Engineering (VLSI Design & Technology)

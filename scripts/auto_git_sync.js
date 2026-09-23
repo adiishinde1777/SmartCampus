@@ -10,7 +10,7 @@ console.log('Watching for changes in workspace to push to origin/main...');
 let timeout = null;
 let changedFiles = new Set();
 
-const ignoredDirs = ['node_modules', '.git', 'dist', 'server/node_modules'];
+const ignoredDirs = ['node_modules', '.git', 'dist', 'backend/node_modules', 'frontend/node_modules'];
 
 function shouldIgnore(filename) {
   if (!filename) return true;
@@ -42,8 +42,8 @@ function syncToGit() {
   });
 }
 
-// Watch src, server, public
-['src', 'server', 'public', 'index.html', 'package.json'].forEach((target) => {
+// Watch frontend, backend, scripts, package.json
+['frontend', 'backend', 'scripts', 'package.json'].forEach((target) => {
   if (fs.existsSync(target)) {
     fs.watch(target, { recursive: true }, (eventType, filename) => {
       if (shouldIgnore(filename)) return;

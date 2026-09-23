@@ -120,7 +120,7 @@ export async function initDatabase() {
     return pool;
   } catch (error) {
     console.warn(`[MySQL Notice] Running with persistent SmartCampus data engine (${error.message}).`);
-    console.info(`[MySQL Tip] To connect to local MySQL80, set DB_PASSWORD=your_password in server/.env`);
+    console.info(`[MySQL Tip] To connect to local MySQL80, set DB_PASSWORD=your_password in backend/.env`);
     return null;
   }
 }
