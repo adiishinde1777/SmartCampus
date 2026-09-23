@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import api from "../../services/api";
+import { saveUserToFirestore } from "../../services/firebase";
 import { useSmartCampus } from "../../context/SmartCampusContext";
 import {
   GraduationCap,
