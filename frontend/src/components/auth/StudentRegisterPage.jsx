@@ -281,7 +281,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
         color: "white"
       }}
     >
-      <div className="register-form-card" style={{ maxWidth: "820px", width: "100%", background: "white", color: "#0f172a", borderRadius: "20px", padding: "32px 28px" }}>
+      <div className="register-form-card" style={{ maxWidth: "820px", width: "100%" }}>
         {/* Top Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "14px", marginBottom: "24px", borderBottom: "1px solid #e2e8f0", paddingBottom: "16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -350,7 +350,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
               </h3>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
+            <div className="register-form-grid">
               <div className="form-group">
                 <label className="form-label" style={{ fontWeight: "700" }}>Student Full Name *</label>
                 <input
@@ -364,7 +364,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                 />
               </div>
 
-              <div className="form-group" style={{ gridColumn: "span 2" }}>
+              <div className="form-group register-full-col">
                 <label className="form-label" style={{ fontWeight: "700", display: "flex", alignItems: "center", gap: "6px" }}>
                   <Smartphone size={16} color="#2563eb" />
                   <span>Student Mobile Number (Login Username) *</span>
@@ -534,7 +534,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
               ℹ️ <strong>Parent Password Notice:</strong> The parent login password is generated and sent by the College / Class Teacher. Only parent contact information is collected here.
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
+            <div className="register-form-grid">
               <div className="form-group">
                 <label className="form-label" style={{ fontWeight: "700" }}>Parent / Guardian Full Name *</label>
                 <input

@@ -167,6 +167,7 @@ h1, h2, h3, h4, h5, h6 {
   gap: 12px;
   border-bottom: 1px solid #1e293b;
   background: #090e17;
+  flex-shrink: 0;
 }
 
 .brand-logo-icon {
@@ -207,6 +208,7 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 
 .sidebar-role-badge .role-name {
@@ -228,6 +230,8 @@ h1, h2, h3, h4, h5, h6 {
 .sidebar-nav {
   flex: 1;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
@@ -279,6 +283,7 @@ h1, h2, h3, h4, h5, h6 {
   padding: 16px 20px;
   border-top: 1px solid #1e293b;
   background: #090e17;
+  flex-shrink: 0;
 }
 
 .user-profile-mini {
@@ -1331,6 +1336,21 @@ select.form-control {
     display: inline-flex;
   }
 
+  .sidebar-header {
+    padding: 16px 18px;
+    flex-shrink: 0;
+  }
+
+  .sidebar-role-badge {
+    margin: 12px 14px 6px;
+    flex-shrink: 0;
+  }
+
+  .sidebar-footer {
+    padding: 14px 18px max(env(safe-area-inset-bottom, 0px), 28px) 18px !important;
+    flex-shrink: 0;
+  }
+
   .sidebar-nav-item {
     min-height: 44px;
     padding: 11px 14px;
@@ -1807,7 +1827,35 @@ html, body {
   .register-form-card {
     padding: 20px 14px !important;
     border-radius: 16px !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
   }
+
+  .register-form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    width: 100% !important;
+  }
+
+  .register-full-col {
+    grid-column: span 1 !important;
+    width: 100% !important;
+  }
+}
+
+/* Registration Form Grid System (Desktop default) */
+.register-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+.register-full-col {
+  grid-column: 1 / -1;
+  width: 100%;
 }
 
 
