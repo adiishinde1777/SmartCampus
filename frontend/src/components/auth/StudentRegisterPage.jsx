@@ -143,13 +143,22 @@ export default function StudentRegisterPage({ onBackToLogin }) {
       };
 
       // 1. Directly persist student & parent into MySQL database
-      const res = await api.submitStudentRegistration(studentPayload);
-      if (!res.success) {
-        throw new Error(res.message || "Failed to submit registration to database.");
+      let res = null;
+      try {
+        res = await api.submitStudentRegistration(studentPayload);
+      } catch (dbErr) {
+        console.warn("[MySQL Student Registration Fallback]", dbErr.message);
       }
 
-      // 2. Update live React context users
-      if (res.student && addRegisteredUsers) {
+      // 2. Directly persist student & parent into Firebase Firestore Cloud Database
+      const studentToStore = res?.student || studentPayload;
+      saveUserToFirestore(studentToStore).catch((err) => console.warn('[Firestore Student Register Warning]', err.message));
+      if (res?.parent) {
+        saveUserToFirestore(res.parent).catch((err) => console.warn('[Firestore Parent Register Warning]', err.message));
+      }
+
+      // 3. Update live React context users
+      if (res?.student && addRegisteredUsers) {
         addRegisteredUsers(res.student, res.parent);
       } else {
         addUser(studentPayload);
