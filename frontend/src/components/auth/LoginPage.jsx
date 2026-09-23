@@ -29,7 +29,7 @@ export default function LoginPage() {
   const [showRegisterPage, setShowRegisterPage] = useState(() => {
     if (typeof window !== "undefined") {
       const param = new URLSearchParams(window.location.search).get("register");
-      if (param === "student" || param === "teacher" || param === "hod") {
+      if (param === "student" || param === "teacher" || param === "hod" || param === "principal") {
         return param;
       }
     }
@@ -40,7 +40,7 @@ export default function LoginPage() {
   useEffect(() => {
     const handleUrlChange = () => {
       const param = new URLSearchParams(window.location.search).get("register");
-      if (param === "student" || param === "teacher" || param === "hod") {
+      if (param === "student" || param === "teacher" || param === "hod" || param === "principal") {
         setShowRegisterPage(param);
       }
     };
@@ -61,8 +61,8 @@ export default function LoginPage() {
     return <StudentRegisterPage onBackToLogin={handleBackToLogin} />;
   }
 
-  if (showRegisterPage === "teacher" || showRegisterPage === "hod") {
-    return <TeacherRegisterPage initialRole={showRegisterPage === "hod" ? "hod" : "teacher"} onBackToLogin={handleBackToLogin} />;
+  if (showRegisterPage === "teacher" || showRegisterPage === "hod" || showRegisterPage === "principal") {
+    return <TeacherRegisterPage initialRole={showRegisterPage} onBackToLogin={handleBackToLogin} />;
   }
 
   const handleRoleChange = (role) => {
@@ -194,14 +194,14 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {/* Teacher & Faculty Onboarding Card (Separate Link) */}
+          {/* Teacher, HOD & Principal Onboarding Card (Separate Link) */}
           <div className="enroll-prompt-card" style={{ background: "rgba(124, 58, 237, 0.15)", borderColor: "rgba(167, 139, 250, 0.3)" }}>
             <div>
               <div style={{ fontWeight: "700", fontSize: "0.95rem", color: "#e9d5ff" }}>
-                👨‍🏫 Faculty & HOD Registration
+                👨‍🏫 Faculty, HOD & Principal Registration
               </div>
               <div style={{ fontSize: "0.8rem", color: "#c4b5fd", marginTop: "2px" }}>
-                Teachers & HODs: Create staff account with credentials & phone SMS
+                Authorized Staff: Register using security key (csmss$2533)
               </div>
             </div>
             <button
@@ -216,7 +216,7 @@ export default function LoginPage() {
               style={{ display: "flex", alignItems: "center", gap: "6px", whiteSpace: "nowrap", background: "#7c3aed", borderColor: "#6d28d9", color: "white" }}
             >
               <UserCheck size={16} />
-              <span>Faculty Register</span>
+              <span>Staff Register</span>
             </button>
           </div>
         </div>

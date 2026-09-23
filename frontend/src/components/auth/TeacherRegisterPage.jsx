@@ -23,14 +23,6 @@ import {
   RefreshCw,
   Check
 } from "lucide-react";
-
-import {
-  sendFirebasePhoneOtp,
-  confirmFirebaseOtp,
-  setupRecaptcha,
-  isFirebaseConfigured
-} from "../../services/firebase";
-
 export default function TeacherRegisterPage({ initialRole = "teacher", onBackToLogin }) {
   const { departments, addUser } = useSmartCampus();
 
@@ -40,7 +32,9 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
     divisions: ["A"]
   };
 
-  const [role, setRole] = useState(initialRole === "hod" ? "hod" : "teacher");
+  const [role, setRole] = useState(
+    initialRole === "principal" ? "principal" : initialRole === "hod" ? "hod" : "teacher"
+  );
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -50,23 +44,12 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
     confirmPassword: "",
     departmentId: defaultDept.id,
     departmentName: defaultDept.name,
-    designation: initialRole === "hod" ? "Head of Department" : "Assistant Professor",
+    designation: initialRole === "principal" ? "Principal & Director" : initialRole === "hod" ? "Head of Department" : "Assistant Professor",
     assignedDivisions: "Div A"
   });
 
-  // Mobile OTP Verification State
-  const [isOtpSent, setIsOtpSent] = useState(false);
-  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
-  const [otpLoading, setOtpLoading] = useState(false);
-  const [otpCooldown, setOtpCooldown] = useState(0);
-  const [previewOtp, setPreviewOtp] = useState("");
-  const [otpMessage, setOtpMessage] = useState("");
-  const [firebaseConfirmation, setFirebaseConfirmation] = useState(null);
-  const [otpProviderUsed, setOtpProviderUsed] = useState("smartcampus");
-
-  // Staff Security Verification Passkey (prevents student abuse)
-  const [staffPasskey, setStaffPasskey] = useState("CSMSS@FACULTY");
+  // College Security Key (Required: csmss$2533 for Teacher, HOD, and Principal)
+  const [staffPasskey, setStaffPasskey] = useState("");
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -74,15 +57,6 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
   const [successData, setSuccessData] = useState(null);
 
   const selectedDept = departments.find((d) => d.id === formData.departmentId) || defaultDept;
-
-  // Countdown timer for OTP resend cooldown
-  useEffect(() => {
-    let timer;
-    if (otpCooldown > 0) {
-      timer = setTimeout(() => setOtpCooldown(otpCooldown - 1), 1000);
-    }
-    return () => clearTimeout(timer);
-  }, [otpCooldown]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -99,137 +73,6 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
     }));
   };
 
-  // Dispatch OTP to user's mobile number (Firebase Phone Auth or SMS Gateway)
-  const handleSendOtp = async () => {
-    setError("");
-    setOtpMessage("");
-    const cleanDigits = (formData.phone || "").replace(/\D/g, "").slice(-10);
-
-    if (!cleanDigits || cleanDigits.length !== 10) {
-      setError("Please enter a valid 10-digit mobile number before requesting an OTP.");
-      return;
-    }
-
-    setOtpLoading(true);
-
-    // 1. If Firebase credentials are set, use Google Firebase Phone Auth for 100% Free real SMS
-    if (isFirebaseConfigured()) {
-      try {
-        const verifier = setupRecaptcha("recaptcha-container-teacher");
-        if (verifier) {
-          const fbRes = await sendFirebasePhoneOtp(cleanDigits, verifier);
-          if (fbRes.success) {
-            setFirebaseConfirmation(fbRes.confirmationResult);
-            setOtpProviderUsed("firebase");
-            setIsOtpSent(true);
-            setOtpCooldown(60);
-            setPreviewOtp(""); // Real SMS dispatched to mobile phone
-            setOtpMessage(`✅ Real SMS OTP sent to your phone (+91 ${cleanDigits})! Check your mobile SMS.`);
-            setOtpLoading(false);
-            return;
-          }
-        }
-      } catch (fbErr) {
-        console.warn("[Firebase Phone Auth Error]", fbErr.code, fbErr.message);
-        if (fbErr.code === "auth/operation-not-allowed") {
-          setError("⚠️ Firebase Phone Provider is not enabled! Please go to Firebase Console > Authentication > Sign-in method > Enable 'Phone'.");
-        } else if (fbErr.code === "auth/too-many-requests" || fbErr.code === "auth/quota-exceeded") {
-          setError("⚠️ SMS limit reached. Please wait 5 minutes or add your number under Firebase 'Phone numbers for testing'.");
-        } else if (fbErr.code === "auth/invalid-phone-number") {
-          setError("⚠️ Invalid mobile number format (+91 " + cleanDigits + ").");
-        } else {
-          setError(`⚠️ SMS error: ${fbErr.message || "Failed to dispatch SMS to phone."}`);
-        }
-      }
-    }
-
-    // 2. Gateway / Backend SMS fallback
-    try {
-      const res = await api.sendOtp({
-        phone: cleanDigits,
-        role,
-        purpose: "faculty_registration"
-      });
-      if (res?.success) {
-        setOtpProviderUsed("gateway");
-        setIsOtpSent(true);
-        setOtpCooldown(45);
-        setPreviewOtp(res.previewOtp || "");
-        setOtpMessage(`Verification code dispatched to +91 ${cleanDigits}.`);
-      } else {
-        setError(res?.message || "Could not send OTP. Please check mobile number.");
-      }
-    } catch (err) {
-      // Offline fallback: generate client simulated code so testing is never blocked
-      const fallbackOtp = String(Math.floor(100000 + Math.random() * 900000));
-      setIsOtpSent(true);
-      setOtpCooldown(45);
-      setPreviewOtp(fallbackOtp);
-      setOtpMessage(`Verification code dispatched to +91 ${cleanDigits}.`);
-    } finally {
-      setOtpLoading(false);
-    }
-  };
-
-  // Verify OTP code entered by user
-  const handleVerifyOtp = async () => {
-    setError("");
-    const entered = (otpCode || "").trim();
-    if (!entered || entered.length !== 6) {
-      setError("Please enter the complete 6-digit OTP code received on your mobile phone.");
-      return;
-    }
-
-    setOtpLoading(true);
-
-    try {
-      // 1. If Firebase session active, confirm via Google Firebase
-      if (firebaseConfirmation) {
-        try {
-          const fbConfirm = await confirmFirebaseOtp(firebaseConfirmation, entered);
-          if (fbConfirm?.success) {
-            setIsPhoneVerified(true);
-            setOtpMessage("✅ Mobile number verified via Google Firebase SMS!");
-            setOtpLoading(false);
-            return;
-          }
-        } catch (fbErr) {
-          console.warn("[Firebase Confirmation Error]", fbErr.message);
-          setError("❌ Invalid OTP! The code entered does not match the SMS sent to your phone. Please check and re-enter.");
-          setOtpLoading(false);
-          return;
-        }
-      }
-
-      // 2. Verify via Backend API
-      const cleanDigits = (formData.phone || "").replace(/\D/g, "").slice(-10);
-      const res = await api.verifyOtp({ phone: cleanDigits, otp: entered });
-      if (res?.success || res?.verified) {
-        setIsPhoneVerified(true);
-        setOtpMessage("Mobile number verified successfully!");
-      } else {
-        setError(res?.message || "Invalid OTP code. Please verify.");
-      }
-    } catch (err) {
-      if (previewOtp && entered === previewOtp) {
-        setIsPhoneVerified(true);
-        setOtpMessage("Mobile number verified successfully!");
-      } else {
-        setError(err.message || "Invalid OTP code. Please try again.");
-      }
-    } finally {
-      setOtpLoading(false);
-    }
-  };
-
-  const handleResetPhone = () => {
-    setIsPhoneVerified(false);
-    setIsOtpSent(false);
-    setOtpCode("");
-    setPreviewOtp("");
-    setOtpMessage("");
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -239,17 +82,16 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
       return;
     }
 
-    // MANDATORY OTP CHECK: Prevents unverified phone registrations
-    if (!isPhoneVerified) {
-      setError("⚠️ Security requirement: Please verify your Mobile Number using the SMS OTP code before completing registration.");
+    const cleanPhone = (formData.phone || "").replace(/\D/g, "").slice(-10);
+    if (!cleanPhone || cleanPhone.length !== 10) {
+      setError("Please enter a valid 10-digit Indian Mobile Number.");
       return;
     }
 
-    // MANDATORY STAFF PASSKEY CHECK: Prevents students from registering as faculty
-    const validPasskeys = ["CSMSS@FACULTY", "CSMSS2026", "SHAHU@2026", "FACULTY123", "ADMIN@CSMSS"];
-    const enteredPasskey = (staffPasskey || "").trim().toUpperCase();
-    if (!enteredPasskey || !validPasskeys.includes(enteredPasskey)) {
-      setError("⛔ Invalid College Staff Security Passcode. Students are prohibited from creating faculty accounts. Enter 'CSMSS@FACULTY' or contact college administration.");
+    // MANDATORY SECURITY KEY CHECK: Teacher, HOD, and Principal require csmss$2533
+    const enteredPasskey = (staffPasskey || "").trim().toLowerCase();
+    if (enteredPasskey !== "csmss$2533") {
+      setError("⛔ Invalid Security Key! Teachers, HODs, and Principal must enter the authorized college security key: csmss$2533");
       return;
     }
 
@@ -545,9 +387,9 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
           {/* Role Choice */}
           <div style={{ background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
             <label className="form-label" style={{ fontWeight: "700", marginBottom: "8px" }}>
-              Select Your Academic Role *
+              Select Academic / Administrative Role *
             </label>
-            <div style={{ display: "flex", gap: "10px" }}>
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
               <button
                 type="button"
                 onClick={() => {
@@ -555,7 +397,7 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
                   setFormData((prev) => ({ ...prev, designation: "Assistant Professor" }));
                 }}
                 className={`btn btn-md ${role === "teacher" ? "btn-primary" : "btn-secondary"}`}
-                style={{ flex: 1, fontWeight: "700" }}
+                style={{ flex: 1, minWidth: "140px", fontWeight: "700" }}
               >
                 👨‍🏫 Teacher / Faculty
               </button>
@@ -566,15 +408,23 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
                   setFormData((prev) => ({ ...prev, designation: "Head of Department" }));
                 }}
                 className={`btn btn-md ${role === "hod" ? "btn-primary" : "btn-secondary"}`}
-                style={{ flex: 1, fontWeight: "700" }}
+                style={{ flex: 1, minWidth: "140px", fontWeight: "700" }}
               >
                 🏛️ Head of Department (HOD)
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setRole("principal");
+                  setFormData((prev) => ({ ...prev, designation: "Principal & Director" }));
+                }}
+                className={`btn btn-md ${role === "principal" ? "btn-primary" : "btn-secondary"}`}
+                style={{ flex: 1, minWidth: "140px", fontWeight: "700" }}
+              >
+                🎓 Principal & Director
+              </button>
             </div>
           </div>
-
-          {/* Invisible Google ReCAPTCHA Mount for Firebase Phone Auth */}
-          <div id="recaptcha-container-teacher"></div>
 
           {/* Section 1: Personal & Contact Information */}
           <div>
@@ -609,142 +459,31 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
               </div>
             </div>
 
-            {/* Mobile Number & OTP Verification Module */}
-            <div style={{ marginTop: "14px", background: "#f8fafc", border: isPhoneVerified ? "1.5px solid #86efac" : "1.5px solid #cbd5e1", borderRadius: "12px", padding: "16px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", flexWrap: "wrap", gap: "6px" }}>
-                <label className="form-label" style={{ fontWeight: "700", marginBottom: 0, display: "flex", alignItems: "center", gap: "6px" }}>
-                  <Smartphone size={16} color="#4f46e5" />
-                  <span>Mobile Phone Number (Login ID) *</span>
-                </label>
-                {isPhoneVerified ? (
-                  <span style={{ background: "#dcfce7", color: "#15803d", padding: "3px 10px", borderRadius: "20px", fontSize: "0.76rem", fontWeight: "800", display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                    <Check size={14} /> Verified with OTP
-                  </span>
-                ) : (
-                  <span style={{ fontSize: "0.74rem", color: "#dc2626", fontWeight: "700" }}>
-                    * Mobile OTP Verification Required
-                  </span>
-                )}
+            {/* Mobile Phone Number (Direct, No OTP Required) */}
+            <div className="form-group" style={{ marginTop: "14px" }}>
+              <label className="form-label" style={{ fontWeight: "700", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Smartphone size={16} color="#4f46e5" />
+                <span>Mobile Phone Number (Login ID) *</span>
+              </label>
+              <div style={{ position: "relative" }}>
+                <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", fontSize: "0.85rem", fontWeight: "700", color: "#64748b" }}>
+                  +91
+                </span>
+                <input
+                  type="tel"
+                  name="phone"
+                  required
+                  maxLength={10}
+                  placeholder="10-digit Mobile Number"
+                  className="form-control"
+                  style={{ paddingLeft: "44px" }}
+                  value={formData.phone}
+                  onChange={handleChange}
+                />
               </div>
-
-              {!isPhoneVerified ? (
-                <div>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <div style={{ position: "relative", flex: 1 }}>
-                      <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", fontSize: "0.85rem", fontWeight: "700", color: "#64748b" }}>
-                        +91
-                      </span>
-                      <input
-                        type="tel"
-                        name="phone"
-                        required
-                        disabled={isOtpSent && otpCooldown > 0}
-                        placeholder="10-digit Mobile Number"
-                        className="form-control"
-                        style={{ paddingLeft: "44px" }}
-                        value={formData.phone}
-                        onChange={handleChange}
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      disabled={otpLoading || otpCooldown > 0}
-                      onClick={handleSendOtp}
-                      className="btn btn-secondary btn-md"
-                      style={{ whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: "6px", fontWeight: "700", background: "#4f46e5", color: "white", borderColor: "#4338ca" }}
-                    >
-                      {otpLoading ? (
-                        <>
-                          <RefreshCw size={14} className="spin-animate" />
-                          <span>Sending...</span>
-                        </>
-                      ) : otpCooldown > 0 ? (
-                        <span>Resend in {otpCooldown}s</span>
-                      ) : (
-                        <>
-                          <Send size={14} />
-                          <span>{isOtpSent ? "Resend OTP" : "Send OTP"}</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Firebase ReCAPTCHA invisible badge anchor */}
-                  <div id="recaptcha-container-teacher"></div>
-
-                  {/* OTP Input Row when sent */}
-                  {isOtpSent && (
-                    <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px dashed #cbd5e1" }}>
-                      {otpMessage && (
-                        <div style={{ fontSize: "0.8rem", color: "#1e40af", marginBottom: "8px", fontWeight: "600" }}>
-                          {otpMessage}
-                        </div>
-                      )}
-                      {previewOtp && (
-                        <div style={{ background: "#f5f3ff", border: "1.5px solid #ddd6fe", padding: "10px 14px", borderRadius: "8px", marginBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
-                          <div>
-                            <div style={{ fontSize: "0.75rem", color: "#5b21b6", fontWeight: "700" }}>
-                              SMS Verification Code Dispatched:
-                            </div>
-                            <div style={{ fontSize: "1.1rem", fontWeight: "800", color: "#7c3aed", letterSpacing: "2px" }}>
-                              {previewOtp}
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setOtpCode(previewOtp)}
-                            style={{ background: "#7c3aed", color: "white", border: "none", borderRadius: "8px", padding: "6px 14px", fontSize: "0.76rem", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}
-                          >
-                            <Check size={14} /> Auto-Fill Code
-                          </button>
-                        </div>
-                      )}
-                      <div style={{ display: "flex", gap: "8px" }}>
-                        <input
-                          type="text"
-                          maxLength={6}
-                          placeholder="Enter 6-Digit OTP"
-                          className="form-control"
-                          style={{ letterSpacing: "3px", fontWeight: "800", textAlign: "center", maxWidth: "200px" }}
-                          value={otpCode}
-                          onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-                        />
-                        <button
-                          type="button"
-                          disabled={otpLoading || otpCode.length !== 6}
-                          onClick={handleVerifyOtp}
-                          className="btn btn-primary btn-md"
-                          style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontWeight: "800", background: "#16a34a", borderColor: "#15803d" }}
-                        >
-                          <CheckCircle2 size={16} />
-                          <span>Verify OTP</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  <small style={{ color: "#64748b", fontSize: "0.72rem", marginTop: "6px", display: "block" }}>
-                    An SMS OTP code will be sent to your mobile phone to verify your staff identity.
-                  </small>
-                </div>
-              ) : (
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <span style={{ fontSize: "1rem", fontWeight: "800", color: "#0f172a" }}>
-                      +91 {formData.phone}
-                    </span>
-                    <div style={{ fontSize: "0.74rem", color: "#16a34a", fontWeight: "600", marginTop: "2px" }}>
-                      Phone identity confirmed. Credentials will be delivered to this number.
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleResetPhone}
-                    style={{ background: "none", border: "none", color: "#64748b", textDecoration: "underline", cursor: "pointer", fontSize: "0.78rem" }}
-                  >
-                    Change Number
-                  </button>
-                </div>
-              )}
+              <small style={{ color: "#64748b", fontSize: "0.72rem", marginTop: "4px", display: "block" }}>
+                This mobile number will be used to log in to the faculty/administration portal.
+              </small>
             </div>
           </div>
 
@@ -771,7 +510,14 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
 
               <div className="form-group">
                 <label className="form-label">Designation *</label>
-                {role === "hod" ? (
+                {role === "principal" ? (
+                  <input
+                    type="text"
+                    disabled
+                    className="form-control"
+                    value="Principal & Director"
+                  />
+                ) : role === "hod" ? (
                   <input
                     type="text"
                     disabled
@@ -808,27 +554,27 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
             </div>
           </div>
 
-          {/* Section 3: Institute Faculty Passkey (Anti-Student Abuse Security) */}
-          <div style={{ background: "#fefce8", border: "1.5px solid #fef08a", padding: "16px", borderRadius: "12px" }}>
-            <h4 style={{ fontSize: "0.92rem", fontWeight: "800", color: "#854d0e", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
-              <Key size={16} /> 3. College Faculty Authorization Security Key *
+          {/* Section 3: Institute Faculty & Principal Security Key */}
+          <div style={{ background: "#fefce8", border: "1.5px solid #fde047", padding: "18px", borderRadius: "12px" }}>
+            <h4 style={{ fontSize: "0.95rem", fontWeight: "800", color: "#854d0e", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+              <Key size={16} /> 3. College Security Verification Key (csmss$2533) *
             </h4>
-            <p style={{ fontSize: "0.78rem", color: "#713f12", marginBottom: "10px", lineHeight: 1.4 }}>
-              To ensure <strong>students cannot register under faculty names</strong>, enter the authorized CSMSS staff security passcode.
+            <p style={{ fontSize: "0.8rem", color: "#713f12", marginBottom: "12px", lineHeight: 1.4 }}>
+              To ensure unauthorized users or students cannot register as staff, enter the official college security key <strong>csmss$2533</strong> (applicable for Teacher, HOD, and Principal).
             </p>
             <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
               <input
                 type="text"
-                placeholder="Enter Staff Passkey (e.g. CSMSS@FACULTY)"
+                placeholder="Enter Security Key: csmss$2533"
                 className="form-control"
-                style={{ fontWeight: "700", fontFamily: "monospace", textTransform: "uppercase" }}
+                style={{ fontWeight: "700", fontFamily: "monospace", letterSpacing: "1px" }}
                 value={staffPasskey}
                 onChange={(e) => setStaffPasskey(e.target.value)}
                 required
               />
             </div>
             <small style={{ color: "#a16207", fontSize: "0.72rem", marginTop: "4px", display: "block" }}>
-              Default college staff passkey: <code>CSMSS@FACULTY</code> (or contact Principal/Admin).
+              Authorized Key: <strong>csmss$2533</strong>
             </small>
           </div>
 
@@ -884,16 +630,9 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
             </div>
           </div>
 
-          {!isPhoneVerified && (
-            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", padding: "10px 14px", borderRadius: "8px", fontSize: "0.82rem", fontWeight: "600", display: "flex", alignItems: "center", gap: "6px" }}>
-              <AlertCircle size={15} />
-              <span>Please verify your mobile number with SMS OTP above before clicking complete.</span>
-            </div>
-          )}
-
           <button
             type="submit"
-            disabled={loading || !isPhoneVerified}
+            disabled={loading}
             className="btn btn-primary btn-lg"
             style={{
               width: "100%",
@@ -901,11 +640,11 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
               padding: "14px",
               fontWeight: "800",
               fontSize: "0.95rem",
-              background: !isPhoneVerified ? "#94a3b8" : "linear-gradient(135deg, #4f46e5, #4338ca)",
-              cursor: !isPhoneVerified ? "not-allowed" : "pointer"
+              background: "linear-gradient(135deg, #4f46e5, #4338ca)",
+              cursor: "pointer"
             }}
           >
-            {loading ? "Registering Faculty Account..." : `Complete & Activate ${role.toUpperCase()} Account`}
+            {loading ? "Registering Account..." : `Complete & Activate ${role.toUpperCase()} Account`}
           </button>
         </form>
       </div>
