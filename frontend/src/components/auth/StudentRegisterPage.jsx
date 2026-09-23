@@ -44,7 +44,6 @@ export default function StudentRegisterPage({ onBackToLogin }) {
     parentName: "",
     parentPhone: "",
     parentEmail: "",
-    parentPassword: "",
     parentOccupation: ""
   });
 
@@ -133,7 +132,6 @@ export default function StudentRegisterPage({ onBackToLogin }) {
         parentName: formData.parentName,
         parentPhone: formData.parentPhone.trim(),
         parentEmail: formData.parentEmail.trim(),
-        parentPassword: (formData.parentPassword || formData.password).trim(),
         parentOccupation: formData.parentOccupation
       };
 
@@ -489,11 +487,20 @@ export default function StudentRegisterPage({ onBackToLogin }) {
 
           {/* SECTION 2: Parent / Guardian Information */}
           <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "20px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
-              <HeartHandshake size={18} color="#f59e0b" />
-              <h3 style={{ fontSize: "1.05rem", fontWeight: "700", color: "#1e293b", margin: 0 }}>
-                2. Parent / Guardian Credentials
-              </h3>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px", marginBottom: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <HeartHandshake size={18} color="#f59e0b" />
+                <h3 style={{ fontSize: "1.05rem", fontWeight: "700", color: "#1e293b", margin: 0 }}>
+                  2. Parent / Guardian Contact Information
+                </h3>
+              </div>
+              <span style={{ fontSize: "0.78rem", background: "#fef3c7", color: "#b45309", padding: "3px 10px", borderRadius: "12px", fontWeight: "600" }}>
+                Password issued by Teacher
+              </span>
+            </div>
+
+            <div style={{ background: "#f8fafc", padding: "12px 16px", borderRadius: "10px", border: "1px solid #e2e8f0", fontSize: "0.82rem", color: "#475569", marginBottom: "16px" }}>
+              ℹ️ <strong>Parent Password Notice:</strong> The parent login password is generated and sent by the College / Class Teacher. Only parent contact information is collected here.
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
@@ -522,18 +529,18 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                   required
                 />
                 <small style={{ color: "#64748b", fontSize: "0.74rem" }}>
-                  💡 This mobile number will be the Parent Login ID
+                  💡 This mobile number will be used for Parent Portal Login & SMS alerts
                 </small>
               </div>
 
               <div className="form-group">
-                <label className="form-label">Parent Password (Optional)</label>
+                <label className="form-label">Parent Email ID (Optional)</label>
                 <input
-                  type="password"
-                  name="parentPassword"
+                  type="email"
+                  name="parentEmail"
                   className="form-control"
-                  placeholder="Defaults to student password if blank"
-                  value={formData.parentPassword}
+                  placeholder="e.g. parent@example.com"
+                  value={formData.parentEmail}
                   onChange={handleChange}
                 />
               </div>

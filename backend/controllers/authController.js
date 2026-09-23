@@ -102,12 +102,12 @@ export async function login(req, res) {
         });
       }
 
-      // Check birthdate password
-      const isDobValid = verifyDob(cleanPassword, student.dob) || cleanPassword === student.password;
-      if (!isDobValid) {
+      // Check student password (custom password chosen during registration or DOB fallback)
+      const isPassValid = cleanPassword === student.password || verifyDob(cleanPassword, student.dob);
+      if (!isPassValid) {
         return res.status(401).json({
           success: false,
-          message: 'Incorrect Birthdate password. Use YYYY-MM-DD or DD-MM-YYYY.'
+          message: 'Incorrect Student Password. Please enter your valid password.'
         });
       }
 
@@ -119,7 +119,7 @@ export async function login(req, res) {
     }
 
     // 3. PARENT LOGIN RULE:
-    // Username: Parent Mobile Number; Password: Student's Birthdate (DOB)
+    // Username: Parent Mobile Number; Password: Password assigned by Teacher
     if (role === 'parent') {
       const phoneDigits = cleanPhone(cleanUsername);
       const parents = await query(
@@ -143,17 +143,19 @@ export async function login(req, res) {
         studentRecord = stuRows[0];
       }
 
-      const expectedDob = studentRecord?.dob || record.dob;
-      const isDobValid = verifyDob(cleanPassword, expectedDob) ||
-                         verifyDob(cleanPassword, record.dob) ||
-                         verifyDob(cleanPassword, '16.04.2006') ||
-                         verifyDob(cleanPassword, '02.03.1988') ||
-                         cleanPassword === record.password;
-
-      if (!isDobValid) {
+      // Parent password must be assigned by the teacher
+      const parentStoredPass = record.password;
+      if (!parentStoredPass) {
         return res.status(401).json({
           success: false,
-          message: "Incorrect Password. Please verify your password."
+          message: "Parent password has not been assigned yet by the Teacher. Please contact your ward's class teacher."
+        });
+      }
+
+      if (cleanPassword !== parentStoredPass) {
+        return res.status(401).json({
+          success: false,
+          message: "Incorrect Parent Password. Please verify the password provided by your teacher."
         });
       }
 

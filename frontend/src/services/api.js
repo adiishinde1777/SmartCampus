@@ -73,6 +73,10 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(studentData)
   }),
+  setParentPassword: (data) => request('/parent-password', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
 
   // Attendance & SMS Flow
   submitAttendance: (attendanceData) => request('/attendance', {

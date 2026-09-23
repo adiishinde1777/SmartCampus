@@ -59,20 +59,21 @@ router.get('/bootstrap', async (req, res) => {
     res.json({
       success: true,
       data: {
-        users: users.map(u => {
-          delete u.password;
-          return {
-            ...u,
-            rollNo: u.roll_no,
-            departmentId: u.department_id,
-            departmentName: u.department_name,
-            parentName: u.parent_name,
-            parentPhone: u.parent_phone,
-            parentEmail: u.parent_email,
-            assignedDivisions: u.assigned_divisions ? u.assigned_divisions.split(',') : []
-          };
-        }),
-        departments,
+        users: users.map(u => ({
+          ...u,
+          password: u.password,
+          rollNo: u.roll_no,
+          departmentId: u.department_id,
+          departmentName: u.department_name,
+          parentName: u.parent_name,
+          parentPhone: u.parent_phone,
+          parentEmail: u.parent_email,
+          assignedDivisions: u.assigned_divisions ? u.assigned_divisions.split(',') : []
+        })),
+        departments: departments.map(d => ({
+          ...d,
+          divisions: d.divisions ? (Array.isArray(d.divisions) ? d.divisions : String(d.divisions).split(',').map(s => s.trim())) : ['A']
+        })),
         subjects: subjects.map(s => ({
           ...s,
           departmentId: s.department_id,
@@ -216,8 +217,8 @@ router.post('/users', async (req, res) => {
             body.parentName || `Parent of ${body.name}`,
             parentPhoneClean,
             body.parentEmail || null,
-            body.dob || null, // Password for parent is student's DOB
-            body.dob || 'password123',
+            body.dob || null,
+            null, // Parent password is not set by student; set by teacher
             id,
             body.departmentId || null,
             body.departmentName || null,
@@ -358,17 +359,21 @@ router.post('/registration-links', async (req, res) => {
 router.post('/register-student', async (req, res) => {
   try {
     const body = req.body;
-    if (!body.prn || !body.name || !body.dob) {
-      return res.status(400).json({ success: false, message: 'Student Name, PRN, and Date of Birth are mandatory.' });
+    if (!body.name || !body.phone) {
+      return res.status(400).json({ success: false, message: 'Student Full Name and Mobile Number are required.' });
     }
 
-    // Check if PRN already registered
-    const existing = await query('SELECT id FROM users WHERE prn = ? LIMIT 1', [body.prn]);
+    const cleanPhone = String(body.phone).trim();
+    const cleanPrn = body.prn ? String(body.prn).trim() : `PRN-${cleanPhone.slice(-6)}`;
+    const studentPass = body.password ? String(body.password).trim() : (body.dob || 'student123');
+
+    // Check if Phone or PRN already registered
+    const existing = await query('SELECT id FROM users WHERE phone = ? OR prn = ? LIMIT 1', [cleanPhone, cleanPrn]);
     if (existing.length > 0) {
-      return res.status(409).json({ success: false, message: `Student with PRN "${body.prn}" is already registered.` });
+      return res.status(409).json({ success: false, message: `A student account with Mobile "${cleanPhone}" or PRN "${cleanPrn}" already exists.` });
     }
 
-    const studentId = 'stu-' + Date.now();
+    const studentId = body.id || ('stu-' + Date.now());
     await query(
       `INSERT INTO users (
         id, role, name, email, phone, prn, dob, password,
@@ -379,45 +384,46 @@ router.post('/register-student', async (req, res) => {
       [
         studentId,
         'student',
-        body.name,
-        body.email || null,
-        body.phone || null,
-        body.prn,
-        body.dob,
-        body.dob, // Default password is birthdate
+        body.name.trim(),
+        body.email ? body.email.trim() : null,
+        cleanPhone,
+        cleanPrn,
+        body.dob || '2005-01-01',
+        studentPass,
         body.departmentId || 'dept-vlsi',
         body.departmentName || 'Electronic Engineering (VLSI Design And Technology)',
-        body.semester ? Number(body.semester) : 5,
-        body.year || '3rd Year',
+        body.semester ? Number(body.semester) : 1,
+        body.year || '1st Year',
         body.division || 'A',
-        body.batch || 'TA1',
+        body.batch || 'A1',
         body.rollNo || null,
-        body.gender || null,
-        body.bloodGroup || null,
+        body.gender || 'Male',
+        body.bloodGroup || 'O+',
         body.address || null,
         body.parentName || null,
-        body.parentPhone || null,
-        body.parentEmail || null,
+        body.parentPhone ? String(body.parentPhone).trim() : null,
+        body.parentEmail ? String(body.parentEmail).trim() : null,
         body.parentOccupation || null,
         true
       ]
     );
 
-    // Auto-create Parent User account so parent can immediately sign in with Parent Phone + Student DOB
+    // Auto-create Parent user record with NULL password (Teacher will generate & send parent password)
     if (body.parentPhone) {
       const parentId = `par-${studentId}`;
+      const parentPhoneClean = String(body.parentPhone).trim();
       await query(
         `INSERT INTO users (id, role, name, phone, email, dob, password, parent_id, department_id, department_name, is_verified)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE name = VALUES(name), phone = VALUES(phone), dob = VALUES(dob)`,
+         ON DUPLICATE KEY UPDATE name = VALUES(name), phone = VALUES(phone)`,
         [
           parentId,
           'parent',
           body.parentName || `Parent of ${body.name}`,
-          body.parentPhone,
+          parentPhoneClean,
           body.parentEmail || null,
-          body.dob,
-          body.dob,
+          body.dob || null,
+          null, // Parent password is not set by student; set by teacher
           studentId,
           body.departmentId || 'dept-vlsi',
           body.departmentName || 'Electronic Engineering (VLSI Design And Technology)',
@@ -429,10 +435,35 @@ router.post('/register-student', async (req, res) => {
     res.json({
       success: true,
       studentId,
-      message: 'Registration submitted successfully! You can log in using your PRN as Username and Birthdate as Password.'
+      message: 'Student Registration completed and saved to database successfully!'
     });
   } catch (err) {
     console.error('[Student Self-Register Error]', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Teacher / Admin assigns or updates parent portal password & sends SMS
+router.post('/parent-password', async (req, res) => {
+  try {
+    const { parentId, studentId, parentPhone, password } = req.body;
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'Password cannot be empty.' });
+    }
+
+    const cleanPass = String(password).trim();
+    const cleanPhone = parentPhone ? String(parentPhone).trim() : '';
+
+    await query(
+      `UPDATE users SET password = ? WHERE (id = ? OR parent_id = ? OR phone = ?) AND role = 'parent'`,
+      [cleanPass, parentId || '', studentId || '', cleanPhone]
+    );
+
+    res.json({
+      success: true,
+      message: 'Parent password updated successfully and ready for sign in.'
+    });
+  } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });

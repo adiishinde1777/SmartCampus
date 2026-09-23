@@ -9,10 +9,11 @@ import {
 
 const SmartCampusContext = createContext();
 
-const STORAGE_KEY = "smartcampus_zero_data_v4";
+const STORAGE_KEY = "smartcampus_zero_data_v5";
 
 // Clean old localStorage entries if present
 try {
+  localStorage.removeItem("smartcampus_zero_data_v4");
   localStorage.removeItem("smartcampus_zero_data_v3");
   localStorage.removeItem("smart_campus_erp_mysql_clean_v2");
   localStorage.removeItem("smartcampus_state");
@@ -93,17 +94,17 @@ export function SmartCampusProvider({ children }) {
           const d = res.data;
           setState((prev) => ({
             ...prev,
-            users: d.users && d.users.length > 0 ? d.users : prev.users,
-            departments: d.departments && d.departments.length > 0 ? d.departments : prev.departments,
-            subjects: d.subjects && d.subjects.length > 0 ? d.subjects : prev.subjects,
-            attendanceLogs: d.attendanceLogs && d.attendanceLogs.length > 0 ? d.attendanceLogs : prev.attendanceLogs,
-            smsLogs: d.smsLogs && d.smsLogs.length > 0 ? d.smsLogs : prev.smsLogs,
-            marks: d.marks && d.marks.length > 0 ? d.marks : prev.marks,
-            assignments: d.assignments && d.assignments.length > 0 ? d.assignments : prev.assignments,
-            notices: d.notices && d.notices.length > 0 ? d.notices : prev.notices,
-            leaves: d.leaves && d.leaves.length > 0 ? d.leaves : prev.leaves,
-            complaints: d.complaints && d.complaints.length > 0 ? d.complaints : prev.complaints,
-            auditLogs: d.auditLogs && d.auditLogs.length > 0 ? d.auditLogs : prev.auditLogs,
+            users: Array.isArray(d.users) && d.users.length > 0 ? d.users : prev.users,
+            departments: Array.isArray(d.departments) && d.departments.length > 0 ? d.departments : prev.departments,
+            subjects: Array.isArray(d.subjects) ? d.subjects : prev.subjects,
+            attendanceLogs: Array.isArray(d.attendanceLogs) ? d.attendanceLogs : prev.attendanceLogs,
+            smsLogs: Array.isArray(d.smsLogs) ? d.smsLogs : prev.smsLogs,
+            marks: Array.isArray(d.marks) ? d.marks : prev.marks,
+            assignments: Array.isArray(d.assignments) ? d.assignments : prev.assignments,
+            notices: Array.isArray(d.notices) ? d.notices : prev.notices,
+            leaves: Array.isArray(d.leaves) ? d.leaves : prev.leaves,
+            complaints: Array.isArray(d.complaints) ? d.complaints : prev.complaints,
+            auditLogs: Array.isArray(d.auditLogs) ? d.auditLogs : prev.auditLogs,
             systemSettings: { ...prev.systemSettings, ...(d.systemSettings || {}) }
           }));
         }
