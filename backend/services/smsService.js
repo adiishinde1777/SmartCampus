@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { query } from '../db.js';
+import { sendFirebaseAbsentNotification } from './firebaseAdminService.js';
 
 // Normalizes 10-digit Indian phone numbers
 function formatPhoneNumber(phone) {
@@ -157,6 +158,15 @@ export async function dispatchAbsenceAlerts({ student, subjectName, date, lectur
       studentName: student.name,
       message: studentMsg
     });
+    // Also dispatch to Firebase FCM notification
+    sendFirebaseAbsentNotification({
+      recipientPhone: student.phone,
+      recipientRole: 'student',
+      studentName: student.name,
+      subjectName,
+      date,
+      lectureNum
+    }).catch(() => {});
     results.push({ target: 'student', ...sRes });
   }
 
@@ -171,6 +181,15 @@ export async function dispatchAbsenceAlerts({ student, subjectName, date, lectur
       studentName: student.name,
       message: parentMsg
     });
+    // Also dispatch to Firebase FCM notification for parent
+    sendFirebaseAbsentNotification({
+      recipientPhone: parentPhone,
+      recipientRole: 'parent',
+      studentName: student.name,
+      subjectName,
+      date,
+      lectureNum
+    }).catch(() => {});
     results.push({ target: 'parent', ...pRes });
   }
 

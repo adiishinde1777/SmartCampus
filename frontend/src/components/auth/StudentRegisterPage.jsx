@@ -20,6 +20,12 @@ import {
   RefreshCw,
   Check
 } from "lucide-react";
+import {
+  sendFirebasePhoneOtp,
+  confirmFirebaseOtp,
+  setupRecaptcha,
+  isFirebaseConfigured
+} from "../../services/firebase";
 
 export default function StudentRegisterPage({ onBackToLogin }) {
   const { departments, addUser, addRegisteredUsers } = useSmartCampus();
@@ -58,6 +64,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
   const [otpCooldown, setOtpCooldown] = useState(0);
   const [previewOtp, setPreviewOtp] = useState("");
   const [otpMessage, setOtpMessage] = useState("");
+  const [firebaseConfirmation, setFirebaseConfirmation] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -105,7 +112,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
     }));
   };
 
-  // Dispatch OTP to student's mobile number
+  // Dispatch OTP to student's mobile number (Firebase Phone Auth or SMS Gateway)
   const handleSendOtp = async () => {
     setError("");
     setOtpMessage("");
@@ -117,6 +124,28 @@ export default function StudentRegisterPage({ onBackToLogin }) {
     }
 
     setOtpLoading(true);
+
+    // 1. If Firebase credentials are set, use Google Firebase Phone Auth for 100% Free real SMS
+    if (isFirebaseConfigured()) {
+      try {
+        const verifier = setupRecaptcha("recaptcha-container-student");
+        if (verifier) {
+          const fbRes = await sendFirebasePhoneOtp(cleanDigits, verifier);
+          if (fbRes.success) {
+            setFirebaseConfirmation(fbRes.confirmationResult);
+            setIsOtpSent(true);
+            setOtpCooldown(60);
+            setOtpMessage(`Google Firebase SMS OTP sent to +91 ${cleanDigits}.`);
+            setOtpLoading(false);
+            return;
+          }
+        }
+      } catch (fbErr) {
+        console.warn("[Firebase Phone Auth Fallback to Backend Gateway]", fbErr.message);
+      }
+    }
+
+    // 2. Gateway / Backend SMS fallback
     try {
       const res = await api.sendOtp({
         phone: cleanDigits,
@@ -152,7 +181,24 @@ export default function StudentRegisterPage({ onBackToLogin }) {
     }
 
     setOtpLoading(true);
+
     try {
+      // 1. If Firebase session active, confirm via Google Firebase
+      if (firebaseConfirmation) {
+        try {
+          const fbConfirm = await confirmFirebaseOtp(firebaseConfirmation, entered);
+          if (fbConfirm?.success) {
+            setIsPhoneVerified(true);
+            setOtpMessage("Mobile number verified via Google Firebase!");
+            setOtpLoading(false);
+            return;
+          }
+        } catch (fbErr) {
+          console.warn("[Firebase Confirmation Error]", fbErr.message);
+        }
+      }
+
+      // 2. Verify via Backend API
       const cleanDigits = (formData.phone || "").replace(/\D/g, "").slice(-10);
       const res = await api.verifyOtp({ phone: cleanDigits, otp: entered });
       if (res?.success || res?.verified) {
@@ -427,6 +473,9 @@ export default function StudentRegisterPage({ onBackToLogin }) {
         )}
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          {/* Invisible Google ReCAPTCHA Mount for Firebase Phone Auth */}
+          <div id="recaptcha-container-student"></div>
+
           {/* SECTION 1: Student Information */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>

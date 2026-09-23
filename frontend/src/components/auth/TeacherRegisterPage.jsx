@@ -24,6 +24,13 @@ import {
   Check
 } from "lucide-react";
 
+import {
+  sendFirebasePhoneOtp,
+  confirmFirebaseOtp,
+  setupRecaptcha,
+  isFirebaseConfigured
+} from "../../services/firebase";
+
 export default function TeacherRegisterPage({ initialRole = "teacher", onBackToLogin }) {
   const { departments, addUser } = useSmartCampus();
 
@@ -55,6 +62,8 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
   const [otpCooldown, setOtpCooldown] = useState(0);
   const [previewOtp, setPreviewOtp] = useState("");
   const [otpMessage, setOtpMessage] = useState("");
+  const [firebaseConfirmation, setFirebaseConfirmation] = useState(null);
+  const [otpProviderUsed, setOtpProviderUsed] = useState("smartcampus");
 
   // Staff Security Verification Passkey (prevents student abuse)
   const [staffPasskey, setStaffPasskey] = useState("CSMSS@FACULTY");
@@ -90,7 +99,7 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
     }));
   };
 
-  // Dispatch OTP to user's mobile number
+  // Dispatch OTP to user's mobile number (Firebase Phone Auth or SMS Gateway)
   const handleSendOtp = async () => {
     setError("");
     setOtpMessage("");
@@ -102,6 +111,29 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
     }
 
     setOtpLoading(true);
+
+    // 1. If Firebase credentials are set, use Google Firebase Phone Auth for 100% Free real SMS
+    if (isFirebaseConfigured()) {
+      try {
+        const verifier = setupRecaptcha("recaptcha-container-teacher");
+        if (verifier) {
+          const fbRes = await sendFirebasePhoneOtp(cleanDigits, verifier);
+          if (fbRes.success) {
+            setFirebaseConfirmation(fbRes.confirmationResult);
+            setOtpProviderUsed("firebase");
+            setIsOtpSent(true);
+            setOtpCooldown(60);
+            setOtpMessage(`Google Firebase SMS OTP sent to +91 ${cleanDigits}.`);
+            setOtpLoading(false);
+            return;
+          }
+        }
+      } catch (fbErr) {
+        console.warn("[Firebase Phone Auth Fallback to Backend Gateway]", fbErr.message);
+      }
+    }
+
+    // 2. Gateway / Backend SMS fallback
     try {
       const res = await api.sendOtp({
         phone: cleanDigits,
@@ -109,6 +141,7 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
         purpose: "faculty_registration"
       });
       if (res?.success) {
+        setOtpProviderUsed("gateway");
         setIsOtpSent(true);
         setOtpCooldown(45);
         setPreviewOtp(res.previewOtp || "");
@@ -138,7 +171,24 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
     }
 
     setOtpLoading(true);
+
     try {
+      // 1. If Firebase session active, confirm via Google Firebase
+      if (firebaseConfirmation) {
+        try {
+          const fbConfirm = await confirmFirebaseOtp(firebaseConfirmation, entered);
+          if (fbConfirm?.success) {
+            setIsPhoneVerified(true);
+            setOtpMessage("Mobile number verified via Google Firebase!");
+            setOtpLoading(false);
+            return;
+          }
+        } catch (fbErr) {
+          console.warn("[Firebase Confirmation Error]", fbErr.message);
+        }
+      }
+
+      // 2. Verify via Backend API
       const cleanDigits = (formData.phone || "").replace(/\D/g, "").slice(-10);
       const res = await api.verifyOtp({ phone: cleanDigits, otp: entered });
       if (res?.success || res?.verified) {
@@ -509,6 +559,9 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
               </button>
             </div>
           </div>
+
+          {/* Invisible Google ReCAPTCHA Mount for Firebase Phone Auth */}
+          <div id="recaptcha-container-teacher"></div>
 
           {/* Section 1: Personal & Contact Information */}
           <div>
