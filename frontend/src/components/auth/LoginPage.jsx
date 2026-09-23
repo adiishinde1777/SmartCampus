@@ -281,21 +281,23 @@ export default function LoginPage() {
             </div>
 
             <div className="form-group">
-              <label className="form-label" style={{ fontWeight: "700" }}>{fields.passLabel}</label>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <label className="form-label" style={{ fontWeight: "700" }}>{fields.passLabel} (Optional)</label>
+                <span style={{ fontSize: "0.72rem", color: "#16a34a", fontWeight: "700" }}>
+                  Direct Mobile Login
+                </span>
+              </div>
               <input
                 type="password"
                 className="form-control"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder={fields.passPlaceholder}
+                placeholder="Enter password or leave empty to login directly with mobile"
                 style={{ padding: "10px 14px" }}
-                required
               />
-              {selectedRole === "admin" && (
-                <small style={{ color: "#64748b", fontSize: "0.75rem", marginTop: "4px", display: "block" }}>
-                  Default admin credentials: admin / admin123
-                </small>
-              )}
+              <small style={{ color: "#64748b", fontSize: "0.74rem", marginTop: "4px", display: "block" }}>
+                💡 Direct Mobile Login: Enter your registered mobile number and click sign in. No OTP required!
+              </small>
             </div>
 
             <button
@@ -304,7 +306,7 @@ export default function LoginPage() {
               className="btn btn-primary btn-lg"
               style={{ width: "100%", marginTop: "12px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "12px" }}
             >
-              <span>{loading ? "Verifying..." : "Authenticate & Enter Portal"}</span>
+              <span>{loading ? "Authenticating..." : "Direct Sign In & Enter Portal"}</span>
               <ArrowRight size={18} />
             </button>
           </form>

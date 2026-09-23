@@ -170,33 +170,32 @@ export function SmartCampusProvider({ children }) {
   const login = async (emailOrId, password, selectedRole) => {
     const input = (emailOrId || "").trim();
     const pass = (password || "").trim();
+    const cleanDigits = input.replace(/\D/g, "").slice(-10);
 
     // Check if user exists in local client state
     const localUser = state.users.find((u) => {
       if (selectedRole && u.role !== selectedRole) return false;
-      if (selectedRole === "admin") {
-        return (u.prn === input || u.email === input || u.phone === input || input.toLowerCase() === "admin") && (pass === "admin123" || u.password === pass);
-      }
-      if (selectedRole === "student") {
-        const matchUsername =
-          u.phone === input ||
-          u.prn === input ||
-          u.rollNo === input ||
-          (u.email && u.email.toLowerCase() === input.toLowerCase());
-        const matchPass = u.password === pass || u.dob === pass;
-        return matchUsername && matchPass;
-      }
-      if (selectedRole === "parent") {
-        const matchPhone = u.phone === input || u.parentPhone === input;
-        const matchPass = u.password === pass || u.dob === pass;
-        return matchPhone && matchPass;
-      }
-      const matchPhone =
-        u.phone === input ||
+      const uPhone = (u.phone || "").replace(/\D/g, "").slice(-10);
+      const uParentPhone = (u.parentPhone || "").replace(/\D/g, "").slice(-10);
+
+      const matchIdentifier =
+        (cleanDigits && (uPhone === cleanDigits || uParentPhone === cleanDigits)) ||
+        u.prn === input ||
+        u.rollNo === input ||
         (u.email && u.email.toLowerCase() === input.toLowerCase()) ||
-        u.prn === input;
-      const matchPass = u.password === pass || u.dob === pass;
-      return matchPhone && matchPass;
+        (selectedRole === "admin" && input.toLowerCase() === "admin") ||
+        u.phone === input;
+
+      if (!matchIdentifier) return false;
+
+      // If user did not provide a password, allow direct mobile login!
+      if (!pass) return true;
+
+      // If password provided, verify it
+      if (selectedRole === "admin") {
+        return pass === "admin123" || u.password === pass;
+      }
+      return u.password === pass || u.dob === pass || (u.dob && u.dob.replace(/\D/g, "") === pass.replace(/\D/g, ""));
     });
 
     const triggerLoginSms = (loggedUser) => {

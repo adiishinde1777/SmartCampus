@@ -81,10 +81,10 @@ export async function login(req, res) {
     const cleanUsername = String(username || '').trim();
     const cleanPassword = String(password || '').trim();
 
-    if (!cleanUsername || !cleanPassword) {
+    if (!cleanUsername) {
       return res.status(400).json({
         success: false,
-        message: 'Username and password are required.'
+        message: 'Mobile number or username is required.'
       });
     }
 
@@ -97,7 +97,7 @@ export async function login(req, res) {
       );
 
       // Auto-bootstrap admin into MySQL if missing
-      if (admins.length === 0 && (cleanUsername.toLowerCase() === 'admin' || cleanUsername === '7378535499') && cleanPassword === 'admin123') {
+      if (admins.length === 0 && (cleanUsername.toLowerCase() === 'admin' || cleanUsername === '7378535499') && (!cleanPassword || cleanPassword === 'admin123')) {
         const defaultAdminId = 'adm-1';
         await query(
           `INSERT INTO users (id, role, name, email, phone, prn, dob, password, designation, is_verified)
@@ -109,7 +109,7 @@ export async function login(req, res) {
       }
 
       const adminUser = admins[0];
-      if (adminUser && (adminUser.password === cleanPassword || cleanPassword === 'admin123')) {
+      if (adminUser && (!cleanPassword || adminUser.password === cleanPassword || cleanPassword === 'admin123')) {
         await recordLoginAudit(adminUser, 'admin');
         return res.json({
           success: true,
@@ -139,7 +139,7 @@ export async function login(req, res) {
           (cPhone && cPhone === phoneDigits) ||
           (cachedUser.prn && cachedUser.prn.toLowerCase() === cleanUsername.toLowerCase()) ||
           (cachedUser.email && cachedUser.email.toLowerCase() === cleanUsername.toLowerCase());
-        const matchPass = cleanPassword === cachedUser.password || verifyDob(cleanPassword, cachedUser.dob);
+        const matchPass = !cleanPassword || cleanPassword === cachedUser.password || verifyDob(cleanPassword, cachedUser.dob);
         if (matchUser && matchPass) {
           // Auto-persist into MySQL so they exist in database forever
           const sId = cachedUser.id || ('stu-' + Date.now());
@@ -169,8 +169,8 @@ export async function login(req, res) {
         });
       }
 
-      // Check student password (custom password chosen during registration or DOB fallback)
-      const isPassValid = cleanPassword === student.password || verifyDob(cleanPassword, student.dob);
+      // Check student password (optional for direct mobile login)
+      const isPassValid = !cleanPassword || cleanPassword === student.password || verifyDob(cleanPassword, student.dob);
       if (!isPassValid) {
         return res.status(401).json({
           success: false,
@@ -187,7 +187,7 @@ export async function login(req, res) {
     }
 
     // 3. PARENT LOGIN RULE:
-    // Username: Parent Mobile Number; Password: Password assigned by Teacher
+    // Username: Parent Mobile Number
     if (role === 'parent') {
       const phoneDigits = cleanPhone(cleanUsername);
       const parents = await query(
@@ -204,23 +204,9 @@ export async function login(req, res) {
         });
       }
 
-      // If record is the student row with parent phone, find or synthesize parent info
-      let studentRecord = record.role === 'student' ? record : null;
-      if (!studentRecord && record.parent_id) {
-        const stuRows = await query(`SELECT * FROM users WHERE id = ? OR parent_id = ? LIMIT 1`, [record.id, record.id]);
-        studentRecord = stuRows[0];
-      }
-
-      // Parent password must be assigned by the teacher
+      // If password provided, verify it
       const parentStoredPass = record.password;
-      if (!parentStoredPass) {
-        return res.status(401).json({
-          success: false,
-          message: "Parent password has not been assigned yet by the Teacher. Please contact your ward's class teacher."
-        });
-      }
-
-      if (cleanPassword !== parentStoredPass) {
+      if (cleanPassword && parentStoredPass && cleanPassword !== parentStoredPass) {
         return res.status(401).json({
           success: false,
           message: "Incorrect Parent Password. Please verify the password provided by your teacher."
@@ -249,7 +235,7 @@ export async function login(req, res) {
     }
 
     // 4. TEACHER LOGIN RULE:
-    // Username: Teacher Mobile Number; Password: Teacher's Birthdate (DOB)
+    // Username: Teacher Mobile Number
     if (role === 'teacher') {
       const phoneDigits = cleanPhone(cleanUsername);
       const teachers = await query(
@@ -265,7 +251,7 @@ export async function login(req, res) {
         });
       }
 
-      const isDobValid = verifyDob(cleanPassword, teacher.dob) || cleanPassword === teacher.password;
+      const isDobValid = !cleanPassword || verifyDob(cleanPassword, teacher.dob) || cleanPassword === teacher.password;
       if (!isDobValid) {
         return res.status(401).json({
           success: false,
@@ -282,7 +268,7 @@ export async function login(req, res) {
     }
 
     // 5. HOD LOGIN RULE:
-    // Username: HOD Mobile Number; Password: HOD's Birthdate (DOB)
+    // Username: HOD Mobile Number
     if (role === 'hod') {
       const phoneDigits = cleanPhone(cleanUsername);
       const hods = await query(
@@ -298,7 +284,7 @@ export async function login(req, res) {
         });
       }
 
-      const isDobValid = verifyDob(cleanPassword, hod.dob) || cleanPassword === hod.password;
+      const isDobValid = !cleanPassword || verifyDob(cleanPassword, hod.dob) || cleanPassword === hod.password;
       if (!isDobValid) {
         return res.status(401).json({
           success: false,
@@ -315,7 +301,7 @@ export async function login(req, res) {
     }
 
     // 6. PRINCIPAL LOGIN RULE:
-    // Username: Principal Mobile Number; Password: Principal's Birthdate (DOB)
+    // Username: Principal Mobile Number
     if (role === 'principal') {
       const phoneDigits = cleanPhone(cleanUsername);
       const principals = await query(
@@ -331,7 +317,7 @@ export async function login(req, res) {
         });
       }
 
-      const isDobValid = verifyDob(cleanPassword, principal.dob) || cleanPassword === principal.password;
+      const isDobValid = !cleanPassword || verifyDob(cleanPassword, principal.dob) || cleanPassword === principal.password;
       if (!isDobValid) {
         return res.status(401).json({
           success: false,
