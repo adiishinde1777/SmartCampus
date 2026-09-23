@@ -116,21 +116,23 @@ export default function LoginPage() {
       <div className="login-grid-wrapper">
         
         {/* Left Hero Pitch & Branding */}
-        <div style={{ padding: "4px" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(59, 130, 246, 0.15)", border: "1px solid rgba(59, 130, 246, 0.3)", padding: "6px 14px", borderRadius: "30px", marginBottom: "16px" }}>
-            <Sparkles size={16} color="#60a5fa" />
-            <span style={{ fontSize: "0.78rem", fontWeight: "700", color: "#93c5fd", letterSpacing: "0.05em" }}>
-              CAMPUS AUTOMATION & MANAGEMENT SYSTEM
-            </span>
+        <div className="login-hero-col" style={{ padding: "4px" }}>
+          <div className="login-hero-header">
+            <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(59, 130, 246, 0.15)", border: "1px solid rgba(59, 130, 246, 0.3)", padding: "6px 14px", borderRadius: "30px", marginBottom: "16px" }}>
+              <Sparkles size={16} color="#60a5fa" />
+              <span style={{ fontSize: "0.78rem", fontWeight: "700", color: "#93c5fd", letterSpacing: "0.05em" }}>
+                CAMPUS AUTOMATION & MANAGEMENT SYSTEM
+              </span>
+            </div>
+
+            <h1 className="login-hero-title">
+              SMART CAMPUS
+            </h1>
+
+            <p style={{ fontSize: "0.95rem", color: "#94a3b8", lineHeight: 1.5, marginBottom: "20px" }}>
+              CSMSS Chh. Shahu College of Engineering • Integrated Academic, Faculty, Student & Parent Communication Portal
+            </p>
           </div>
-
-          <h1 className="login-hero-title">
-            SMART CAMPUS
-          </h1>
-
-          <p style={{ fontSize: "0.95rem", color: "#94a3b8", lineHeight: 1.5, marginBottom: "20px" }}>
-            CSMSS Chh. Shahu College of Engineering • Integrated Academic, Faculty, Student & Parent Communication Portal
-          </p>
 
           {/* Student Online Registration Card */}
           <div className="enroll-prompt-card">
@@ -152,58 +154,6 @@ export default function LoginPage() {
               <span>Enroll Now</span>
             </button>
           </div>
-
-          {/* DEVELOPED BY ADITYA SHINDE BRANDING BADGE */}
-          <div className="dev-badge-card">
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div
-                style={{
-                  width: "42px",
-                  height: "42px",
-                  borderRadius: "12px",
-                  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-                  color: "white",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 4px 12px rgba(37, 99, 235, 0.4)",
-                  flexShrink: 0
-                }}
-              >
-                <Code size={22} />
-              </div>
-              <div>
-                <div style={{ fontSize: "0.7rem", color: "#93c5fd", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  SYSTEM ARCHITECT & DEVELOPER
-                </div>
-                <div style={{ fontSize: "1.05rem", fontWeight: "800", color: "white", letterSpacing: "0.01em" }}>
-                  Developed by Aditya Shinde
-                </div>
-              </div>
-            </div>
-
-            <a
-              href="tel:7378535499"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                background: "white",
-                color: "#1e3a8a",
-                padding: "9px 18px",
-                borderRadius: "12px",
-                fontWeight: "800",
-                fontSize: "0.85rem",
-                textDecoration: "none",
-                boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
-                whiteSpace: "nowrap"
-              }}
-            >
-              <Phone size={16} color="#2563eb" />
-              <span>Contact: 7378535499</span>
-            </a>
-          </div>
-
         </div>
 
         {/* Right Authentication Card */}
@@ -298,6 +248,63 @@ export default function LoginPage() {
           </div>
         </div>
 
+      </div>
+
+      {/* DEVELOPED BY ADITYA SHINDE BRANDING BADGE (PAGE FOOTER / DOWN MADHE) */}
+      <div className="login-page-footer">
+        <div className="dev-badge-card">
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div
+              style={{
+                width: "42px",
+                height: "42px",
+                borderRadius: "12px",
+                background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+                color: "white",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 4px 12px rgba(37, 99, 235, 0.4)",
+                flexShrink: 0
+              }}
+            >
+              <Code size={22} />
+            </div>
+            <div>
+              <div style={{ fontSize: "0.7rem", color: "#93c5fd", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                SYSTEM ARCHITECT & DEVELOPER
+              </div>
+              <div style={{ fontSize: "1.05rem", fontWeight: "800", color: "white", letterSpacing: "0.01em" }}>
+                Developed by Aditya Shinde
+              </div>
+            </div>
+          </div>
+
+          <a
+            href="tel:7378535499"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              background: "white",
+              color: "#1e3a8a",
+              padding: "9px 18px",
+              borderRadius: "12px",
+              fontWeight: "800",
+              fontSize: "0.85rem",
+              textDecoration: "none",
+              boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
+              whiteSpace: "nowrap"
+            }}
+          >
+            <Phone size={16} color="#2563eb" />
+            <span>Contact: 7378535499</span>
+          </a>
+        </div>
+
+        <div style={{ textAlign: "center", marginTop: "14px", fontSize: "0.76rem", color: "#64748b" }}>
+          CSMSS Chh. Shahu College of Engineering • SmartCampus ERP Portal
+        </div>
       </div>
     </div>
   );

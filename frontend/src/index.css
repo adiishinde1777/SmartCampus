@@ -1444,11 +1444,44 @@ select.form-control {
   align-items: center;
 }
 
+.login-page-footer {
+  max-width: 1040px;
+  width: 100%;
+  margin-top: 36px;
+  box-sizing: border-box;
+}
+
 @media (max-width: 900px) {
   .login-grid-wrapper {
-    grid-template-columns: 1fr;
-    gap: 28px;
-    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 8px 0;
+  }
+
+  .login-hero-col {
+    display: contents;
+  }
+
+  .login-hero-header {
+    order: 1;
+    text-align: center;
+  }
+
+  .login-auth-card {
+    order: 2;
+    width: 100%;
+  }
+
+  .enroll-prompt-card {
+    order: 3;
+    margin-bottom: 0;
+    margin-top: 6px;
+    width: 100%;
+  }
+
+  .login-page-footer {
+    margin-top: 20px;
   }
 }
 
