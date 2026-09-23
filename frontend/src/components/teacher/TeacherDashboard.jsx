@@ -16,6 +16,7 @@ import {
   FileText
 } from "lucide-react";
 import { StatCard, Badge } from "../common/UIPrimitives";
+import { getTimeBasedGreeting } from "../../utils/academicSession";
 
 export default function TeacherDashboard({ onNavigate }) {
   const {
@@ -85,7 +86,7 @@ export default function TeacherDashboard({ onNavigate }) {
             </span>
           </div>
           <h2 style={{ fontSize: "1.75rem", fontWeight: "800", color: "white" }}>
-            Welcome, {teacher?.name} 👨‍🏫
+            {getTimeBasedGreeting()}, {teacher?.name} 👨‍🏫
           </h2>
           
           {/* Responsibilities Section */}

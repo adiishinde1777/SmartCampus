@@ -23,7 +23,7 @@ export default function StudentPerformance() {
   let totalLectures = 0;
   let totalAttended = 0;
   subjects.forEach((s) => {
-    const d = studentAtt[s.id] || { total: 20, attended: 16, percentage: 80 };
+    const d = studentAtt[s.id] || { total: 0, attended: 0, percentage: 0 };
     totalLectures += d.total;
     totalAttended += d.attended;
   });
@@ -34,7 +34,7 @@ export default function StudentPerformance() {
   const avgMarks =
     studentMarks.length > 0
       ? Math.round(studentMarks.reduce((sum, m) => sum + (m.marksObtained / m.maxMarks) * 100, 0) / studentMarks.length)
-      : 75;
+      : 0;
 
   // Pending assignments
   const pendingAssignments = assignments.filter((asg) => {
@@ -48,12 +48,17 @@ export default function StudentPerformance() {
   let statusIcon = CheckCircle2;
   let summaryText = "Your attendance and academic marks are healthy. Keep up the consistent work!";
 
-  if (overallAttendance < 65 || avgMarks < 50 || pendingAssignments.length >= 4) {
+  if (studentMarks.length === 0 && totalLectures === 0) {
+    statusTier = "ENROLLED";
+    statusBadge = "primary";
+    statusIcon = CheckCircle2;
+    summaryText = "Welcome to SmartCampus! Your academic records will update once continuous evaluation begins.";
+  } else if ((totalLectures > 0 && overallAttendance < 65) || (studentMarks.length > 0 && avgMarks < 50) || pendingAssignments.length >= 4) {
     statusTier = "HIGH ATTENTION";
     statusBadge = "danger";
     statusIcon = AlertOctagon;
     summaryText = "Critical risk detected across multiple metrics. Immediate faculty consultation recommended.";
-  } else if (overallAttendance < threshold || avgMarks < 65 || pendingAssignments.length >= 2) {
+  } else if ((totalLectures > 0 && overallAttendance < threshold) || (studentMarks.length > 0 && avgMarks < 65) || pendingAssignments.length >= 2) {
     statusTier = "NEEDS ATTENTION";
     statusBadge = "warning";
     statusIcon = AlertTriangle;

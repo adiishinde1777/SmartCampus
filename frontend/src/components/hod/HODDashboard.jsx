@@ -15,6 +15,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { StatCard, Badge } from "../common/UIPrimitives";
+import { getTimeBasedGreeting } from "../../utils/academicSession";
 
 export default function HODDashboard({ onNavigate }) {
   const {
@@ -102,7 +103,7 @@ export default function HODDashboard({ onNavigate }) {
             <span style={{ fontSize: "0.8rem", color: "#fde68a" }}>{dept.name}</span>
           </div>
           <h2 style={{ fontSize: "1.75rem", fontWeight: "800", color: "white" }}>
-            Welcome, {hod?.name}
+            {getTimeBasedGreeting()}, {hod?.name} 👨‍🏫
           </h2>
           <p style={{ fontSize: "0.9rem", color: "#fef3c7", marginTop: "2px" }}>
             Real-time department academic overview • Configured Threshold: <strong>{threshold}%</strong>

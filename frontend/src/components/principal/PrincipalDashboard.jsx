@@ -19,6 +19,7 @@ import {
   Code2
 } from "lucide-react";
 import { StatCard, Badge } from "../common/UIPrimitives";
+import { getTimeBasedGreeting } from "../../utils/academicSession";
 
 export default function PrincipalDashboard({ onNavigate }) {
   const { currentUser, departments, users, systemSettings, complaints, collegeEvents } = useSmartCampus();
@@ -63,7 +64,7 @@ export default function PrincipalDashboard({ onNavigate }) {
             <span style={{ fontSize: "0.8rem", color: "#fecdd3" }}>{systemSettings.collegeName}</span>
           </div>
           <h2 style={{ fontSize: "1.75rem", fontWeight: "800", color: "white" }}>
-            {currentUser?.name}
+            {getTimeBasedGreeting()}, {currentUser?.name} 🎓
           </h2>
           <p style={{ fontSize: "0.9rem", color: "#ffe4e6", marginTop: "2px" }}>
             Centralized institutional tracking • All departments synchronized in real-time

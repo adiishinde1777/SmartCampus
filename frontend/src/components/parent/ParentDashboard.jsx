@@ -16,6 +16,7 @@ import {
   Stethoscope
 } from "lucide-react";
 import { StatCard, Badge } from "../common/UIPrimitives";
+import { getTimeBasedGreeting } from "../../utils/academicSession";
 
 export default function ParentDashboard({ onNavigate }) {
   const {
@@ -128,7 +129,7 @@ export default function ParentDashboard({ onNavigate }) {
               <span style={{ fontSize: "0.8rem", color: "#a7f3d0" }}>Roll: {ward?.rollNo}</span>
             </div>
             <h2 style={{ fontSize: "1.6rem", fontWeight: "800", color: "white" }}>
-              Parent Portal: {parent?.name}
+              {getTimeBasedGreeting()}, {parent?.name || "Parent"} 👋
             </h2>
             <p style={{ fontSize: "0.85rem", color: "#a7f3d0", marginTop: "2px" }}>
               {ward?.className || `${ward?.departmentName} (3rd Year - Sem ${ward?.semester})`} • SMS & WhatsApp Sync Active

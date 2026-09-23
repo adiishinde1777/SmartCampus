@@ -64,3 +64,20 @@ export function getStudentClassTitle(student) {
   const yr = getYearDisplay(student.year, student.semester);
   return `${prefix} ${dept} – Semester ${sem} (${yr})${divStr}`;
 }
+
+/**
+ * Returns dynamic greeting based on actual time of day:
+ * - 04:00 to 11:59 -> "Good Morning"
+ * - 12:00 to 16:59 -> "Good Afternoon"
+ * - 17:00 to 03:59 -> "Good Evening"
+ */
+export function getTimeBasedGreeting() {
+  const hour = new Date().getHours();
+  if (hour >= 4 && hour < 12) {
+    return "Good Morning";
+  } else if (hour >= 12 && hour < 17) {
+    return "Good Afternoon";
+  } else {
+    return "Good Evening";
+  }
+}

@@ -21,7 +21,7 @@ import {
   GraduationCap
 } from "lucide-react";
 import { StatCard, Badge } from "../common/UIPrimitives";
-import { getAcademicSession, getStudentClassTitle } from "../../utils/academicSession";
+import { getAcademicSession, getStudentClassTitle, getTimeBasedGreeting } from "../../utils/academicSession";
 
 export default function StudentDashboard({ onNavigate }) {
   const {
@@ -156,7 +156,7 @@ export default function StudentDashboard({ onNavigate }) {
 
   activeSubjects.forEach((sub) => {
     if (!sub) return;
-    const sData = studentAtt[sub.id] || { total: 20, attended: 17, percentage: 85 };
+    const sData = studentAtt[sub.id] || { total: 0, attended: 0, percentage: 0 };
     totalLectures += sData.total || 0;
     totalAttended += sData.attended || 0;
     subjectList.push({
@@ -164,14 +164,14 @@ export default function StudentDashboard({ onNavigate }) {
       total: sData.total || 0,
       attended: sData.attended || 0,
       percentage: sData.percentage || 0,
-      isLow: (sData.percentage || 0) < threshold
+      isLow: (sData.percentage || 0) < threshold && (sData.total || 0) > 0
     });
   });
 
   const overallAttendance = totalLectures > 0 ? Math.round((totalAttended / totalLectures) * 1000) / 10 : 0;
   const lowAttendanceSubjects = subjectList.filter((s) => s.isLow);
 
-  // Student Marks average
+  // Student Marks average: when no evaluated marks recorded yet, show 0!
   const studentMarks = marks.filter((m) => m.studentId === student?.id);
   const avgMarks =
     studentMarks.length > 0
@@ -179,7 +179,7 @@ export default function StudentDashboard({ onNavigate }) {
           studentMarks.reduce((acc, m) => acc + (m.marksObtained / m.maxMarks) * 100, 0) /
             studentMarks.length
         )
-      : 78;
+      : 0;
 
   // Pending assignments
   const pendingAssignments = assignments.filter((asg) => {
@@ -190,8 +190,11 @@ export default function StudentDashboard({ onNavigate }) {
   // Academic Health Indicator
   let academicStatus = "Good";
   let statusColor = "success";
-  if (overallAttendance < threshold || avgMarks < 60 || pendingAssignments.length >= 3) {
-    if (overallAttendance < 65 || avgMarks < 50 || pendingAssignments.length >= 4) {
+  if (studentMarks.length === 0 && totalLectures === 0) {
+    academicStatus = "Enrolled";
+    statusColor = "info";
+  } else if ((totalLectures > 0 && overallAttendance < threshold) || (studentMarks.length > 0 && avgMarks < 60) || pendingAssignments.length >= 3) {
+    if ((totalLectures > 0 && overallAttendance < 65) || (studentMarks.length > 0 && avgMarks < 50) || pendingAssignments.length >= 4) {
       academicStatus = "High Attention";
       statusColor = "danger";
     } else {
@@ -224,7 +227,7 @@ export default function StudentDashboard({ onNavigate }) {
             </span>
           </div>
           <h2 style={{ fontSize: "1.75rem", fontWeight: "800", color: "white" }}>
-            Good Morning, {student?.name} 👋
+            {getTimeBasedGreeting()}, {student?.name} 👋
           </h2>
           <p style={{ fontSize: "0.9rem", color: "#93c5fd", marginTop: "4px" }}>
             {getStudentClassTitle(student)} • Academic Session {getAcademicSession(student?.year, student?.semester)}
@@ -364,10 +367,14 @@ export default function StudentDashboard({ onNavigate }) {
 
         <StatCard
           label="Internal Marks Avg"
-          value={`${avgMarks}%`}
-          subtext={`Based on ${studentMarks.length} evaluated tests`}
+          value={studentMarks.length > 0 ? `${avgMarks}%` : "0"}
+          subtext={
+            studentMarks.length > 0
+              ? `Based on ${studentMarks.length} evaluated tests`
+              : "No test records added yet"
+          }
           icon={Award}
-          variant="primary"
+          variant={studentMarks.length > 0 ? "primary" : "secondary"}
           onClick={() => onNavigate("marks")}
         />
 
