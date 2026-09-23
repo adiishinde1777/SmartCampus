@@ -1,6 +1,17 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import api from "../services/api";
 import {
+  db,
+  FIRESTORE_COLLECTIONS,
+  saveUserToFirestore,
+  deleteUserFromFirestore,
+  getAllUsersFromFirestore,
+  saveDocToFirestore,
+  deleteDocFromFirestore,
+  getCollectionFromFirestore,
+  subscribeToFirestoreCollection
+} from "../services/firebase";
+import {
   DEPARTMENTS,
   INITIAL_SYSTEM_SETTINGS,
   VLSI_CLASS_METADATA,
