@@ -97,8 +97,9 @@ export function SmartCampusProvider({ children }) {
 
   const [toasts, setToasts] = useState([]);
 
-  // Fetch live state from backend MySQL database on boot
+  // Fetch live state from backend MySQL database on boot & sync with Firebase Firestore
   useEffect(() => {
+    // 1. MySQL Bootstrap
     api.getBootstrap()
       .then((res) => {
         if (res?.success && res?.data) {
@@ -134,6 +135,50 @@ export function SmartCampusProvider({ children }) {
       .catch((err) => {
         console.warn("[Bootstrap] Connecting to local persistent state:", err.message);
       });
+
+    // 2. Fetch and merge users stored in Firebase Firestore Cloud Database
+    getAllUsersFromFirestore()
+      .then((firestoreUsers) => {
+        if (Array.isArray(firestoreUsers) && firestoreUsers.length > 0) {
+          setState((prev) => {
+            const userMap = new Map();
+            (prev.users || []).forEach((u) => userMap.set(u.id, u));
+            firestoreUsers.forEach((fu) => {
+              const existing = userMap.get(fu.id);
+              userMap.set(fu.id, existing ? { ...existing, ...fu } : fu);
+            });
+            return {
+              ...prev,
+              users: Array.from(userMap.values())
+            };
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn("[Firestore Users Fetch Notice]:", err.message);
+      });
+
+    // 3. Real-time Firestore snapshot listener for Users collection
+    const unsubscribeUsers = subscribeToFirestoreCollection(FIRESTORE_COLLECTIONS.USERS, (liveUsers) => {
+      if (Array.isArray(liveUsers) && liveUsers.length > 0) {
+        setState((prev) => {
+          const userMap = new Map();
+          (prev.users || []).forEach((u) => userMap.set(u.id, u));
+          liveUsers.forEach((fu) => {
+            const existing = userMap.get(fu.id);
+            userMap.set(fu.id, existing ? { ...existing, ...fu } : fu);
+          });
+          return {
+            ...prev,
+            users: Array.from(userMap.values())
+          };
+        });
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribeUsers === "function") unsubscribeUsers();
+    };
   }, []);
 
   // Save to localStorage on change
