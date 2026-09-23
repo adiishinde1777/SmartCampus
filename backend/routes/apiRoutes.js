@@ -624,6 +624,134 @@ router.post('/sms/send', async (req, res) => {
   }
 });
 
+// ==========================================
+// OTP VERIFICATION SYSTEM (SECURE ONBOARDING)
+// ==========================================
+// In-memory OTP Store with 5-minute expiry
+const otpStore = new Map();
+
+// 1. Send OTP to Mobile Number
+router.post('/otp/send', async (req, res) => {
+  try {
+    const { phone, purpose = 'registration', role = 'teacher' } = req.body;
+    const cleanDigits = String(phone || '').replace(/\D/g, '').slice(-10);
+
+    if (!cleanDigits || cleanDigits.length !== 10) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid 10-digit Indian mobile number.'
+      });
+    }
+
+    // Cooldown check (30 seconds between requests for the same phone)
+    const existing = otpStore.get(cleanDigits);
+    if (existing && Date.now() < existing.createdAt + 25 * 1000) {
+      const waitSec = Math.ceil((existing.createdAt + 25 * 1000 - Date.now()) / 1000);
+      return res.status(429).json({
+        success: false,
+        message: `Please wait ${waitSec}s before requesting a new OTP.`
+      });
+    }
+
+    // Generate secure 6-digit OTP
+    const generatedOtp = String(Math.floor(100000 + Math.random() * 900000));
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+    otpStore.set(cleanDigits, {
+      otp: generatedOtp,
+      createdAt: Date.now(),
+      expiresAt,
+      attempts: 0,
+      purpose,
+      role
+    });
+
+    const roleName = role === 'hod' ? 'Head of Dept' : role === 'teacher' ? 'Faculty' : 'Student';
+    const smsMessage = `CSMSS SmartCampus: Your mobile verification code is ${generatedOtp} for ${roleName} Registration. Valid for 5 minutes. Do NOT share with anyone.`;
+
+    // Dispatch SMS via smsService (Fast2SMS, Twilio, or Built-in Gateway Simulator)
+    await sendSmsNotification({
+      recipientRole: role,
+      recipientPhone: cleanDigits,
+      studentName: `${roleName} Applicant`,
+      message: smsMessage
+    });
+
+    res.json({
+      success: true,
+      message: `OTP sent successfully to +91 ${cleanDigits}`,
+      phone: cleanDigits,
+      expiresIn: 300,
+      // Provide previewOtp for local testing & development without external SMS gateway delays
+      previewOtp: generatedOtp
+    });
+  } catch (err) {
+    console.error('[Send OTP Error]', err);
+    res.status(500).json({ success: false, message: 'Failed to dispatch OTP: ' + err.message });
+  }
+});
+
+// 2. Verify OTP
+router.post('/otp/verify', async (req, res) => {
+  try {
+    const { phone, otp } = req.body;
+    const cleanDigits = String(phone || '').replace(/\D/g, '').slice(-10);
+    const enteredOtp = String(otp || '').trim();
+
+    if (!cleanDigits || !enteredOtp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mobile number and 6-digit OTP code are required.'
+      });
+    }
+
+    const record = otpStore.get(cleanDigits);
+    if (!record) {
+      return res.status(400).json({
+        success: false,
+        message: 'No active OTP found for this number. Please click "Send OTP" first.'
+      });
+    }
+
+    if (Date.now() > record.expiresAt) {
+      otpStore.delete(cleanDigits);
+      return res.status(400).json({
+        success: false,
+        message: 'This OTP has expired. Please request a new OTP.'
+      });
+    }
+
+    if (record.attempts >= 5) {
+      otpStore.delete(cleanDigits);
+      return res.status(429).json({
+        success: false,
+        message: 'Too many incorrect attempts. Please request a new OTP.'
+      });
+    }
+
+    if (record.otp !== enteredOtp) {
+      record.attempts += 1;
+      return res.status(400).json({
+        success: false,
+        message: `Incorrect OTP code. (${5 - record.attempts} attempts remaining)`
+      });
+    }
+
+    // OTP matched successfully!
+    otpStore.delete(cleanDigits);
+
+    res.json({
+      success: true,
+      verified: true,
+      phone: cleanDigits,
+      message: 'Mobile number verified successfully!'
+    });
+  } catch (err) {
+    console.error('[Verify OTP Error]', err);
+    res.status(500).json({ success: false, message: 'Failed to verify OTP: ' + err.message });
+  }
+});
+
 // Teacher / Admin assigns or updates parent portal password & sends SMS
 router.post('/parent-password', async (req, res) => {
   try {

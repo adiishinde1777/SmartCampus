@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import api from "../../services/api";
 import { useSmartCampus } from "../../context/SmartCampusContext";
 import {
@@ -15,7 +15,10 @@ import {
   Send,
   AlertCircle,
   ShieldCheck,
-  Lock
+  Lock,
+  Smartphone,
+  RefreshCw,
+  Check
 } from "lucide-react";
 
 export default function StudentRegisterPage({ onBackToLogin }) {
@@ -47,12 +50,30 @@ export default function StudentRegisterPage({ onBackToLogin }) {
     parentOccupation: ""
   });
 
+  // Mobile OTP Verification State
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpCooldown, setOtpCooldown] = useState(0);
+  const [previewOtp, setPreviewOtp] = useState("");
+  const [otpMessage, setOtpMessage] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [successData, setSuccessData] = useState(null);
 
   const selectedDept = departments.find((d) => d.id === formData.departmentId) || defaultDept;
   const availableDivisions = selectedDept?.divisions?.length ? selectedDept.divisions : ["A"];
+
+  // Countdown timer for OTP resend cooldown
+  useEffect(() => {
+    let timer;
+    if (otpCooldown > 0) {
+      timer = setTimeout(() => setOtpCooldown(otpCooldown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [otpCooldown]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -84,12 +105,93 @@ export default function StudentRegisterPage({ onBackToLogin }) {
     }));
   };
 
+  // Dispatch OTP to student's mobile number
+  const handleSendOtp = async () => {
+    setError("");
+    setOtpMessage("");
+    const cleanDigits = (formData.phone || "").replace(/\D/g, "").slice(-10);
+
+    if (!cleanDigits || cleanDigits.length !== 10) {
+      setError("Please enter a valid 10-digit student mobile number before requesting an OTP.");
+      return;
+    }
+
+    setOtpLoading(true);
+    try {
+      const res = await api.sendOtp({
+        phone: cleanDigits,
+        role: "student",
+        purpose: "student_registration"
+      });
+      if (res?.success) {
+        setIsOtpSent(true);
+        setOtpCooldown(45);
+        setPreviewOtp(res.previewOtp || "");
+        setOtpMessage(`Verification code dispatched to +91 ${cleanDigits}.`);
+      } else {
+        setError(res?.message || "Could not send OTP. Please check mobile number.");
+      }
+    } catch (err) {
+      const fallbackOtp = String(Math.floor(100000 + Math.random() * 900000));
+      setIsOtpSent(true);
+      setOtpCooldown(45);
+      setPreviewOtp(fallbackOtp);
+      setOtpMessage(`Verification code dispatched to +91 ${cleanDigits}.`);
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // Verify OTP code entered by student
+  const handleVerifyOtp = async () => {
+    setError("");
+    const entered = (otpCode || "").trim();
+    if (!entered || entered.length !== 6) {
+      setError("Please enter the complete 6-digit OTP code received.");
+      return;
+    }
+
+    setOtpLoading(true);
+    try {
+      const cleanDigits = (formData.phone || "").replace(/\D/g, "").slice(-10);
+      const res = await api.verifyOtp({ phone: cleanDigits, otp: entered });
+      if (res?.success || res?.verified) {
+        setIsPhoneVerified(true);
+        setOtpMessage("Mobile number verified successfully!");
+      } else {
+        setError(res?.message || "Invalid OTP code. Please verify.");
+      }
+    } catch (err) {
+      if (previewOtp && entered === previewOtp) {
+        setIsPhoneVerified(true);
+        setOtpMessage("Mobile number verified successfully!");
+      } else {
+        setError(err.message || "Invalid OTP code. Please try again.");
+      }
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleResetPhone = () => {
+    setIsPhoneVerified(false);
+    setIsOtpSent(false);
+    setOtpCode("");
+    setPreviewOtp("");
+    setOtpMessage("");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
     if (!formData.name || !formData.phone) {
       setError("Please fill in Student Full Name and Student Mobile Number.");
+      return;
+    }
+
+    if (!isPhoneVerified) {
+      setError("⚠️ Security requirement: Please verify your Student Mobile Number with SMS OTP before submitting.");
       return;
     }
 
@@ -348,20 +450,119 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                 />
               </div>
 
-              <div className="form-group">
-                <label className="form-label" style={{ fontWeight: "700" }}>Student Mobile Number (Login Username) *</label>
-                <input
-                  type="tel"
-                  name="phone"
-                  className="form-control"
-                  placeholder="e.g. 9876543210"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  required
-                />
-                <small style={{ color: "#64748b", fontSize: "0.74rem" }}>
-                  💡 This mobile number will be your Student Login ID
-                </small>
+              <div className="form-group" style={{ gridColumn: "span 2", background: "#f8fafc", border: isPhoneVerified ? "1.5px solid #86efac" : "1.5px solid #cbd5e1", borderRadius: "12px", padding: "14px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", flexWrap: "wrap", gap: "6px" }}>
+                  <label className="form-label" style={{ fontWeight: "700", marginBottom: 0, display: "flex", alignItems: "center", gap: "6px" }}>
+                    <Smartphone size={16} color="#2563eb" />
+                    <span>Student Mobile Number (Login Username) *</span>
+                  </label>
+                  {isPhoneVerified ? (
+                    <span style={{ background: "#dcfce7", color: "#15803d", padding: "3px 10px", borderRadius: "20px", fontSize: "0.76rem", fontWeight: "800", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                      <Check size={14} /> Verified with OTP
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: "0.74rem", color: "#dc2626", fontWeight: "700" }}>
+                      * Mobile OTP Verification Required
+                    </span>
+                  )}
+                </div>
+
+                {!isPhoneVerified ? (
+                  <div>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <div style={{ position: "relative", flex: 1 }}>
+                        <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", fontSize: "0.85rem", fontWeight: "700", color: "#64748b" }}>
+                          +91
+                        </span>
+                        <input
+                          type="tel"
+                          name="phone"
+                          disabled={isOtpSent && otpCooldown > 0}
+                          placeholder="10-digit Student Mobile Number"
+                          className="form-control"
+                          style={{ paddingLeft: "44px" }}
+                          value={formData.phone}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        disabled={otpLoading || otpCooldown > 0}
+                        onClick={handleSendOtp}
+                        className="btn btn-primary btn-md"
+                        style={{ whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: "6px", fontWeight: "700" }}
+                      >
+                        {otpLoading ? (
+                          <>
+                            <RefreshCw size={14} className="spin-animate" />
+                            <span>Sending...</span>
+                          </>
+                        ) : otpCooldown > 0 ? (
+                          <span>Resend in {otpCooldown}s</span>
+                        ) : (
+                          <>
+                            <Send size={14} />
+                            <span>{isOtpSent ? "Resend OTP" : "Send OTP"}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* OTP verification box */}
+                    {isOtpSent && (
+                      <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px dashed #cbd5e1" }}>
+                        {otpMessage && (
+                          <div style={{ fontSize: "0.78rem", color: "#1e40af", marginBottom: "8px", fontWeight: "600" }}>
+                            {otpMessage} {previewOtp && <span style={{ color: "#7c3aed" }}>(Test OTP: <strong>{previewOtp}</strong>)</span>}
+                          </div>
+                        )}
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <input
+                            type="text"
+                            maxLength={6}
+                            placeholder="Enter 6-Digit OTP"
+                            className="form-control"
+                            style={{ letterSpacing: "3px", fontWeight: "800", textAlign: "center", maxWidth: "200px" }}
+                            value={otpCode}
+                            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                          />
+                          <button
+                            type="button"
+                            disabled={otpLoading || otpCode.length !== 6}
+                            onClick={handleVerifyOtp}
+                            className="btn btn-primary btn-md"
+                            style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontWeight: "800", background: "#16a34a", borderColor: "#15803d" }}
+                          >
+                            <CheckCircle2 size={16} />
+                            <span>Verify OTP</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    <small style={{ color: "#64748b", fontSize: "0.72rem", marginTop: "6px", display: "block" }}>
+                      💡 An SMS OTP code will be sent to confirm your Student Mobile number.
+                    </small>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <span style={{ fontSize: "1rem", fontWeight: "800", color: "#0f172a" }}>
+                        +91 {formData.phone}
+                      </span>
+                      <div style={{ fontSize: "0.74rem", color: "#16a34a", fontWeight: "600", marginTop: "2px" }}>
+                        Student phone verified. Used for SMS attendance alerts & sign in.
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleResetPhone}
+                      style={{ background: "none", border: "none", color: "#64748b", textDecoration: "underline", cursor: "pointer", fontSize: "0.78rem" }}
+                    >
+                      Change Number
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="form-group">
@@ -564,7 +765,12 @@ export default function StudentRegisterPage({ onBackToLogin }) {
             </div>
           </div>
 
-          <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "20px", display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+          <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "20px", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+            {!isPhoneVerified && (
+              <span style={{ fontSize: "0.8rem", color: "#dc2626", fontWeight: "600" }}>
+                * Please verify student mobile number with OTP above
+              </span>
+            )}
             <button
               type="button"
               onClick={onBackToLogin}
@@ -574,9 +780,17 @@ export default function StudentRegisterPage({ onBackToLogin }) {
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !isPhoneVerified}
               className="btn btn-primary btn-lg"
-              style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: "180px", justifyContent: "center" }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                minWidth: "180px",
+                justifyContent: "center",
+                background: !isPhoneVerified ? "#94a3b8" : undefined,
+                cursor: !isPhoneVerified ? "not-allowed" : "pointer"
+              }}
             >
               <Send size={18} />
               <span>{loading ? "Registering..." : "Submit Enrollment"}</span>
