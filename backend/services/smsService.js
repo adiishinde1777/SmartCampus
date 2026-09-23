@@ -30,17 +30,31 @@ export async function sendSmsNotification({
   let responsePayload = 'Simulated dispatch successful. Message queued for delivery.';
 
   try {
-    // 1. Fast2SMS Provider Option
+    // 1. Fast2SMS Provider Option (India's most popular gateway - DLT pre-approved OTP route)
     if (provider.toLowerCase() === 'fast2sms' && process.env.FAST2SMS_API_KEY) {
-      const response = await axios.post(
-        'https://www.fast2sms.com/dev/bulkV2',
-        {
+      const otpMatch = message.match(/\b\d{6}\b/);
+      let payload;
+      
+      // If message contains a 6-digit OTP code, use Fast2SMS pre-approved 'otp' route
+      if (otpMatch) {
+        payload = {
+          route: 'otp',
+          variables_values: otpMatch[0],
+          numbers: normalizedPhone
+        };
+      } else {
+        payload = {
           route: 'q',
           message: message,
           language: 'english',
           flash: 0,
           numbers: normalizedPhone
-        },
+        };
+      }
+
+      const response = await axios.post(
+        'https://www.fast2sms.com/dev/bulkV2',
+        payload,
         {
           headers: {
             authorization: process.env.FAST2SMS_API_KEY
@@ -50,7 +64,16 @@ export async function sendSmsNotification({
       deliveryStatus = response.data?.return ? 'Delivered' : 'Failed';
       responsePayload = JSON.stringify(response.data);
     }
-    // 2. Twilio Provider Option
+    // 2. 2Factor.in Provider Option (Dedicated Indian OTP Route)
+    else if (provider.toLowerCase() === '2factor' && process.env.TWO_FACTOR_API_KEY) {
+      const otpMatch = message.match(/\b\d{6}\b/);
+      const otpVal = otpMatch ? otpMatch[0] : '123456';
+      const url = `https://2factor.in/API/V1/${process.env.TWO_FACTOR_API_KEY}/SMS/${normalizedPhone}/${otpVal}/OTP1`;
+      const response = await axios.get(url);
+      deliveryStatus = response.data?.Status === 'Success' ? 'Delivered' : 'Failed';
+      responsePayload = JSON.stringify(response.data);
+    }
+    // 3. Twilio Provider Option (Global Standard)
     else if (provider.toLowerCase() === 'twilio' && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
       const auth = Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
       const params = new URLSearchParams();
