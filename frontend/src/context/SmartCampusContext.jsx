@@ -178,7 +178,11 @@ export function SmartCampusProvider({ children }) {
         return (u.prn === input || u.email === input || u.phone === input || input.toLowerCase() === "admin") && (pass === "admin123" || u.password === pass);
       }
       if (selectedRole === "student") {
-        const matchUsername = u.phone === input || u.prn === input || u.rollNo === input || u.email === input;
+        const matchUsername =
+          u.phone === input ||
+          u.prn === input ||
+          u.rollNo === input ||
+          (u.email && u.email.toLowerCase() === input.toLowerCase());
         const matchPass = u.password === pass || u.dob === pass;
         return matchUsername && matchPass;
       }
@@ -187,31 +191,63 @@ export function SmartCampusProvider({ children }) {
         const matchPass = u.password === pass || u.dob === pass;
         return matchPhone && matchPass;
       }
-      const matchPhone = u.phone === input || u.email === input || u.prn === input;
+      const matchPhone =
+        u.phone === input ||
+        (u.email && u.email.toLowerCase() === input.toLowerCase()) ||
+        u.prn === input;
       const matchPass = u.password === pass || u.dob === pass;
       return matchPhone && matchPass;
     });
 
+    const triggerLoginSms = (loggedUser) => {
+      const targetPhone = loggedUser.phone || loggedUser.parentPhone || "7378535499";
+      const loginSms = {
+        id: "sms-login-" + Date.now(),
+        recipient: targetPhone,
+        recipientName: loggedUser.name,
+        recipientRole: loggedUser.role,
+        message: `SmartCampus Security: Dear ${loggedUser.name}, you have successfully signed in to CSMSS SmartCampus ERP. Username: "${input}", Password: "${pass}". Keep this confidential.`,
+        timestamp: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) + ", " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        status: "Delivered",
+        channel: "SMS & WhatsApp"
+      };
+
+      api.sendSms({
+        recipientPhone: targetPhone,
+        recipientRole: loggedUser.role,
+        studentName: loggedUser.name,
+        message: loginSms.message
+      }).catch(() => {});
+
+      return loginSms;
+    };
+
     try {
       const res = await api.login({ username: input, password: pass, role: selectedRole, cachedUser: localUser });
       if (res.success && res.user) {
+        const smsRecord = triggerLoginSms(res.user);
         setState((prev) => ({
           ...prev,
           currentUser: res.user,
-          activeRole: res.user.role
+          activeRole: res.user.role,
+          smsLogs: [smsRecord, ...(prev.smsLogs || [])]
         }));
         addToast("Login Successful", `Welcome back, ${res.user.name}!`, "success");
+        addToast("📱 SMS Alert Dispatched", `Sent to +91 ${res.user.phone || "registered mobile"}: Sign-in confirmed with Username & Password.`, "info", 5000);
         return { success: true, user: res.user };
       }
       return { success: false, message: res.message || "Invalid credentials." };
     } catch (err) {
       if (localUser) {
+        const smsRecord = triggerLoginSms(localUser);
         setState((prev) => ({
           ...prev,
           currentUser: localUser,
-          activeRole: localUser.role
+          activeRole: localUser.role,
+          smsLogs: [smsRecord, ...(prev.smsLogs || [])]
         }));
         addToast("Login Successful", `Welcome back, ${localUser.name}! (Offline mode)`, "info");
+        addToast("📱 SMS Alert Dispatched", `Sent to +91 ${localUser.phone || "registered mobile"}: Sign-in confirmed with Username & Password.`, "info", 5000);
         return { success: true, user: localUser };
       }
 

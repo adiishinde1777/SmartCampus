@@ -1,6 +1,6 @@
 import express from 'express';
 import { query } from '../db.js';
-import { dispatchAbsenceAlerts } from '../services/smsService.js';
+import { dispatchAbsenceAlerts, sendSmsNotification } from '../services/smsService.js';
 
 const router = express.Router();
 
@@ -265,6 +265,7 @@ router.put('/users/:id', async (req, res) => {
         phone = COALESCE(?, phone),
         prn = COALESCE(?, prn),
         dob = COALESCE(?, dob),
+        password = COALESCE(?, password),
         department_id = COALESCE(?, department_id),
         department_name = COALESCE(?, department_name),
         semester = COALESCE(?, semester),
@@ -291,6 +292,7 @@ router.put('/users/:id', async (req, res) => {
         body.phone,
         body.prn,
         body.dob,
+        body.password,
         body.departmentId || body.department_id,
         body.departmentName || body.department_name,
         body.semester ? Number(body.semester) : null,
@@ -512,6 +514,112 @@ router.post('/register-student', async (req, res) => {
     });
   } catch (err) {
     console.error('[Student Self-Register Error]', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Dedicated Public Faculty & HOD Registration Submission
+router.post('/register-faculty', async (req, res) => {
+  try {
+    const body = req.body;
+    if (!body.name || !body.phone) {
+      return res.status(400).json({ success: false, message: 'Faculty Full Name and Mobile Number are required.' });
+    }
+
+    const cleanPhone = String(body.phone).trim();
+    const cleanRole = body.role === 'hod' ? 'hod' : 'teacher';
+    const facultyPass = body.password ? String(body.password).trim() : 'faculty123';
+
+    // Check if Phone already registered
+    const existing = await query('SELECT id FROM users WHERE phone = ? LIMIT 1', [cleanPhone]);
+    if (existing.length > 0) {
+      return res.status(409).json({ success: false, message: `An account with Mobile Number "${cleanPhone}" already exists.` });
+    }
+
+    const facultyId = body.id || ((cleanRole === 'hod' ? 'hod-' : 'tea-') + Date.now());
+    const assignedDivs = Array.isArray(body.assignedDivisions) ? body.assignedDivisions.join(',') : (body.assignedDivisions || 'Div A');
+
+    await query(
+      `INSERT INTO users (
+        id, role, name, email, phone, dob, password,
+        department_id, department_name, designation, assigned_divisions,
+        is_verified
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        facultyId,
+        cleanRole,
+        body.name.trim(),
+        body.email ? body.email.trim() : null,
+        cleanPhone,
+        body.dob || null,
+        facultyPass,
+        body.departmentId || 'dept-vlsi',
+        body.departmentName || 'Electronic Engineering (VLSI Design And Technology)',
+        body.designation || (cleanRole === 'hod' ? 'Head of Department' : 'Assistant Professor'),
+        assignedDivs,
+        true
+      ]
+    );
+
+    // Audit log
+    const timestampStr = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) + " " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    await query(
+      `INSERT INTO audit_logs (id, timestamp, user, role, action, details, module)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        'aud-fac-' + Date.now(),
+        timestampStr,
+        body.name.trim(),
+        cleanRole.toUpperCase(),
+        'FACULTY_SELF_REGISTRATION',
+        `New faculty registered: ${body.name.trim()} (${cleanRole.toUpperCase()}), Dept: ${body.departmentName || 'VLSI'}, Phone: ${cleanPhone}`,
+        'Staff Onboarding'
+      ]
+    ).catch(() => {});
+
+    const facultyRecord = {
+      id: facultyId,
+      role: cleanRole,
+      name: body.name.trim(),
+      email: body.email ? body.email.trim() : null,
+      phone: cleanPhone,
+      password: facultyPass,
+      departmentId: body.departmentId || 'dept-vlsi',
+      departmentName: body.departmentName || 'Electronic Engineering (VLSI Design And Technology)',
+      designation: body.designation || (cleanRole === 'hod' ? 'Head of Department' : 'Assistant Professor'),
+      assignedDivisions: assignedDivs,
+      isVerified: true
+    };
+
+    res.json({
+      success: true,
+      facultyId,
+      faculty: facultyRecord,
+      message: `${cleanRole.toUpperCase()} account successfully registered and activated!`
+    });
+  } catch (err) {
+    console.error('[Faculty Self-Register Error]', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Endpoint to dispatch live / simulated SMS and save in sms_logs
+router.post('/sms/send', async (req, res) => {
+  try {
+    const { recipientPhone, recipientRole, studentName, message } = req.body;
+    if (!recipientPhone || !message) {
+      return res.status(400).json({ success: false, message: 'Recipient Phone and Message are required.' });
+    }
+
+    const smsRes = await sendSmsNotification({
+      recipientRole: recipientRole || 'user',
+      recipientPhone,
+      studentName: studentName || 'User',
+      message
+    });
+
+    res.json({ success: true, ...smsRes });
+  } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });

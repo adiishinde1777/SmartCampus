@@ -12,6 +12,9 @@ import {
   Edit,
   Trash2,
   Eye,
+  EyeOff,
+  Copy,
+  Link as LinkIcon,
   CheckCircle2,
   XCircle,
   Building2,
@@ -49,6 +52,23 @@ export function AdminUsers() {
   const [viewingUser, setViewingUser] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [copiedLink, setCopiedLink] = useState("");
+
+  const copyLink = (role, path) => {
+    const url = `${window.location.origin}${path}`;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(url);
+    } else {
+      const textarea = document.createElement("textarea");
+      textarea.value = url;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
+    setCopiedLink(role);
+    setTimeout(() => setCopiedLink(""), 3000);
+  };
 
   // File Input Refs for Gallery Photo Upload
   const editFileInputRef = useRef(null);
@@ -265,21 +285,21 @@ export function AdminUsers() {
     // Role-specific credential rules
     if (payload.role === "student") {
       payload.prn = payload.rollNo || payload.prn;
-      payload.password = payload.dob || payload.password || "password123";
+      payload.password = payload.password || payload.dob || "password123";
     } else if (payload.role === "parent") {
       if (payload.studentId) {
         const stu = users.find((u) => u.id === payload.studentId);
         if (stu) {
           payload.studentName = stu.name;
           payload.dob = stu.dob;
-          payload.password = stu.dob;
+          payload.password = payload.password || stu.dob;
           payload.departmentId = stu.departmentId;
           payload.departmentName = stu.departmentName;
         }
       }
       if (!payload.password && payload.dob) payload.password = payload.dob;
-    } else if (["teacher", "hod", "principal"].includes(payload.role)) {
-      payload.password = payload.dob || payload.password || "password123";
+    } else if (["teacher", "hod", "principal", "admin"].includes(payload.role)) {
+      payload.password = payload.password || payload.dob || "password123";
     }
 
     addUser(payload);
@@ -331,6 +351,107 @@ export function AdminUsers() {
           <button onClick={() => handleOpenAdd("student")} className="btn btn-primary btn-sm" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <UserPlus size={15} /> Add New User
           </button>
+        </div>
+      </div>
+
+      {/* Shareable Self-Registration Links Card (Teacher/HOD vs Student separate links) */}
+      <div
+        style={{
+          background: "linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)",
+          border: "1.5px solid #bfdbfe",
+          borderRadius: "14px",
+          padding: "16px 20px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px",
+          boxShadow: "0 2px 8px rgba(37, 99, 235, 0.05)"
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "#2563eb", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <LinkIcon size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: "0.95rem", fontWeight: "800", color: "#1e3a8a" }}>
+                Shareable Onboarding & Registration Links
+              </div>
+              <div style={{ fontSize: "0.78rem", color: "#64748b" }}>
+                Send dedicated invite links to teachers, HODs, or students to self-register without admin manual typing
+              </div>
+            </div>
+          </div>
+          {copiedLink && (
+            <div style={{ background: "#dcfce7", color: "#15803d", padding: "4px 12px", borderRadius: "20px", fontSize: "0.78rem", fontWeight: "700", display: "flex", alignItems: "center", gap: "6px" }}>
+              <CheckCircle2 size={14} />
+              <span>{copiedLink.toUpperCase()} Registration Link Copied to Clipboard!</span>
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "12px" }}>
+          {/* Student Link */}
+          <div style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: "0.84rem", fontWeight: "700", color: "#2563eb", display: "flex", alignItems: "center", gap: "6px" }}>
+                <GraduationCap size={15} /> Student Enrollment Link
+              </div>
+              <div style={{ fontSize: "0.74rem", color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace", marginTop: "2px" }}>
+                /?register=student
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => copyLink("student", "/?register=student")}
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: "0.74rem", display: "flex", alignItems: "center", gap: "4px", padding: "6px 10px", flexShrink: 0 }}
+            >
+              <Copy size={13} />
+              <span>{copiedLink === "student" ? "Copied!" : "Copy Link"}</span>
+            </button>
+          </div>
+
+          {/* Teacher Link */}
+          <div style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: "0.84rem", fontWeight: "700", color: "#7c3aed", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Users size={15} /> Faculty / Teacher Registration Link
+              </div>
+              <div style={{ fontSize: "0.74rem", color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace", marginTop: "2px" }}>
+                /?register=teacher
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => copyLink("teacher", "/?register=teacher")}
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: "0.74rem", display: "flex", alignItems: "center", gap: "4px", padding: "6px 10px", flexShrink: 0, color: "#7c3aed", borderColor: "#ddd6fe" }}
+            >
+              <Copy size={13} />
+              <span>{copiedLink === "teacher" ? "Copied!" : "Copy Link"}</span>
+            </button>
+          </div>
+
+          {/* HOD Link */}
+          <div style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: "0.84rem", fontWeight: "700", color: "#0891b2", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Building2 size={15} /> Head of Dept (HOD) Registration Link
+              </div>
+              <div style={{ fontSize: "0.74rem", color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace", marginTop: "2px" }}>
+                /?register=hod
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => copyLink("hod", "/?register=hod")}
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: "0.74rem", display: "flex", alignItems: "center", gap: "4px", padding: "6px 10px", flexShrink: 0, color: "#0891b2", borderColor: "#cffafe" }}
+            >
+              <Copy size={13} />
+              <span>{copiedLink === "hod" ? "Copied!" : "Copy Link"}</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -778,15 +899,43 @@ export function AdminUsers() {
 
                 <div className="form-group">
                   <label className="form-label">
-                    {editingUser.role === "parent" ? "Student's Date of Birth (Parent Password)" : "Date of Birth (Login Password - YYYY-MM-DD)"}
+                    {editingUser.role === "parent" ? "Student's Date of Birth (YYYY-MM-DD)" : "Date of Birth (YYYY-MM-DD)"}
                   </label>
                   <input
                     type="text"
                     className="form-control"
-                    value={editFormData.dob || editFormData.password || ""}
-                    onChange={(e) => setEditFormData({ ...editFormData, dob: e.target.value, password: e.target.value })}
+                    value={editFormData.dob || ""}
+                    onChange={(e) => setEditFormData({ ...editFormData, dob: e.target.value })}
                     placeholder="YYYY-MM-DD (e.g. 2004-08-22)"
                   />
+                </div>
+
+                <div className="form-group" style={{ gridColumn: "span 2" }}>
+                  <label className="form-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontWeight: "700" }}>Account Password (Login Password) *</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{ background: "none", border: "none", color: "#2563eb", cursor: "pointer", fontSize: "0.75rem", display: "flex", alignItems: "center", gap: "4px", fontWeight: "600" }}
+                    >
+                      {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                      {showPassword ? "Hide Password" : "Show Password"}
+                    </button>
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      className="form-control"
+                      value={editFormData.password || ""}
+                      onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
+                      placeholder="Set or change user password"
+                      style={{ paddingRight: "40px" }}
+                    />
+                    <Key size={16} color="#94a3b8" style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)" }} />
+                  </div>
+                  <small style={{ color: "#64748b", fontSize: "0.74rem", marginTop: "4px", display: "block" }}>
+                    💡 Admin can directly update or reset the password for {editingUser.name} ({editingUser.role.toUpperCase()}).
+                  </small>
                 </div>
 
                 <div className="form-group" style={{ gridColumn: "span 2" }}>
@@ -1263,17 +1412,48 @@ export function AdminUsers() {
               <div className="form-group">
                 <label className="form-label">
                   {addFormData.role === "parent"
-                    ? "Student's Date of Birth (Parent Password) *"
-                    : "Date of Birth (Login Password - YYYY-MM-DD) *"}
+                    ? "Student's Date of Birth (YYYY-MM-DD)"
+                    : "Date of Birth (YYYY-MM-DD)"}
                 </label>
                 <input
                   type="text"
                   className="form-control"
                   value={addFormData.dob}
-                  onChange={(e) => setAddFormData({ ...addFormData, dob: e.target.value, password: e.target.value })}
+                  onChange={(e) => setAddFormData({ ...addFormData, dob: e.target.value })}
                   placeholder="YYYY-MM-DD (e.g. 2004-08-22)"
-                  required={addFormData.role !== "admin"}
                 />
+              </div>
+
+              <div className="form-group" style={{ gridColumn: "span 2" }}>
+                <label className="form-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontWeight: "700" }}>Account Password (Login Password) *</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ background: "none", border: "none", color: "#2563eb", cursor: "pointer", fontSize: "0.75rem", display: "flex", alignItems: "center", gap: "4px", fontWeight: "600" }}
+                  >
+                    {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                    {showPassword ? "Hide Password" : "Show Password"}
+                  </button>
+                </label>
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className="form-control"
+                    value={addFormData.password}
+                    onChange={(e) => setAddFormData({ ...addFormData, password: e.target.value })}
+                    placeholder={
+                      addFormData.role === "teacher" || addFormData.role === "hod" || addFormData.role === "principal"
+                        ? "Enter custom password for faculty/HOD (or leave blank to use DOB)"
+                        : "Enter login password (or leave blank to use DOB)"
+                    }
+                    style={{ paddingRight: "40px" }}
+                  />
+                  <Key size={16} color="#94a3b8" style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)" }} />
+                </div>
+                <small style={{ color: "#64748b", fontSize: "0.74rem", marginTop: "4px", display: "block" }}>
+                  💡 Set an explicit password for {addFormData.role.toUpperCase()} login. If blank, DOB or default password will be assigned.
+                </small>
               </div>
 
               <div className="form-group" style={{ gridColumn: "span 2" }}>

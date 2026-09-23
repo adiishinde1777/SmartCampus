@@ -135,7 +135,10 @@ export async function login(req, res) {
       // If student not found in MySQL, but client passed cached student profile (e.g. from local registration)
       if (students.length === 0 && cachedUser && cachedUser.role === 'student') {
         const cPhone = cleanPhone(cachedUser.phone);
-        const matchUser = (cPhone && cPhone === phoneDigits) || (cachedUser.prn && cachedUser.prn.toLowerCase() === cleanUsername.toLowerCase());
+        const matchUser =
+          (cPhone && cPhone === phoneDigits) ||
+          (cachedUser.prn && cachedUser.prn.toLowerCase() === cleanUsername.toLowerCase()) ||
+          (cachedUser.email && cachedUser.email.toLowerCase() === cleanUsername.toLowerCase());
         const matchPass = cleanPassword === cachedUser.password || verifyDob(cleanPassword, cachedUser.dob);
         if (matchUser && matchPass) {
           // Auto-persist into MySQL so they exist in database forever
@@ -162,7 +165,7 @@ export async function login(req, res) {
       if (!student) {
         return res.status(404).json({
           success: false,
-          message: `Student with Mobile/PRN "${cleanUsername}" not found. Please register via New Student Enrollment Form.`
+          message: `Student with Mobile/Email/PRN "${cleanUsername}" not found. Please register via New Student Enrollment Form.`
         });
       }
 
@@ -266,7 +269,7 @@ export async function login(req, res) {
       if (!isDobValid) {
         return res.status(401).json({
           success: false,
-          message: "Incorrect password. Enter your Date of Birth (YYYY-MM-DD or DD-MM-YYYY)."
+          message: "Incorrect password. Enter your registered password or Date of Birth."
         });
       }
 
@@ -299,7 +302,7 @@ export async function login(req, res) {
       if (!isDobValid) {
         return res.status(401).json({
           success: false,
-          message: "Incorrect password. Enter your Date of Birth (YYYY-MM-DD or DD-MM-YYYY)."
+          message: "Incorrect password. Enter your registered password or Date of Birth."
         });
       }
 
@@ -332,7 +335,7 @@ export async function login(req, res) {
       if (!isDobValid) {
         return res.status(401).json({
           success: false,
-          message: "Incorrect password. Enter your Date of Birth (YYYY-MM-DD or DD-MM-YYYY)."
+          message: "Incorrect password. Enter your registered password or Date of Birth."
         });
       }
 

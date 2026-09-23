@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSmartCampus } from "../../context/SmartCampusContext";
 import StudentRegisterPage from "./StudentRegisterPage";
+import TeacherRegisterPage from "./TeacherRegisterPage";
 import {
   GraduationCap,
   ShieldCheck,
@@ -13,6 +14,7 @@ import {
   Sparkles,
   Phone,
   UserPlus,
+  UserCheck,
   Code
 } from "lucide-react";
 
@@ -24,10 +26,43 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showRegisterPage, setShowRegisterPage] = useState(false);
+  const [showRegisterPage, setShowRegisterPage] = useState(() => {
+    if (typeof window !== "undefined") {
+      const param = new URLSearchParams(window.location.search).get("register");
+      if (param === "student" || param === "teacher" || param === "hod") {
+        return param;
+      }
+    }
+    return null;
+  });
 
-  if (showRegisterPage) {
-    return <StudentRegisterPage onBackToLogin={() => setShowRegisterPage(false)} />;
+  // Listen for popstate or URL changes
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const param = new URLSearchParams(window.location.search).get("register");
+      if (param === "student" || param === "teacher" || param === "hod") {
+        setShowRegisterPage(param);
+      }
+    };
+    window.addEventListener("popstate", handleUrlChange);
+    return () => window.removeEventListener("popstate", handleUrlChange);
+  }, []);
+
+  const handleBackToLogin = () => {
+    setShowRegisterPage(null);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("register");
+      window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+    }
+  };
+
+  if (showRegisterPage === "student") {
+    return <StudentRegisterPage onBackToLogin={handleBackToLogin} />;
+  }
+
+  if (showRegisterPage === "teacher" || showRegisterPage === "hod") {
+    return <TeacherRegisterPage initialRole={showRegisterPage === "hod" ? "hod" : "teacher"} onBackToLogin={handleBackToLogin} />;
   }
 
   const handleRoleChange = (role) => {
@@ -58,11 +93,11 @@ export default function LoginPage() {
     switch (selectedRole) {
       case "student":
         return {
-          userLabel: "Student Mobile Number (or PRN)",
-          userPlaceholder: "e.g. 9876543210",
+          userLabel: "Student Mobile Number / Email ID / PRN",
+          userPlaceholder: "e.g. 9876543210 or student@campus.edu or 24025331378056",
           passLabel: "Student Password",
           passPlaceholder: "Enter your password",
-          hint: "Student login: Enter registered Mobile Number & your Password"
+          hint: "Student login: Enter registered Mobile Number, Email ID, or PRN & your Password"
         };
       case "parent":
         return {
@@ -134,23 +169,54 @@ export default function LoginPage() {
           </div>
 
           {/* Student Online Registration Card */}
-          <div className="enroll-prompt-card">
+          <div className="enroll-prompt-card" style={{ marginBottom: "12px" }}>
             <div>
               <div style={{ fontWeight: "700", fontSize: "0.95rem", color: "white" }}>
-                New Student Enrollment Form
+                🎓 New Student Enrollment
               </div>
               <div style={{ fontSize: "0.8rem", color: "#94a3b8", marginTop: "2px" }}>
-                Fill your student profile & parent contact information online
+                Students: Fill academic profile & parent contact information
               </div>
             </div>
             <button
               type="button"
-              onClick={() => setShowRegisterPage(true)}
+              onClick={() => {
+                setShowRegisterPage("student");
+                const url = new URL(window.location.href);
+                url.searchParams.set("register", "student");
+                window.history.pushState({}, "", url.pathname + "?" + url.searchParams.toString());
+              }}
               className="btn btn-primary btn-sm"
               style={{ display: "flex", alignItems: "center", gap: "6px", whiteSpace: "nowrap" }}
             >
               <UserPlus size={16} />
-              <span>Enroll Now</span>
+              <span>Student Register</span>
+            </button>
+          </div>
+
+          {/* Teacher & Faculty Onboarding Card (Separate Link) */}
+          <div className="enroll-prompt-card" style={{ background: "rgba(124, 58, 237, 0.15)", borderColor: "rgba(167, 139, 250, 0.3)" }}>
+            <div>
+              <div style={{ fontWeight: "700", fontSize: "0.95rem", color: "#e9d5ff" }}>
+                👨‍🏫 Faculty & HOD Registration
+              </div>
+              <div style={{ fontSize: "0.8rem", color: "#c4b5fd", marginTop: "2px" }}>
+                Teachers & HODs: Create staff account with credentials & phone SMS
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setShowRegisterPage("teacher");
+                const url = new URL(window.location.href);
+                url.searchParams.set("register", "teacher");
+                window.history.pushState({}, "", url.pathname + "?" + url.searchParams.toString());
+              }}
+              className="btn btn-secondary btn-sm"
+              style={{ display: "flex", alignItems: "center", gap: "6px", whiteSpace: "nowrap", background: "#7c3aed", borderColor: "#6d28d9", color: "white" }}
+            >
+              <UserCheck size={16} />
+              <span>Faculty Register</span>
             </button>
           </div>
         </div>

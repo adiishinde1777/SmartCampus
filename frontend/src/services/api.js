@@ -64,7 +64,7 @@ export const api = {
     method: 'DELETE'
   }),
 
-  // Student Registration Shareable Link Flow
+  // Student & Faculty Registration Shareable Link Flow
   createRegistrationLink: (data) => request('/registration-links', {
     method: 'POST',
     body: JSON.stringify(data)
@@ -73,9 +73,17 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(studentData)
   }),
+  submitFacultyRegistration: (facultyData) => request('/register-faculty', {
+    method: 'POST',
+    body: JSON.stringify(facultyData)
+  }),
   setParentPassword: (data) => request('/parent-password', {
     method: 'POST',
     body: JSON.stringify(data)
+  }),
+  sendSms: (smsData) => request('/sms/send', {
+    method: 'POST',
+    body: JSON.stringify(smsData)
   }),
 
   // Attendance & SMS Flow
