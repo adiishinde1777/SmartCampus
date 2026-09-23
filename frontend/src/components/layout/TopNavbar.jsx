@@ -33,9 +33,9 @@ export default function TopNavbar({ currentView, onNavigate, onToggleMobile, onO
       </div>
 
       <div className="navbar-right" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        {/* Active Role Identifier Badge */}
+        {/* Active Role Identifier Badge (Desktop) */}
         <div
-          className="role-badge-nav"
+          className="role-badge-nav hide-on-mobile"
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -51,7 +51,7 @@ export default function TopNavbar({ currentView, onNavigate, onToggleMobile, onO
         >
           <ShieldCheck size={13} color="var(--primary-600)" />
           <span style={{ textTransform: "uppercase" }}>{activeRole}</span>
-          <span className="hide-on-mobile" style={{ textTransform: "uppercase" }}> ACCESS</span>
+          <span> ACCESS</span>
         </div>
 
         {/* Notification Bell */}
@@ -59,24 +59,36 @@ export default function TopNavbar({ currentView, onNavigate, onToggleMobile, onO
           className="notification-bell-btn"
           onClick={onOpenNotifications}
           title="Open Notifications"
+          aria-label="Open Notifications"
         >
           <Bell size={20} />
           {unreadCount > 0 && <span className="notification-bell-badge">{unreadCount}</span>}
         </button>
 
-        {/* User Profile Pill & Sign Out */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", paddingLeft: "10px", borderLeft: "1px solid var(--border-subtle)" }}>
+        {/* User Profile Pill */}
+        <div
+          onClick={() => onNavigate && onNavigate("profile")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            paddingLeft: "8px",
+            borderLeft: "1px solid var(--border-subtle)",
+            cursor: "pointer"
+          }}
+          title="View Profile"
+        >
           {currentUser?.avatar ? (
             <img
               src={currentUser.avatar}
               alt={currentUser?.name}
-              style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover", border: "2px solid #e2e8f0" }}
+              style={{ width: "34px", height: "34px", borderRadius: "50%", objectFit: "cover", border: "2px solid #e2e8f0" }}
             />
           ) : (
             <div
               style={{
-                width: "36px",
-                height: "36px",
+                width: "34px",
+                height: "34px",
                 borderRadius: "50%",
                 background: "linear-gradient(135deg, #2563eb, #1e40af)",
                 color: "white",
@@ -84,7 +96,7 @@ export default function TopNavbar({ currentView, onNavigate, onToggleMobile, onO
                 alignItems: "center",
                 justifyContent: "center",
                 fontWeight: "700",
-                fontSize: "0.82rem",
+                fontSize: "0.8rem",
                 border: "2px solid #e2e8f0",
                 flexShrink: 0
               }}
@@ -102,8 +114,11 @@ export default function TopNavbar({ currentView, onNavigate, onToggleMobile, onO
           </div>
 
           <button
-            onClick={logout}
-            className="btn btn-secondary btn-sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              logout();
+            }}
+            className="btn btn-secondary btn-sm hide-on-mobile"
             style={{
               padding: "5px 10px",
               fontSize: "0.75rem",
@@ -116,7 +131,7 @@ export default function TopNavbar({ currentView, onNavigate, onToggleMobile, onO
             title="Sign Out of Portal"
           >
             <LogOut size={13} />
-            <span className="hide-on-mobile">Logout</span>
+            <span>Logout</span>
           </button>
         </div>
       </div>

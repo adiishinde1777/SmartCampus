@@ -589,7 +589,7 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
             <h4 style={{ fontSize: "0.95rem", fontWeight: "700", marginBottom: "12px", color: "#1e293b", borderBottom: "1px solid #e2e8f0", paddingBottom: "6px" }}>
               4. Set Account Password
             </h4>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" }}>
               <div className="form-group">
                 <label className="form-label">Password *</label>
                 <div style={{ position: "relative" }}>

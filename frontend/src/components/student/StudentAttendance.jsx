@@ -320,7 +320,7 @@ export default function StudentAttendance() {
             <div className="card-subtitle">Real-time attendance segmented by classroom lectures and laboratory practical sessions</div>
           </div>
 
-          <div style={{ display: "flex", background: "var(--bg-surface-secondary)", padding: "3px", borderRadius: "8px", gap: "4px" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", background: "var(--bg-surface-secondary)", padding: "3px", borderRadius: "8px", gap: "4px" }}>
             <button
               onClick={() => setAttendanceViewTab("all")}
               className={`btn btn-sm ${attendanceViewTab === "all" ? "btn-primary" : "btn-ghost"}`}

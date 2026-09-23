@@ -44,19 +44,7 @@ export default function NotificationDrawer({ isOpen, onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
-        className="modal-card"
-        style={{
-          maxWidth: "480px",
-          width: "100%",
-          height: "90vh",
-          display: "flex",
-          flexDirection: "column",
-          borderRadius: "16px",
-          position: "fixed",
-          right: "20px",
-          top: "20px",
-          bottom: "20px"
-        }}
+        className="modal-card notification-drawer-card"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

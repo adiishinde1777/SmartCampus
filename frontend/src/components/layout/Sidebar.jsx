@@ -26,7 +26,8 @@ import {
   HelpCircle,
   Activity,
   Library,
-  Briefcase
+  Briefcase,
+  X
 } from "lucide-react";
 
 export default function Sidebar({ currentView, setCurrentView, isMobileOpen, setIsMobileOpen }) {
@@ -192,16 +193,28 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
       }}
     >
       {/* Brand Header */}
-      <div className="sidebar-header">
-        <div className="brand-logo-icon">
-          <GraduationCap size={24} />
-        </div>
-        <div>
-          <div className="brand-title">
-            <span>SMART CAMPUS</span>
+      <div className="sidebar-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div className="brand-logo-icon">
+            <GraduationCap size={24} />
           </div>
-          <div className="brand-tagline">Track • Alert • Analyse • Act</div>
+          <div>
+            <div className="brand-title">
+              <span>SMART CAMPUS</span>
+            </div>
+            <div className="brand-tagline">Track • Alert • Analyse • Act</div>
+          </div>
         </div>
+
+        <button
+          type="button"
+          className="sidebar-close-btn"
+          onClick={() => setIsMobileOpen && setIsMobileOpen(false)}
+          title="Close Navigation Drawer"
+          aria-label="Close Navigation Drawer"
+        >
+          <X size={18} />
+        </button>
       </div>
 
       {/* Role Badge */}
