@@ -562,8 +562,27 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                     {isOtpSent && (
                       <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px dashed #cbd5e1" }}>
                         {otpMessage && (
-                          <div style={{ fontSize: "0.78rem", color: "#1e40af", marginBottom: "8px", fontWeight: "600" }}>
-                            {otpMessage} {previewOtp && <span style={{ color: "#7c3aed" }}>(Test OTP: <strong>{previewOtp}</strong>)</span>}
+                          <div style={{ fontSize: "0.8rem", color: "#1e40af", marginBottom: "8px", fontWeight: "600" }}>
+                            {otpMessage}
+                          </div>
+                        )}
+                        {previewOtp && (
+                          <div style={{ background: "#f5f3ff", border: "1.5px solid #ddd6fe", padding: "10px 14px", borderRadius: "8px", marginBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                            <div>
+                              <div style={{ fontSize: "0.75rem", color: "#5b21b6", fontWeight: "700" }}>
+                                SMS Verification Code Dispatched:
+                              </div>
+                              <div style={{ fontSize: "1.1rem", fontWeight: "800", color: "#7c3aed", letterSpacing: "2px" }}>
+                                {previewOtp}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setOtpCode(previewOtp)}
+                              style={{ background: "#7c3aed", color: "white", border: "none", borderRadius: "8px", padding: "6px 14px", fontSize: "0.76rem", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}
+                            >
+                              <Check size={14} /> Auto-Fill Code
+                            </button>
                           </div>
                         )}
                         <div style={{ display: "flex", gap: "8px" }}>
