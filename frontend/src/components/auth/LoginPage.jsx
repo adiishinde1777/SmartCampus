@@ -201,7 +201,7 @@ export default function LoginPage() {
                 👨‍🏫 Faculty, HOD & Principal Registration
               </div>
               <div style={{ fontSize: "0.8rem", color: "#c4b5fd", marginTop: "2px" }}>
-                Authorized Staff: Register using security key (csmss$2533)
+                Authorized Staff: Register using institutional security verification key
               </div>
             </div>
             <button

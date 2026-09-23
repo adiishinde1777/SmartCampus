@@ -47,8 +47,9 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
     assignedDivisions: "Div A"
   });
 
-  // College Security Key (Required: csmss$2533 for Teacher, HOD, and Principal)
+  // College Security Key (Required for Teacher, HOD, and Principal)
   const [staffPasskey, setStaffPasskey] = useState("");
+  const [showPasskey, setShowPasskey] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -87,10 +88,10 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
       return;
     }
 
-    // MANDATORY SECURITY KEY CHECK: Teacher, HOD, and Principal require csmss$2533
+    // MANDATORY SECURITY KEY CHECK: Teacher, HOD, and Principal require authorized passkey
     const enteredPasskey = (staffPasskey || "").trim().toLowerCase();
     if (enteredPasskey !== "csmss$2533") {
-      setError("⛔ Invalid Security Key! Teachers, HODs, and Principal must enter the authorized college security key: csmss$2533");
+      setError("⛔ Invalid Security Key! Please enter the authorized college security verification key provided by administration.");
       return;
     }
 
@@ -561,26 +562,45 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
           </div>
 
           {/* Section 3: Institute Faculty & Principal Security Key */}
-          <div style={{ background: "#fefce8", border: "1.5px solid #fde047", padding: "18px", borderRadius: "12px" }}>
-            <h4 style={{ fontSize: "0.95rem", fontWeight: "800", color: "#854d0e", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
-              <Key size={16} /> 3. College Security Verification Key (csmss$2533) *
+          <div style={{ background: "#f8fafc", border: "1.5px solid #cbd5e1", padding: "18px", borderRadius: "12px" }}>
+            <h4 style={{ fontSize: "0.95rem", fontWeight: "800", color: "#1e293b", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+              <Key size={16} color="#2563eb" /> 3. College Security Verification Key *
             </h4>
-            <p style={{ fontSize: "0.8rem", color: "#713f12", marginBottom: "12px", lineHeight: 1.4 }}>
-              To ensure unauthorized users or students cannot register as staff, enter the official college security key <strong>csmss$2533</strong> (applicable for Teacher, HOD, and Principal).
+            <p style={{ fontSize: "0.8rem", color: "#64748b", marginBottom: "12px", lineHeight: 1.4 }}>
+              To ensure unauthorized users cannot register as staff, enter the official college security verification key provided by the administration (applicable for Teacher, HOD, and Principal).
             </p>
-            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <div style={{ position: "relative" }}>
               <input
-                type="text"
-                placeholder="Enter Security Key: csmss$2533"
+                type={showPasskey ? "text" : "password"}
+                placeholder="Enter confidential security key"
                 className="form-control"
-                style={{ fontWeight: "700", fontFamily: "monospace", letterSpacing: "1px" }}
+                style={{ fontWeight: "700", fontFamily: "monospace", letterSpacing: "1px", paddingRight: "42px" }}
                 value={staffPasskey}
                 onChange={(e) => setStaffPasskey(e.target.value)}
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPasskey(!showPasskey)}
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#64748b",
+                  padding: "4px"
+                }}
+                title={showPasskey ? "Hide key" : "Show key"}
+                aria-label={showPasskey ? "Hide key" : "Show key"}
+              >
+                {showPasskey ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
-            <small style={{ color: "#a16207", fontSize: "0.72rem", marginTop: "4px", display: "block" }}>
-              Authorized Key: <strong>csmss$2533</strong>
+            <small style={{ color: "#64748b", fontSize: "0.72rem", marginTop: "6px", display: "block" }}>
+              🔒 Confidential: Obtain this security key from institute administration or HOD office.
             </small>
           </div>
 
