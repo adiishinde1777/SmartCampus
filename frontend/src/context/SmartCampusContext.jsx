@@ -509,6 +509,13 @@ export function SmartCampusProvider({ children }) {
       markedBy: state.currentUser ? state.currentUser.name : 'Faculty'
     }).catch((err) => console.warn('[MySQL Attendance Sync Warning]', err.message));
 
+    // Persist attendance session logs to Firebase Firestore
+    newLogs.slice(0, Object.keys(statusMap).length).forEach((l) => {
+      saveDocToFirestore(FIRESTORE_COLLECTIONS.ATTENDANCE_LOGS, l.id, l).catch((err) =>
+        console.warn('[Firestore Attendance Sync Warning]', err.message)
+      );
+    });
+
     setState((prev) => ({
       ...prev,
       attendance: newAttendance,
