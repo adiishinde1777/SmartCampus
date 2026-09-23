@@ -65,6 +65,7 @@ import HODProfile from "./components/hod/HODProfile";
 // Principal Views
 import PrincipalDashboard from "./components/principal/PrincipalDashboard";
 import PrincipalTalentOverview from "./components/principal/PrincipalTalentOverview";
+import PrincipalPlacementSkills from "./components/principal/PrincipalPlacementSkills";
 import PrincipalCollegeOverview from "./components/principal/PrincipalCollegeOverview";
 import { PrincipalAttendanceAnalytics, PrincipalAcademicAnalytics } from "./components/principal/PrincipalAnalyticsViews";
 import PrincipalProfile from "./components/principal/PrincipalProfile";
@@ -199,6 +200,7 @@ function MainApp() {
     if (activeRole === "principal") {
       switch (currentView) {
         case "dashboard": return <PrincipalDashboard onNavigate={setCurrentView} />;
+        case "placement-skills": return <PrincipalPlacementSkills onNavigate={setCurrentView} />;
         case "college-talent": return <PrincipalTalentOverview onNavigate={setCurrentView} />;
         case "departments": return <PrincipalCollegeOverview onNavigate={setCurrentView} />;
         case "attendance-analytics": return <PrincipalAttendanceAnalytics onNavigate={setCurrentView} />;

@@ -21,7 +21,10 @@ import {
   X,
   MapPin,
   ChevronRight,
-  Info
+  Info,
+  BookOpen,
+  Target,
+  Code2
 } from "lucide-react";
 import { Modal, Badge } from "../common/UIPrimitives";
 import {
@@ -49,7 +52,7 @@ export default function StudentSkills() {
 
   const student = currentUser;
 
-  // Tabs: 'skills' | 'invitations'
+  // Tabs: 'skills' | 'courses' | 'exams' | 'invitations'
   const [activeTab, setActiveTab] = useState("skills");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("All");
 
@@ -71,6 +74,31 @@ export default function StudentSkills() {
     preferredEventType: "Any Event"
   });
 
+  // Course Modal State
+  const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
+  const [editingCourseId, setEditingCourseId] = useState(null);
+  const [courseFormData, setCourseFormData] = useState({
+    courseName: "",
+    coursePlatform: "Coursera",
+    courseStatus: "Completed", // 'Completed' | 'Ongoing' | 'Interested'
+    completionDate: "May 2026",
+    certificateUrl: "",
+    certificateName: ""
+  });
+
+  // Exam Modal State
+  const [isExamModalOpen, setIsExamModalOpen] = useState(false);
+  const [editingExamId, setEditingExamId] = useState(null);
+  const [examFormData, setExamFormData] = useState({
+    examName: "GATE",
+    examStatus: "Appeared", // 'Preparing' | 'Registered' | 'Appeared' | 'Qualified'
+    examYear: "2026",
+    examPaper: "Computer Science & IT (CS)",
+    examScore: "",
+    examRank: "",
+    experienceDescription: ""
+  });
+
   // Decline Modal State
   const [declineModalOpen, setDeclineModalOpen] = useState(false);
   const [selectedInvitationId, setSelectedInvitationId] = useState(null);
@@ -82,10 +110,27 @@ export default function StudentSkills() {
   const [selectedCert, setSelectedCert] = useState(null);
 
   // Filter skills for current student
-  const mySkills = studentSkills.filter((s) => s.studentId === student?.id);
+  const mySkillsRaw = studentSkills.filter((s) => s.studentId === student?.id);
+
+  const myGeneralSkills = mySkillsRaw.filter(
+    (s) => s.type !== "course" && s.type !== "exam" && !s.courseStatus && !s.examStatus
+  );
+
   const displayedSkills = selectedCategoryFilter === "All"
-    ? mySkills
-    : mySkills.filter((s) => s.category === selectedCategoryFilter);
+    ? myGeneralSkills
+    : myGeneralSkills.filter((s) => s.category === selectedCategoryFilter);
+
+  const myCourses = mySkillsRaw.filter(
+    (s) => s.type === "course" || Boolean(s.courseStatus) || Boolean(s.courseName)
+  );
+
+  const myExams = mySkillsRaw.filter(
+    (s) =>
+      s.type === "exam" ||
+      Boolean(s.examStatus) ||
+      (s.examName && s.examName.toLowerCase().includes("gate")) ||
+      (s.skill && s.skill.toLowerCase().includes("gate"))
+  );
 
   // Filter invitations for current student
   const myInvitations = eventInvitations.filter((i) => i.studentId === student?.id);
@@ -118,6 +163,139 @@ export default function StudentSkills() {
       preferredEventType: "Any Event"
     });
     setIsModalOpen(true);
+  };
+
+  const handleOpenAddCourse = () => {
+    setEditingCourseId(null);
+    setCourseFormData({
+      courseName: "",
+      coursePlatform: "Coursera",
+      courseStatus: "Completed",
+      completionDate: "May 2026",
+      certificateUrl: "",
+      certificateName: ""
+    });
+    setIsCourseModalOpen(true);
+  };
+
+  const handleOpenEditCourse = (c) => {
+    setEditingCourseId(c.id);
+    setCourseFormData({
+      courseName: c.courseName || c.skill,
+      coursePlatform: c.coursePlatform || "Coursera",
+      courseStatus: c.courseStatus || (c.certificateUrl ? "Completed" : "Ongoing"),
+      completionDate: c.completionDate || "",
+      certificateUrl: c.certificateUrl || "",
+      certificateName: c.certificateName || ""
+    });
+    setIsCourseModalOpen(true);
+  };
+
+  const handleCourseFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (uploadEvent) => {
+      setCourseFormData((prev) => ({
+        ...prev,
+        certificateUrl: uploadEvent.target.result,
+        certificateName: file.name
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmitCourse = (e) => {
+    e.preventDefault();
+    const payload = {
+      studentId: student?.id || "stu-1",
+      studentName: student?.name || "Aditya Shinde",
+      departmentId: student?.departmentId || "dept-vlsi",
+      departmentName: student?.departmentName || "Electronic Engineering (VLSI Design And Technology)",
+      year: student?.year || "Third Year",
+      division: student?.division || "A",
+      rollNo: student?.rollNo || "VL3152",
+      prn: student?.prn || student?.prnNo || "24025331378056",
+      phone: student?.phone || "",
+      email: student?.email || "",
+      type: "course",
+      category: "Course",
+      skill: courseFormData.courseName,
+      courseName: courseFormData.courseName,
+      coursePlatform: courseFormData.coursePlatform,
+      courseStatus: courseFormData.courseStatus,
+      completionDate: courseFormData.completionDate,
+      certificateUrl: courseFormData.certificateUrl,
+      certificateName: courseFormData.certificateName
+    };
+
+    if (editingCourseId) {
+      updateStudentSkill(editingCourseId, payload);
+    } else {
+      addStudentSkill(payload);
+    }
+    setIsCourseModalOpen(false);
+  };
+
+  const handleOpenAddExam = () => {
+    setEditingExamId(null);
+    setExamFormData({
+      examName: "GATE",
+      examStatus: "Appeared",
+      examYear: "2026",
+      examPaper: "Computer Science & IT (CS)",
+      examScore: "",
+      examRank: "",
+      experienceDescription: ""
+    });
+    setIsExamModalOpen(true);
+  };
+
+  const handleOpenEditExam = (g) => {
+    setEditingExamId(g.id);
+    setExamFormData({
+      examName: g.examName || "GATE",
+      examStatus: g.examStatus || "Appeared",
+      examYear: g.examYear || "2026",
+      examPaper: g.examPaper || "Computer Science & IT (CS)",
+      examScore: g.examScore || g.score || "",
+      examRank: g.examRank || g.rank || "",
+      experienceDescription: g.experienceDescription || g.notes || ""
+    });
+    setIsExamModalOpen(true);
+  };
+
+  const handleSubmitExam = (e) => {
+    e.preventDefault();
+    const payload = {
+      studentId: student?.id || "stu-1",
+      studentName: student?.name || "Aditya Shinde",
+      departmentId: student?.departmentId || "dept-vlsi",
+      departmentName: student?.departmentName || "Electronic Engineering (VLSI Design And Technology)",
+      year: student?.year || "Third Year",
+      division: student?.division || "A",
+      rollNo: student?.rollNo || "VL3152",
+      prn: student?.prn || student?.prnNo || "24025331378056",
+      phone: student?.phone || "",
+      email: student?.email || "",
+      type: "exam",
+      category: "Competitive Exam",
+      skill: `${examFormData.examName} (${examFormData.examStatus})`,
+      examName: examFormData.examName,
+      examStatus: examFormData.examStatus,
+      examYear: examFormData.examYear,
+      examPaper: examFormData.examPaper,
+      examScore: examFormData.examScore,
+      examRank: examFormData.examRank,
+      experienceDescription: examFormData.experienceDescription
+    };
+
+    if (editingExamId) {
+      updateStudentSkill(editingExamId, payload);
+    } else {
+      addStudentSkill(payload);
+    }
+    setIsExamModalOpen(false);
   };
 
   const handleOpenEditModal = (skillObj) => {
@@ -269,20 +447,55 @@ export default function StudentSkills() {
           </p>
         </div>
 
-        <button
-          onClick={handleOpenAddModal}
-          className="btn btn-primary btn-lg"
-          style={{
-            background: "linear-gradient(135deg, #4f46e5, #4338ca)",
-            boxShadow: "0 4px 14px rgba(79, 70, 229, 0.4)",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px"
-          }}
-        >
-          <Plus size={18} />
-          <span>Add New Skill</span>
-        </button>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+          <button
+            onClick={handleOpenAddModal}
+            className="btn btn-primary"
+            style={{
+              background: "linear-gradient(135deg, #4f46e5, #4338ca)",
+              boxShadow: "0 4px 14px rgba(79, 70, 229, 0.4)",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              fontWeight: "700"
+            }}
+          >
+            <Plus size={16} />
+            <span>Add Skill</span>
+          </button>
+
+          <button
+            onClick={handleOpenAddCourse}
+            className="btn btn-primary"
+            style={{
+              background: "linear-gradient(135deg, #059669, #10b981)",
+              boxShadow: "0 4px 14px rgba(5, 150, 105, 0.4)",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              fontWeight: "700"
+            }}
+          >
+            <BookOpen size={16} />
+            <span>Add Course</span>
+          </button>
+
+          <button
+            onClick={handleOpenAddExam}
+            className="btn btn-primary"
+            style={{
+              background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+              boxShadow: "0 4px 14px rgba(124, 58, 237, 0.4)",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              fontWeight: "700"
+            }}
+          >
+            <Target size={16} />
+            <span>Add GATE / Exam</span>
+          </button>
+        </div>
       </div>
 
       {/* 2. Privacy & Notice Banner */}
@@ -300,7 +513,7 @@ export default function StudentSkills() {
       >
         <ShieldCheck size={24} style={{ flexShrink: 0 }} />
         <div style={{ fontSize: "0.86rem", lineHeight: "1.5" }}>
-          <strong>Student Privacy Notice:</strong> Your skills and interests may be viewed by authorized college staff (Teachers, HODs, and Principal) for event planning, talent identification, and official college representation. Participation in events remains voluntary.
+          <strong>Student Privacy Notice:</strong> Your skills, course certifications, and GATE examination details are visible to college leadership and the Principal for campus placement and recruitment company matching.
         </div>
       </div>
 
@@ -340,7 +553,7 @@ export default function StudentSkills() {
       </div>
 
       {/* 4. Tab Navigation */}
-      <div style={{ display: "flex", gap: "12px", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "8px" }}>
+      <div style={{ display: "flex", gap: "12px", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "8px", flexWrap: "wrap" }}>
         <button
           onClick={() => setActiveTab("skills")}
           style={{
@@ -358,7 +571,47 @@ export default function StudentSkills() {
           }}
         >
           <Sparkles size={16} />
-          My Skills & Talents ({mySkills.length})
+          My Skills & Languages ({myGeneralSkills.length})
+        </button>
+
+        <button
+          onClick={() => setActiveTab("courses")}
+          style={{
+            background: "none",
+            border: "none",
+            padding: "8px 16px",
+            fontSize: "0.92rem",
+            fontWeight: "700",
+            cursor: "pointer",
+            color: activeTab === "courses" ? "var(--primary-600)" : "var(--text-muted)",
+            borderBottom: activeTab === "courses" ? "3px solid var(--primary-600)" : "3px solid transparent",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px"
+          }}
+        >
+          <BookOpen size={16} />
+          Courses & Certifications ({myCourses.length})
+        </button>
+
+        <button
+          onClick={() => setActiveTab("exams")}
+          style={{
+            background: "none",
+            border: "none",
+            padding: "8px 16px",
+            fontSize: "0.92rem",
+            fontWeight: "700",
+            cursor: "pointer",
+            color: activeTab === "exams" ? "var(--primary-600)" : "var(--text-muted)",
+            borderBottom: activeTab === "exams" ? "3px solid var(--primary-600)" : "3px solid transparent",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px"
+          }}
+        >
+          <Target size={16} />
+          GATE & Competitive Exams ({myExams.length})
         </button>
 
         <button
@@ -592,7 +845,304 @@ export default function StudentSkills() {
         </div>
       )}
 
-      {/* 6. TAB 2: EVENT INVITATIONS */}
+      {/* TAB: COURSES & CERTIFICATIONS */}
+      {activeTab === "courses" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+            <div>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: "800", color: "var(--text-main)" }}>
+                Courses, Certifications & Professional Upskilling
+              </h3>
+              <p style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
+                Keep track of your ongoing courses, completed certifications, and future learning goals.
+              </p>
+            </div>
+            <button
+              onClick={handleOpenAddCourse}
+              className="btn btn-primary"
+              style={{
+                background: "linear-gradient(135deg, #059669, #10b981)",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontWeight: "700"
+              }}
+            >
+              <Plus size={16} /> Add Course / Certification
+            </button>
+          </div>
+
+          {myCourses.length === 0 ? (
+            <div className="card" style={{ padding: "48px 24px", textAlign: "center" }}>
+              <BookOpen size={42} color="var(--text-light)" style={{ margin: "0 auto 12px auto" }} />
+              <h4 style={{ fontSize: "1.1rem", fontWeight: "700" }}>No Courses Added Yet</h4>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.88rem", maxWidth: "420px", margin: "8px auto 16px auto" }}>
+                Add your completed courses, ongoing learning (Coursera, Udemy, NPTEL, etc.), or topics you are interested in.
+              </p>
+              <button
+                onClick={handleOpenAddCourse}
+                className="btn btn-primary"
+                style={{
+                  background: "linear-gradient(135deg, #059669, #10b981)",
+                  margin: "0 auto",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px"
+                }}
+              >
+                <Plus size={16} /> Add First Course
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "20px" }}>
+              {myCourses.map((crs) => (
+                <div
+                  key={crs.id}
+                  className="card"
+                  style={{
+                    padding: "20px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    borderLeft:
+                      crs.courseStatus === "Completed"
+                        ? "4px solid #10b981"
+                        : crs.courseStatus === "Ongoing"
+                        ? "4px solid #f59e0b"
+                        : "4px solid #3b82f6"
+                  }}
+                >
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px" }}>
+                      <div>
+                        <span
+                          style={{
+                            padding: "3px 8px",
+                            borderRadius: "10px",
+                            fontSize: "0.7rem",
+                            fontWeight: "800",
+                            background:
+                              crs.courseStatus === "Completed"
+                                ? "var(--success-bg)"
+                                : crs.courseStatus === "Ongoing"
+                                ? "#fef3c7"
+                                : "#e0f2fe",
+                            color:
+                              crs.courseStatus === "Completed"
+                                ? "var(--success-text)"
+                                : crs.courseStatus === "Ongoing"
+                                ? "#b45309"
+                                : "#0369a1"
+                          }}
+                        >
+                          {crs.courseStatus === "Completed" ? "✅ Completed (Certified)" :
+                           crs.courseStatus === "Ongoing" ? "⏳ Ongoing (In Progress)" : "💡 Interested / Planned"}
+                        </span>
+                        <h4 style={{ fontSize: "1.05rem", fontWeight: "800", color: "var(--text-main)", marginTop: "8px" }}>
+                          {crs.courseName || crs.skill}
+                        </h4>
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: "12px", fontSize: "0.82rem", color: "var(--text-muted)", display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <div>Platform / Provider: <strong style={{ color: "var(--text-main)" }}>{crs.coursePlatform || "Online / College"}</strong></div>
+                      {crs.completionDate && (
+                        <div>Timeline: <strong style={{ color: "var(--text-main)" }}>{crs.completionDate}</strong></div>
+                      )}
+                    </div>
+
+                    {crs.certificateUrl && (
+                      <div style={{ marginTop: "12px" }}>
+                        <button
+                          onClick={() => {
+                            setSelectedCert(crs);
+                            setCertPreviewModalOpen(true);
+                          }}
+                          style={{
+                            background: "var(--bg-surface-secondary)",
+                            border: "1px solid var(--border-subtle)",
+                            borderRadius: "6px",
+                            padding: "4px 8px",
+                            fontSize: "0.74rem",
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            color: "var(--primary-700)",
+                            fontWeight: "600"
+                          }}
+                        >
+                          <FileText size={12} />
+                          <span>View Certificate ({crs.certificateName || "Proof"})</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "16px", paddingTop: "12px", borderTop: "1px solid var(--border-subtle)" }}>
+                    <button
+                      onClick={() => handleOpenEditCourse(crs)}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: "4px" }}
+                      title="Edit Course"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Delete ${crs.courseName || crs.skill}?`)) {
+                          deleteStudentSkill(crs.id);
+                        }
+                      }}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "var(--danger-solid)", padding: "4px" }}
+                      title="Delete Course"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB: GATE & COMPETITIVE EXAMS */}
+      {activeTab === "exams" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+            <div>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: "800", color: "var(--text-main)" }}>
+                GATE & Competitive Examination Records
+              </h3>
+              <p style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
+                Document your competitive exam standing (GATE, CAT, GRE, etc.) for higher studies and technical recruitment.
+              </p>
+            </div>
+            <button
+              onClick={handleOpenAddExam}
+              className="btn btn-primary"
+              style={{
+                background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontWeight: "700"
+              }}
+            >
+              <Plus size={16} /> Add Exam Standing
+            </button>
+          </div>
+
+          {myExams.length === 0 ? (
+            <div className="card" style={{ padding: "48px 24px", textAlign: "center" }}>
+              <Target size={42} color="var(--text-light)" style={{ margin: "0 auto 12px auto" }} />
+              <h4 style={{ fontSize: "1.1rem", fontWeight: "700" }}>No Competitive Exams Registered</h4>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.88rem", maxWidth: "420px", margin: "8px auto 16px auto" }}>
+                Planning to appear for GATE or have already appeared with an AIR rank/score? Log it here to shine on the Principal's recruitment radar.
+              </p>
+              <button
+                onClick={handleOpenAddExam}
+                className="btn btn-primary"
+                style={{
+                  background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+                  margin: "0 auto",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px"
+                }}
+              >
+                <Plus size={16} /> Add GATE / Exam Standing
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "20px" }}>
+              {myExams.map((g) => {
+                const isAppeared = g.examStatus === "Appeared" || g.examStatus === "Qualified";
+                return (
+                  <div
+                    key={g.id}
+                    className="card"
+                    style={{
+                      padding: "20px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      borderLeft: isAppeared ? "4px solid #10b981" : "4px solid #8b5cf6"
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px" }}>
+                        <div>
+                          <span
+                            style={{
+                              padding: "3px 8px",
+                              borderRadius: "10px",
+                              fontSize: "0.7rem",
+                              fontWeight: "800",
+                              background: isAppeared ? "var(--success-bg)" : "#ede9fe",
+                              color: isAppeared ? "var(--success-text)" : "#6d28d9"
+                            }}
+                          >
+                            {isAppeared ? "🏆 Appeared / Qualified" : "🎯 Aspirant (Preparing)"}
+                          </span>
+                          <h4 style={{ fontSize: "1.1rem", fontWeight: "800", color: "var(--text-main)", marginTop: "8px" }}>
+                            {g.examName || "GATE"} {g.examYear}
+                          </h4>
+                          <span style={{ fontSize: "0.78rem", color: "var(--primary-600)", fontWeight: "600" }}>
+                            Paper: {g.examPaper || "Engineering"}
+                          </span>
+                        </div>
+
+                        {g.examRank && (
+                          <span style={{ fontSize: "0.85rem", fontWeight: "800", color: "#059669" }}>
+                            {g.examRank}
+                          </span>
+                        )}
+                      </div>
+
+                      {g.examScore && (
+                        <div style={{ marginTop: "12px", background: "var(--bg-main)", padding: "8px 12px", borderRadius: "8px", display: "inline-block" }}>
+                          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Score / Marks: </span>
+                          <strong style={{ fontSize: "0.95rem", color: "#059669" }}>{g.examScore}</strong>
+                        </div>
+                      )}
+
+                      {g.experienceDescription && (
+                        <p style={{ fontSize: "0.82rem", color: "var(--text-main)", marginTop: "10px", lineHeight: "1.4" }}>
+                          "{g.experienceDescription}"
+                        </p>
+                      )}
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "16px", paddingTop: "12px", borderTop: "1px solid var(--border-subtle)" }}>
+                      <button
+                        onClick={() => handleOpenEditExam(g)}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: "4px" }}
+                        title="Edit Exam"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`Delete ${g.examName || "GATE"}?`)) {
+                            deleteStudentSkill(g.id);
+                          }
+                        }}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--danger-solid)", padding: "4px" }}
+                        title="Delete Exam"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 6. TAB: EVENT INVITATIONS */}
       {activeTab === "invitations" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           {myInvitations.length === 0 ? (
@@ -1012,6 +1562,238 @@ export default function StudentSkills() {
             )}
           </div>
         )}
+      </Modal>
+
+      {/* 10. ADD / EDIT COURSE MODAL */}
+      <Modal
+        isOpen={isCourseModalOpen}
+        onClose={() => setIsCourseModalOpen(false)}
+        title={editingCourseId ? "Update Course & Certification" : "Add Course or Certification"}
+        maxWidth="620px"
+      >
+        <form onSubmit={handleSubmitCourse} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div className="form-group">
+            <label className="form-label">Course or Certification Name *</label>
+            <input
+              type="text"
+              required
+              className="form-control"
+              placeholder="e.g. Full Stack Web Development, AWS Cloud Practitioner, Python for Data Science"
+              value={courseFormData.courseName}
+              onChange={(e) => setCourseFormData({ ...courseFormData, courseName: e.target.value })}
+            />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="form-group">
+              <label className="form-label">Platform / Provider *</label>
+              <select
+                className="form-control"
+                value={courseFormData.coursePlatform}
+                onChange={(e) => setCourseFormData({ ...courseFormData, coursePlatform: e.target.value })}
+              >
+                <option value="Coursera">Coursera</option>
+                <option value="Udemy">Udemy</option>
+                <option value="NPTEL / Swayam">NPTEL / Swayam</option>
+                <option value="edX">edX</option>
+                <option value="LinkedIn Learning">LinkedIn Learning</option>
+                <option value="College / Dept Program">College / Dept Program</option>
+                <option value="Vendor Certified (AWS/Cisco/Oracle)">Vendor Certified (AWS, Cisco, Oracle, RedHat)</option>
+                <option value="Other">Other Platform</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Course Status *</label>
+              <select
+                className="form-control"
+                value={courseFormData.courseStatus}
+                onChange={(e) => setCourseFormData({ ...courseFormData, courseStatus: e.target.value })}
+              >
+                <option value="Completed">✅ Completed (Certified - Zala ahe)</option>
+                <option value="Ongoing">⏳ Ongoing (In Progress - Chalu ahe)</option>
+                <option value="Interested">💡 Interested (Planned - Karaycha ahe)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              {courseFormData.courseStatus === "Completed" ? "Completion Date / Year" : "Expected Completion / Planned Date"}
+            </label>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="e.g. May 2026 or Ongoing"
+              value={courseFormData.completionDate}
+              onChange={(e) => setCourseFormData({ ...courseFormData, completionDate: e.target.value })}
+            />
+          </div>
+
+          {/* Certificate / Proof Upload */}
+          <div className="form-group">
+            <label className="form-label">Certificate / Proof (Optional)</label>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                id="course-cert-upload"
+                style={{ display: "none" }}
+                onChange={handleCourseFileUpload}
+              />
+              <label
+                htmlFor="course-cert-upload"
+                className="btn btn-secondary"
+                style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}
+              >
+                <Upload size={16} />
+                <span>{courseFormData.certificateName ? "Change Certificate" : "Upload Certificate"}</span>
+              </label>
+              {courseFormData.certificateName && (
+                <span style={{ fontSize: "0.82rem", color: "var(--success-text)", fontWeight: "600" }}>
+                  ✓ {courseFormData.certificateName}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setIsCourseModalOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              style={{ background: "linear-gradient(135deg, #059669, #10b981)" }}
+            >
+              {editingCourseId ? "Update Course" : "Save Course Profile"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* 11. ADD / EDIT GATE & EXAM MODAL */}
+      <Modal
+        isOpen={isExamModalOpen}
+        onClose={() => setIsExamModalOpen(false)}
+        title={editingExamId ? "Update Exam Standing" : "Add GATE / Competitive Exam Standing"}
+        maxWidth="620px"
+      >
+        <form onSubmit={handleSubmitExam} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="form-group">
+              <label className="form-label">Exam Name *</label>
+              <select
+                className="form-control"
+                value={examFormData.examName}
+                onChange={(e) => setExamFormData({ ...examFormData, examName: e.target.value })}
+              >
+                <option value="GATE">GATE (Graduate Aptitude Test in Engineering)</option>
+                <option value="CAT">CAT (Common Admission Test - IIM)</option>
+                <option value="GRE">GRE (Graduate Record Examinations)</option>
+                <option value="MPSC / UPSC">MPSC / UPSC Engineering Services</option>
+                <option value="Other Exam">Other Competitive Exam</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Candidate Status *</label>
+              <select
+                className="form-control"
+                value={examFormData.examStatus}
+                onChange={(e) => setExamFormData({ ...examFormData, examStatus: e.target.value })}
+              >
+                <option value="Appeared">🏆 Appeared / Qualified (Exam dili ahe)</option>
+                <option value="Preparing">🎯 Aspirant (Preparing - Exam dyaychi ahe)</option>
+                <option value="Registered">📝 Registered (Admit Card received)</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="form-group">
+              <label className="form-label">Exam Target / Given Year *</label>
+              <input
+                type="text"
+                required
+                className="form-control"
+                placeholder="e.g. 2026, 2027"
+                value={examFormData.examYear}
+                onChange={(e) => setExamFormData({ ...examFormData, examYear: e.target.value })}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Subject / Discipline Paper *</label>
+              <input
+                type="text"
+                required
+                className="form-control"
+                placeholder="e.g. Computer Science (CS), Electronics & Comm (EC), Data Science & AI (DA)"
+                value={examFormData.examPaper}
+                onChange={(e) => setExamFormData({ ...examFormData, examPaper: e.target.value })}
+              />
+            </div>
+          </div>
+
+          {examFormData.examStatus === "Appeared" && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+              <div className="form-group">
+                <label className="form-label">Score / Marks Obtained</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. 710 / 1000 or 58.4 Marks"
+                  value={examFormData.examScore}
+                  onChange={(e) => setExamFormData({ ...examFormData, examScore: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">All India Rank (AIR) / Percentile</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. AIR 312 or 98.4 Percentile"
+                  value={examFormData.examRank}
+                  onChange={(e) => setExamFormData({ ...examFormData, examRank: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="form-group">
+            <label className="form-label">Preparation Notes / Coaching / Higher Study Ambition</label>
+            <textarea
+              className="form-control"
+              rows="3"
+              placeholder="e.g. Self-preparing with standard textbooks and test series. Aiming for IIT M.Tech or PSU recruitment."
+              value={examFormData.experienceDescription}
+              onChange={(e) => setExamFormData({ ...examFormData, experienceDescription: e.target.value })}
+            />
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setIsExamModalOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)" }}
+            >
+              {editingExamId ? "Update Exam Record" : "Save Exam Record"}
+            </button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

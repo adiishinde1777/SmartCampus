@@ -25,7 +25,8 @@ import {
   FileText,
   HelpCircle,
   Activity,
-  Library
+  Library,
+  Briefcase
 } from "lucide-react";
 
 export default function Sidebar({ currentView, setCurrentView, isMobileOpen, setIsMobileOpen }) {
@@ -143,6 +144,7 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
       case "principal":
         return [
           { id: "dashboard", label: "Principal Dashboard", icon: LayoutDashboard },
+          { id: "placement-skills", label: "Industry & Placement Radar", icon: Briefcase, highlight: true },
           { id: "college-talent", label: "College Talent Overview", icon: BarChart3, highlight: true },
           { id: "departments", label: "Departments", icon: Building2 },
           { id: "attendance-analytics", label: "Attendance Analytics", icon: CalendarCheck },

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useSmartCampus } from "../../context/SmartCampusContext";
 import {
   Building2,
@@ -13,7 +13,10 @@ import {
   Layers,
   ArrowRight,
   ShieldCheck,
-  Sparkles
+  Sparkles,
+  Briefcase,
+  Target,
+  Code2
 } from "lucide-react";
 import { StatCard, Badge } from "../common/UIPrimitives";
 
@@ -67,17 +70,39 @@ export default function PrincipalDashboard({ onNavigate }) {
           </p>
         </div>
 
-        <button
-          onClick={() => onNavigate("drilldown")}
-          className="btn btn-primary btn-lg"
-          style={{
-            background: "linear-gradient(135deg, #e11d48, #be123c)",
-            boxShadow: "0 4px 14px rgba(225, 29, 72, 0.4)"
-          }}
-        >
-          <Layers size={18} />
-          <span>Launch College Drill-Down</span>
-        </button>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+          <button
+            onClick={() => onNavigate("placement-skills")}
+            className="btn btn-primary btn-lg"
+            style={{
+              background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
+              boxShadow: "0 4px 14px rgba(79, 70, 229, 0.4)",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              fontWeight: "700"
+            }}
+          >
+            <Briefcase size={18} />
+            <span>Industry & Placement Radar</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate("drilldown")}
+            className="btn btn-secondary btn-lg"
+            style={{
+              background: "rgba(255,255,255,0.15)",
+              color: "white",
+              border: "1px solid rgba(255,255,255,0.25)",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px"
+            }}
+          >
+            <Layers size={18} />
+            <span>Launch College Drill-Down</span>
+          </button>
+        </div>
       </div>
 
       {/* Principal College Department View Option Bar */}
