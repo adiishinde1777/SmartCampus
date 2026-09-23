@@ -465,7 +465,7 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
               </div>
             </div>
 
-            {/* Mobile Phone Number (Direct, No OTP Required) */}
+            {/* Mobile Phone Number */}
             <div className="form-group" style={{ marginTop: "14px" }}>
               <label className="form-label" style={{ fontWeight: "700", display: "flex", alignItems: "center", gap: "6px" }}>
                 <Smartphone size={16} color="#4f46e5" />
