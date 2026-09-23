@@ -1017,6 +1017,11 @@ export function SmartCampusProvider({ children }) {
 
     const audit = logAudit("Raised Complaint Ticket", `${ticketNo}: ${complaintData.title} (${complaintData.location})`, "Complaints");
 
+    // Persist complaint ticket to Firebase Firestore
+    saveDocToFirestore(FIRESTORE_COLLECTIONS.COMPLAINTS, newComplaint.id, newComplaint).catch((err) =>
+      console.warn('[Firestore Complaint Sync Warning]', err.message)
+    );
+
     setState((prev) => ({
       ...prev,
       complaints: [newComplaint, ...prev.complaints],
