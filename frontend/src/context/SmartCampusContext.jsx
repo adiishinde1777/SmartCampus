@@ -2279,6 +2279,11 @@ export function SmartCampusProvider({ children }) {
       type: "skill"
     };
 
+    // Persist skill profile to Firebase Firestore
+    saveDocToFirestore(FIRESTORE_COLLECTIONS.STUDENT_SKILLS, newSkill.id, newSkill).catch((err) =>
+      console.warn('[Firestore Skill Sync Warning]', err.message)
+    );
+
     setState((prev) => ({
       ...prev,
       studentSkills: [newSkill, ...prev.studentSkills],
@@ -2301,6 +2306,7 @@ export function SmartCampusProvider({ children }) {
   };
 
   const deleteStudentSkill = (skillId) => {
+    deleteDocFromFirestore(FIRESTORE_COLLECTIONS.STUDENT_SKILLS, skillId).catch(() => {});
     setState((prev) => ({
       ...prev,
       studentSkills: prev.studentSkills.filter((s) => s.id !== skillId)
@@ -2336,6 +2342,11 @@ export function SmartCampusProvider({ children }) {
       deliveryStatus: "Delivered",
       type: "event"
     };
+
+    // Persist event to Firebase Firestore
+    saveDocToFirestore(FIRESTORE_COLLECTIONS.COLLEGE_EVENTS, newEvent.id, newEvent).catch((err) =>
+      console.warn('[Firestore Event Sync Warning]', err.message)
+    );
 
     setState((prev) => ({
       ...prev,
