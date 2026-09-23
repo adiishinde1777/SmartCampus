@@ -229,14 +229,45 @@ export function SmartCampusProvider({ children }) {
     const pass = (password || "").trim();
     const cleanDigits = input.replace(/\D/g, "").slice(-10);
 
-    // Parent login guard: if parent attempts login before Class Teacher sets password
-    if (selectedRole === "parent") {
-      const parentRecord = state.users.find((u) => {
-        if (u.role !== "parent") return false;
+    const findCandidate = (userList) => {
+      return (userList || []).find((u) => {
+        if (selectedRole && u.role !== selectedRole) return false;
         const uPhone = (u.phone || "").replace(/\D/g, "").slice(-10);
-        return (cleanDigits && uPhone === cleanDigits) || u.phone === input;
+        const uParentPhone = (u.parentPhone || "").replace(/\D/g, "").slice(-10);
+
+        return (
+          (cleanDigits && (uPhone === cleanDigits || uParentPhone === cleanDigits)) ||
+          (u.prn && u.prn.toLowerCase() === input.toLowerCase()) ||
+          (u.rollNo && u.rollNo.toLowerCase() === input.toLowerCase()) ||
+          (u.email && u.email.toLowerCase() === input.toLowerCase()) ||
+          (selectedRole === "admin" && input.toLowerCase() === "admin") ||
+          (u.id && u.id.toLowerCase() === input.toLowerCase()) ||
+          u.phone === input
+        );
       });
-      if (parentRecord && (!parentRecord.password || parentRecord.canLogin === false)) {
+    };
+
+    let candidate = findCandidate(state.users);
+    if (!candidate) {
+      try {
+        const firestoreUsers = await getAllUsersFromFirestore();
+        if (Array.isArray(firestoreUsers) && firestoreUsers.length > 0) {
+          candidate = findCandidate(firestoreUsers);
+          if (candidate) {
+            setState((prev) => ({
+              ...prev,
+              users: deduplicateUsers([...prev.users, ...firestoreUsers])
+            }));
+          }
+        }
+      } catch (fsErr) {
+        console.warn("[Firestore fallback check notice]", fsErr.message);
+      }
+    }
+
+    // Parent login rule: password must not be null/empty
+    if (selectedRole === "parent" && candidate) {
+      if (!candidate.password || candidate.canLogin === false) {
         return {
           success: false,
           message: "पालक लॉगिन पासवर्ड अद्याप वर्गशिक्षकांनी (Class Teacher) सेट केलेला नाही. कृपया वर्गशिक्षकांशी संपर्क साधा. (Parent login password has not been assigned by the Class Teacher yet. Please contact Class Teacher)."
@@ -244,37 +275,22 @@ export function SmartCampusProvider({ children }) {
       }
     }
 
-    // Check if user exists in local client state
-    const localUser = state.users.find((u) => {
-      if (selectedRole && u.role !== selectedRole) return false;
-      const uPhone = (u.phone || "").replace(/\D/g, "").slice(-10);
-      const uParentPhone = (u.parentPhone || "").replace(/\D/g, "").slice(-10);
-
-      const matchIdentifier =
-        (cleanDigits && (uPhone === cleanDigits || uParentPhone === cleanDigits)) ||
-        u.prn === input ||
-        u.rollNo === input ||
-        (u.email && u.email.toLowerCase() === input.toLowerCase()) ||
-        (selectedRole === "admin" && input.toLowerCase() === "admin") ||
-        u.phone === input;
-
-      if (!matchIdentifier) return false;
-
-      // For parents: Password must be explicitly assigned by Teacher
-      if (selectedRole === "parent") {
-        if (!u.password || u.canLogin === false) return false;
-        return u.password === pass;
+    const isPasswordValid = (user, enteredPass) => {
+      if (!user) return false;
+      if (user.role === "admin") {
+        return enteredPass === "admin123" || user.password === enteredPass;
       }
-
+      if (user.role === "parent") {
+        return Boolean(user.password && user.password === enteredPass);
+      }
       // If user did not provide a password, allow direct mobile login!
-      if (!pass) return true;
+      if (!enteredPass) return true;
+      if (user.password === enteredPass) return true;
+      if (user.dob && (user.dob === enteredPass || user.dob.replace(/\D/g, "") === enteredPass.replace(/\D/g, ""))) return true;
+      return false;
+    };
 
-      // If password provided, verify it
-      if (selectedRole === "admin") {
-        return pass === "admin123" || u.password === pass;
-      }
-      return u.password === pass || u.dob === pass || (u.dob && u.dob.replace(/\D/g, "") === pass.replace(/\D/g, ""));
-    });
+    const localUser = candidate && isPasswordValid(candidate, pass) ? candidate : null;
 
     const triggerLoginSms = (loggedUser) => {
       const targetPhone = loggedUser.phone || loggedUser.parentPhone || "7378535499";
@@ -299,82 +315,96 @@ export function SmartCampusProvider({ children }) {
       return loginSms;
     };
 
+    let backendResponse = null;
+    let backendError = null;
+
     try {
-      const res = await api.login({ username: input, password: pass, role: selectedRole, cachedUser: localUser });
-      if (res.success && res.user) {
-        const smsRecord = triggerLoginSms(res.user);
-        setState((prev) => ({
-          ...prev,
-          currentUser: res.user,
-          activeRole: res.user.role,
-          smsLogs: [smsRecord, ...(prev.smsLogs || [])]
-        }));
-        addToast("Login Successful", `Welcome back, ${res.user.name}!`, "success");
-        addToast("📱 SMS Alert Dispatched", `Sent to +91 ${res.user.phone || "registered mobile"}: Sign-in confirmed with Username & Password.`, "info", 5000);
-        return { success: true, user: res.user };
-      }
-      return { success: false, message: res.message || "Invalid credentials." };
+      backendResponse = await api.login({ username: input, password: pass, role: selectedRole, cachedUser: localUser });
     } catch (err) {
-      const isNetworkError = err?.message && (
-        err.message.includes("fetch") ||
-        err.message.includes("Network") ||
-        err.message.includes("Failed to") ||
-        err.message.includes("ECONNREFUSED")
-      );
+      backendError = err;
+    }
 
-      // If backend explicitly rejected (e.g. 401 wrong password, 403 parent password not set, 404 user not found):
-      // Return that exact error to the user!
-      if (!isNetworkError) {
-        return {
-          success: false,
-          message: err.message || "Invalid credentials. Please try again."
-        };
-      }
+    if (backendResponse && backendResponse.success && backendResponse.user) {
+      const smsRecord = triggerLoginSms(backendResponse.user);
+      setState((prev) => ({
+        ...prev,
+        currentUser: backendResponse.user,
+        activeRole: backendResponse.user.role,
+        smsLogs: [smsRecord, ...(prev.smsLogs || [])]
+      }));
+      addToast("Login Successful", `Welcome back, ${backendResponse.user.name}!`, "success");
+      addToast("📱 SMS Alert Dispatched", `Sent to +91 ${backendResponse.user.phone || "registered mobile"}: Sign-in confirmed with Username & Password.`, "info", 5000);
+      return { success: true, user: backendResponse.user };
+    }
 
-      // Offline fallback only for real network outage:
-      if (localUser) {
-        if (selectedRole === "parent" && (!localUser.password || localUser.canLogin === false)) {
-          return {
-            success: false,
-            message: "पालक लॉगिन पासवर्ड अद्याप वर्गशिक्षकांनी (Class Teacher) सेट केलेला नाही. कृपया वर्गशिक्षकांशी संपर्क साधा. (Parent login password has not been assigned by Class Teacher yet.)"
-          };
-        }
+    // If backend explicitly rejected due to parent password not set:
+    if (backendError && backendError.status === 403) {
+      return {
+        success: false,
+        message: backendError.message || "पालक लॉगिन पासवर्ड अद्याप वर्गशिक्षकांनी (Class Teacher) सेट केलेला नाही. कृपया वर्गशिक्षकांशी संपर्क साधा."
+      };
+    }
 
-        const smsRecord = triggerLoginSms(localUser);
-        setState((prev) => ({
-          ...prev,
-          currentUser: localUser,
-          activeRole: localUser.role,
-          smsLogs: [smsRecord, ...(prev.smsLogs || [])]
-        }));
-        addToast("Login Successful", `Welcome back, ${localUser.name}! (Offline mode)`, "info");
-        addToast("📱 SMS Alert Dispatched", `Sent to +91 ${localUser.phone || "registered mobile"}: Sign-in confirmed with Username & Password.`, "info", 5000);
-        return { success: true, user: localUser };
-      }
+    // If backend explicitly rejected due to incorrect password and backend user exists:
+    if (backendError && backendError.status === 401 && !localUser) {
+      return {
+        success: false,
+        message: backendError.message || "Incorrect Password. Please check your credentials."
+      };
+    }
 
+    // If backend is unavailable (HTTP 405 on Vercel static hosting, 404, 502, 503, or offline network error):
+    // Fallback safely to client / Firestore credentials verification!
+    if (localUser) {
+      const smsRecord = triggerLoginSms(localUser);
+      setState((prev) => ({
+        ...prev,
+        currentUser: localUser,
+        activeRole: localUser.role,
+        smsLogs: [smsRecord, ...(prev.smsLogs || [])]
+      }));
+      addToast("Login Successful", `Welcome back, ${localUser.name}!`, "success");
+      addToast("📱 SMS Alert Dispatched", `Sent to +91 ${localUser.phone || "registered mobile"}: Sign-in confirmed with Username & Password.`, "info", 5000);
+      return { success: true, user: localUser };
+    }
+
+    // If candidate was found, but password did not match:
+    if (candidate) {
       if (selectedRole === "parent") {
         return {
           success: false,
-          message: "No registered student/ward found with this Parent Mobile Number. Please verify your mobile number or enroll first via Student Enrollment Form."
-        };
-      }
-      if (selectedRole === "student") {
-        return {
-          success: false,
-          message: "No registered student found with this PRN / Birthdate. Please verify your credentials or enroll via Student Enrollment Form."
-        };
-      }
-      if (selectedRole === "admin") {
-        return {
-          success: false,
-          message: "Invalid Administrator credentials. Default credentials: admin / admin123."
+          message: "Incorrect Parent Password. Please enter the password provided by your ward's Class Teacher."
         };
       }
       return {
         success: false,
-        message: "Invalid credentials. Please verify your mobile number and date of birth."
+        message: "Incorrect Password. Please verify your credentials or enter your Date of Birth."
       };
     }
+
+    // If candidate was not found anywhere:
+    if (selectedRole === "parent") {
+      return {
+        success: false,
+        message: "No registered student/ward found with this Parent Mobile Number. Please verify your mobile number or enroll first via Student Enrollment Form."
+      };
+    }
+    if (selectedRole === "student") {
+      return {
+        success: false,
+        message: "No registered student found with this PRN / Mobile Number. Please verify your credentials or enroll via Student Enrollment Form."
+      };
+    }
+    if (selectedRole === "admin") {
+      return {
+        success: false,
+        message: "Invalid Administrator credentials. Default credentials: admin / admin123."
+      };
+    }
+    return {
+      success: false,
+      message: `No ${selectedRole} account found with these credentials. Please check your mobile number or register first.`
+    };
   };
 
   const logout = () => {

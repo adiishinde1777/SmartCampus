@@ -30,7 +30,10 @@ async function request(endpoint, options = {}) {
 
     if (!response.ok) {
       const errMsg = data?.message || `Request failed with status ${response.status}`;
-      throw new Error(errMsg);
+      const error = new Error(errMsg);
+      error.status = response.status;
+      error.data = data;
+      throw error;
     }
 
     return data || { success: true };
