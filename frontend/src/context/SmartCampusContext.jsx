@@ -629,6 +629,13 @@ export function SmartCampusProvider({ children }) {
       }).catch((err) => console.warn('[MySQL Marks Sync Warning]', err.message));
     });
 
+    // Persist student marks records to Firebase Firestore
+    newMarks.slice(0, marksRecords.length).forEach((m) => {
+      saveDocToFirestore(FIRESTORE_COLLECTIONS.MARKS, m.id, m).catch((err) =>
+        console.warn('[Firestore Marks Sync Warning]', err.message)
+      );
+    });
+
     setState((prev) => ({
       ...prev,
       marks: newMarks,
