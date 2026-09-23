@@ -27,8 +27,8 @@ export default function TeacherAttendance({ onNavigate }) {
   } = useSmartCampus();
 
   const [selectedDept, setSelectedDept] = useState("dept-vlsi");
-  const [selectedClass, setSelectedClass] = useState("TE VLSI – Semester 5 (3rd Year)");
-  const [selectedBatch, setSelectedBatch] = useState("all"); // 'all' | 'TA1' | 'TA2'
+  const [selectedYear, setSelectedYear] = useState("3rd Year");
+  const [selectedDivision, setSelectedDivision] = useState("all");
   const [selectedSubject, setSelectedSubject] = useState("sub-vlsi501");
   const [sessionType, setSessionType] = useState("Theory"); // 'Theory' | 'Practical'
   const [lectureNum, setLectureNum] = useState(14);
@@ -36,47 +36,51 @@ export default function TeacherAttendance({ onNavigate }) {
   const [lectureTime, setLectureTime] = useState("10:00 AM");
   const [isSheetLoaded, setIsSheetLoaded] = useState(false);
 
-  // Get enrolled students sorted in ascending Roll Number order
-  // Supports 2nd Year (SE VLSI), 3rd Year (TE VLSI), and Final Year (BE VLSI)
+  const currentDeptObj = (departments || []).find((d) => d.id === selectedDept);
+  const availableDivisions = currentDeptObj?.divisions || ["A"];
+
+  // Filter students dynamically based on Department, Academic Year, and Division
   const enrolledStudents = users
     .filter((u) => {
       if (u.role !== "student") return false;
-      if (u.departmentId !== selectedDept) return false;
-      if (selectedDept === "dept-vlsi") {
-        if (selectedClass.includes("2nd Year") || selectedClass.includes("SE")) {
-          if (!(u.semester === 3 || u.semester === 4 || u.year?.includes("Second") || u.className?.includes("SE") || u.batch?.includes("SE"))) return false;
-        } else if (selectedClass.includes("Final Year") || selectedClass.includes("BE")) {
-          if (!(u.semester === 7 || u.semester === 8 || u.year?.includes("Final") || u.className?.includes("BE") || u.batch?.includes("BE"))) return false;
-        } else {
-          // 3rd Year (TE)
-          if (!(u.semester === 5 || u.semester === 6 || u.year?.includes("Third") || u.className?.includes("TE") || u.batch?.includes("TE"))) return false;
-        }
-        if (selectedBatch === "TA1" && u.batch !== "TA1" && u.batch !== "SA1" && u.batch !== "BA1") return false;
-        if (selectedBatch === "TA2" && u.batch !== "TA2" && u.batch !== "SA2" && u.batch !== "BA2") return false;
+      if (u.departmentId && selectedDept && u.departmentId !== selectedDept) return false;
+      
+      // Match Academic Year
+      if (selectedYear === "1st Year") {
+        if (!(u.year === "1st Year" || u.semester === 1 || u.semester === 2 || u.className?.includes("FE"))) return false;
+      } else if (selectedYear === "2nd Year") {
+        if (!(u.year === "2nd Year" || u.semester === 3 || u.semester === 4 || u.year?.includes("Second") || u.className?.includes("SE") || u.batch?.includes("SE"))) return false;
+      } else if (selectedYear === "4th Year") {
+        if (!(u.year === "4th Year" || u.semester === 7 || u.semester === 8 || u.year?.includes("Final") || u.className?.includes("BE") || u.batch?.includes("BE"))) return false;
+      } else if (selectedYear === "3rd Year") {
+        if (!(u.year === "3rd Year" || u.semester === 5 || u.semester === 6 || u.year?.includes("Third") || u.className?.includes("TE") || u.batch?.includes("TE"))) return false;
+      }
+
+      // Match Division
+      if (selectedDivision !== "all") {
+        if (u.division && u.division !== selectedDivision) return false;
       }
       return true;
     })
     .sort((a, b) => (a.rollNo || "").localeCompare(b.rollNo || ""));
 
   // Status map: { [studentId]: "Present" | "Absent" }
-  // By default in demo flow, let's have Aditya Shinde set as "Absent" or "Present" ready to toggle!
   const [statusMap, setStatusMap] = useState(() => {
     const map = {};
     enrolledStudents.forEach((stu) => {
-      // Default Aditya Shinde (stu-1) to Absent to make demo immediately ready!
       map[stu.id] = stu.id === "stu-1" ? "Absent" : "Present";
     });
     return map;
   });
 
-  // Re-sync statusMap when department/class/batch filter changes
+  // Re-sync statusMap when department/year/division filter changes
   useEffect(() => {
     const map = {};
     enrolledStudents.forEach((stu) => {
       map[stu.id] = stu.id === "stu-1" ? "Absent" : "Present";
     });
     setStatusMap(map);
-  }, [selectedDept, selectedClass, selectedBatch]);
+  }, [selectedDept, selectedYear, selectedDivision]);
 
   const [submissionResult, setSubmissionResult] = useState(null);
 
@@ -163,39 +167,33 @@ export default function TeacherAttendance({ onNavigate }) {
           </div>
 
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label">2. Class / Academic Year</label>
+            <label className="form-label">2. Academic Year</label>
             <select
               className="form-control"
-              value={selectedClass}
+              value={selectedYear}
               onChange={(e) => {
-                setSelectedClass(e.target.value);
+                setSelectedYear(e.target.value);
                 setIsSheetLoaded(false);
               }}
-              disabled={selectedDept !== "dept-vlsi"}
             >
-              {selectedDept === "dept-vlsi" ? (
-                <>
-                  <option value="TE VLSI – Semester 5 (3rd Year)">3rd Year (TE VLSI – Sem 5 & 6)</option>
-                  <option value="SE VLSI – Semester 3 (2nd Year)">2nd Year (SE VLSI – Sem 3 & 4)</option>
-                  <option value="BE VLSI – Semester 7 (Final Year)">Final Year (BE VLSI – Sem 7 & 8)</option>
-                </>
-              ) : (
-                <option value="">No Active Class (Roster Empty)</option>
-              )}
+              <option value="1st Year">1st Year (FE – Sem 1 & 2)</option>
+              <option value="2nd Year">2nd Year (SE – Sem 3 & 4)</option>
+              <option value="3rd Year">3rd Year (TE – Sem 5 & 6)</option>
+              <option value="4th Year">4th Year (BE – Sem 7 & 8)</option>
             </select>
           </div>
 
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label">Batch Filter</label>
+            <label className="form-label">Division Filter</label>
             <select
               className="form-control"
-              value={selectedBatch}
-              onChange={(e) => setSelectedBatch(e.target.value)}
-              disabled={selectedDept !== "dept-vlsi"}
+              value={selectedDivision}
+              onChange={(e) => setSelectedDivision(e.target.value)}
             >
-              <option value="all">All Students (72 Enrolled)</option>
-              <option value="TA1">Batch TA1 (Roll VL3101 to VL3136)</option>
-              <option value="TA2">Batch TA2 (Roll VL3137 to VL3172)</option>
+              <option value="all">All Divisions</option>
+              {availableDivisions.map((div) => (
+                <option key={div} value={div}>Division {div}</option>
+              ))}
             </select>
           </div>
 

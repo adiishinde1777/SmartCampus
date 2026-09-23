@@ -16,14 +16,17 @@ export default function TeacherMarks() {
   const { subjects, users, departments, submitMarks, switchUser } = useSmartCampus();
 
   const [selectedDept, setSelectedDept] = useState("dept-vlsi");
-  const [selectedClass, setSelectedClass] = useState("TE VLSI – Semester 5 (3rd Year)");
-  const [selectedBatch, setSelectedBatch] = useState("all");
+  const [selectedYear, setSelectedYear] = useState("3rd Year");
+  const [selectedDivision, setSelectedDivision] = useState("all");
   const [selectedSubject, setSelectedSubject] = useState("sub-vlsi501");
   const [category, setCategory] = useState("Theory"); // "Theory" | "Practical"
   const [examType, setExamType] = useState("Class Test 1 (CT-1)");
   const [maxMarks, setMaxMarks] = useState(25);
   const [remarks, setRemarks] = useState("Class Test 1 evaluated and published.");
   const [isMarksLoaded, setIsMarksLoaded] = useState(false);
+
+  const currentDeptObj = (departments || []).find((d) => d.id === selectedDept);
+  const availableDivisions = currentDeptObj?.divisions || ["A"];
 
   // Pre-configured assessment lists
   const theoryExams = [
@@ -67,18 +70,22 @@ export default function TeacherMarks() {
   const enrolledStudents = users
     .filter((u) => {
       if (u.role !== "student") return false;
-      if (u.departmentId !== selectedDept) return false;
-      if (selectedDept === "dept-vlsi") {
-        if (selectedClass.includes("2nd Year") || selectedClass.includes("SE")) {
-          if (!(u.semester === 3 || u.semester === 4 || u.year?.includes("Second") || u.className?.includes("SE") || u.batch?.includes("SE"))) return false;
-        } else if (selectedClass.includes("Final Year") || selectedClass.includes("BE")) {
-          if (!(u.semester === 7 || u.semester === 8 || u.year?.includes("Final") || u.className?.includes("BE") || u.batch?.includes("BE"))) return false;
-        } else {
-          // 3rd Year (TE)
-          if (!(u.semester === 5 || u.semester === 6 || u.year?.includes("Third") || u.className?.includes("TE") || u.batch?.includes("TE"))) return false;
-        }
-        if (selectedBatch === "TA1" && u.batch !== "TA1" && u.batch !== "SA1" && u.batch !== "BA1") return false;
-        if (selectedBatch === "TA2" && u.batch !== "TA2" && u.batch !== "SA2" && u.batch !== "BA2") return false;
+      if (u.departmentId && selectedDept && u.departmentId !== selectedDept) return false;
+      
+      // Match Academic Year
+      if (selectedYear === "1st Year") {
+        if (!(u.year === "1st Year" || u.semester === 1 || u.semester === 2 || u.className?.includes("FE"))) return false;
+      } else if (selectedYear === "2nd Year") {
+        if (!(u.year === "2nd Year" || u.semester === 3 || u.semester === 4 || u.year?.includes("Second") || u.className?.includes("SE") || u.batch?.includes("SE"))) return false;
+      } else if (selectedYear === "4th Year") {
+        if (!(u.year === "4th Year" || u.semester === 7 || u.semester === 8 || u.year?.includes("Final") || u.className?.includes("BE") || u.batch?.includes("BE"))) return false;
+      } else if (selectedYear === "3rd Year") {
+        if (!(u.year === "3rd Year" || u.semester === 5 || u.semester === 6 || u.year?.includes("Third") || u.className?.includes("TE") || u.batch?.includes("TE"))) return false;
+      }
+
+      // Match Division
+      if (selectedDivision !== "all") {
+        if (u.division && u.division !== selectedDivision) return false;
       }
       return true;
     })
@@ -102,7 +109,7 @@ export default function TeacherMarks() {
     });
     if (marksMap["stu-1"]) map["stu-1"] = marksMap["stu-1"];
     setMarksMap(map);
-  }, [selectedDept, selectedBatch, selectedClass]);
+  }, [selectedDept, selectedYear, selectedDivision]);
 
   const [resultModalOpen, setResultModalOpen] = useState(false);
 
@@ -295,39 +302,33 @@ export default function TeacherMarks() {
           </div>
 
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label">Class / Academic Year</label>
+            <label className="form-label">Academic Year</label>
             <select
               className="form-control"
-              value={selectedClass}
+              value={selectedYear}
               onChange={(e) => {
-                setSelectedClass(e.target.value);
+                setSelectedYear(e.target.value);
                 setIsMarksLoaded(false);
               }}
-              disabled={selectedDept !== "dept-vlsi"}
             >
-              {selectedDept === "dept-vlsi" ? (
-                <>
-                  <option value="TE VLSI – Semester 5 (3rd Year)">3rd Year (TE VLSI – Sem 5 & 6)</option>
-                  <option value="SE VLSI – Semester 3 (2nd Year)">2nd Year (SE VLSI – Sem 3 & 4)</option>
-                  <option value="BE VLSI – Semester 7 (Final Year)">Final Year (BE VLSI – Sem 7 & 8)</option>
-                </>
-              ) : (
-                <option value="">No Active Class (Roster Empty)</option>
-              )}
+              <option value="1st Year">1st Year (FE – Sem 1 & 2)</option>
+              <option value="2nd Year">2nd Year (SE – Sem 3 & 4)</option>
+              <option value="3rd Year">3rd Year (TE – Sem 5 & 6)</option>
+              <option value="4th Year">4th Year (BE – Sem 7 & 8)</option>
             </select>
           </div>
 
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label">Batch Filter</label>
+            <label className="form-label">Division Filter</label>
             <select
               className="form-control"
-              value={selectedBatch}
-              onChange={(e) => setSelectedBatch(e.target.value)}
-              disabled={selectedDept !== "dept-vlsi"}
+              value={selectedDivision}
+              onChange={(e) => setSelectedDivision(e.target.value)}
             >
-              <option value="all">All Students (72 Enrolled)</option>
-              <option value="TA1">Batch TA1 (Roll VL3101 to VL3136)</option>
-              <option value="TA2">Batch TA2 (Roll VL3137 to VL3172)</option>
+              <option value="all">All Divisions</option>
+              {availableDivisions.map((div) => (
+                <option key={div} value={div}>Division {div}</option>
+              ))}
             </select>
           </div>
 

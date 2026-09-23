@@ -1737,16 +1737,22 @@ export function AdminDepartments() {
 
   const handleOpenEdit = (dept) => {
     setEditingDept(dept);
-    setEditFormData({ ...dept });
+    setEditFormData({
+      ...dept,
+      divisionCount: dept.divisions ? dept.divisions.length : 1
+    });
   };
 
   const handleSaveEdit = (e) => {
     e.preventDefault();
     if (!editingDept) return;
 
+    const divCount = Number(editFormData.divisionCount || 1);
+    const divs = divCount === 3 ? ["A", "B", "C"] : divCount === 2 ? ["A", "B"] : ["A"];
+
     updateDepartment(editingDept.id, {
       ...editFormData,
-      studentCount: Number(editFormData.studentCount || 0),
+      divisions: divs,
       facultyCount: Number(editFormData.facultyCount || 0),
       avgAttendance: Number(editFormData.avgAttendance || 0),
       avgMarks: Number(editFormData.avgMarks || 0)
@@ -1756,9 +1762,12 @@ export function AdminDepartments() {
 
   const handleSaveAdd = (e) => {
     e.preventDefault();
+    const divCount = Number(addFormData.divisionCount || 1);
+    const divs = divCount === 3 ? ["A", "B", "C"] : divCount === 2 ? ["A", "B"] : ["A"];
+
     addDepartment({
       ...addFormData,
-      studentCount: Number(addFormData.studentCount || 0),
+      divisions: divs,
       facultyCount: Number(addFormData.facultyCount || 0),
       avgAttendance: Number(addFormData.avgAttendance || 80.0),
       avgMarks: Number(addFormData.avgMarks || 75.0)
@@ -1773,7 +1782,19 @@ export function AdminDepartments() {
     }
   };
 
-  const totalStudents = departments.reduce((acc, d) => acc + (d.studentCount || 0), 0);
+  const getDeptStudents = (deptId) => users.filter((u) => u.role === "student" && u.departmentId === deptId);
+  const getYearCounts = (deptId) => {
+    const list = getDeptStudents(deptId);
+    return {
+      fe: list.filter((s) => s.year === "1st Year").length,
+      se: list.filter((s) => s.year === "2nd Year").length,
+      te: list.filter((s) => s.year === "3rd Year").length,
+      be: list.filter((s) => s.year === "4th Year").length,
+      total: list.length
+    };
+  };
+
+  const enrolledStudentsTotal = users.filter((u) => u.role === "student").length;
   const totalFaculty = departments.reduce((acc, d) => acc + (d.facultyCount || 0), 0);
   const overallAvgAttendance = departments.length > 0 ? (departments.reduce((acc, d) => acc + (d.avgAttendance || 0), 0) / departments.length).toFixed(1) : 0;
 
@@ -1790,7 +1811,7 @@ export function AdminDepartments() {
             Academic Departments Management
           </h2>
           <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "2px" }}>
-            Rename departments, configure academic codes, assign HOD leadership, and monitor student intake
+            Configure branches, assign active divisions (A, B, C), and track student enrollments across 1st, 2nd, 3rd & 4th year
           </p>
         </div>
 
@@ -1800,8 +1821,8 @@ export function AdminDepartments() {
               name: "",
               code: "",
               hod: "Dr. Shrikant Honade",
-              studentCount: 180,
-              facultyCount: 12,
+              divisionCount: 1,
+              facultyCount: 8,
               avgAttendance: 80.0,
               avgMarks: 75.0
             });
@@ -1825,8 +1846,8 @@ export function AdminDepartments() {
         />
         <StatCard
           label="Total Enrolled Students"
-          value={totalStudents}
-          subtext="Across all disciplines"
+          value={enrolledStudentsTotal}
+          subtext="Verified student accounts"
           icon={Users}
           variant="primary"
         />
@@ -1854,7 +1875,7 @@ export function AdminDepartments() {
             type="text"
             className="form-control"
             style={{ flex: 1, border: "none", boxShadow: "none" }}
-            placeholder="Search departments by name, code (e.g. CE, IT), or HOD..."
+            placeholder="Search departments by name, code (e.g. VLSI, CE), or HOD..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -1875,11 +1896,11 @@ export function AdminDepartments() {
             <thead>
               <tr>
                 <th>Department Name & Code</th>
+                <th>Active Divisions</th>
                 <th>Assigned HOD</th>
-                <th>Student Intake</th>
+                <th>Enrolled by Year</th>
                 <th>Faculty Count</th>
                 <th>Avg Attendance</th>
-                <th>Avg Marks</th>
                 <th style={{ textAlign: "right", minWidth: "140px" }}>Actions</th>
               </tr>
             </thead>
@@ -1891,79 +1912,96 @@ export function AdminDepartments() {
                   </td>
                 </tr>
               ) : (
-                filteredDepts.map((d) => (
-                  <tr key={d.id}>
-                    <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <div
-                          style={{
-                            width: "40px",
-                            height: "40px",
-                            borderRadius: "10px",
-                            background: "var(--primary-50)",
-                            color: "var(--primary-700)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontWeight: "800",
-                            fontSize: "0.9rem",
-                            border: "1px solid var(--primary-200)"
-                          }}
-                        >
-                          {d.code}
+                filteredDepts.map((d) => {
+                  const counts = getYearCounts(d.id);
+                  const deptDivs = d.divisions && d.divisions.length > 0 ? d.divisions : ["A"];
+                  return (
+                    <tr key={d.id}>
+                      <td>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <div
+                            style={{
+                              width: "40px",
+                              height: "40px",
+                              borderRadius: "10px",
+                              background: "var(--primary-50)",
+                              color: "var(--primary-700)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontWeight: "800",
+                              fontSize: "0.85rem",
+                              border: "1px solid var(--primary-200)"
+                            }}
+                          >
+                            {d.code}
+                          </div>
+                          <div>
+                            <strong style={{ fontSize: "0.95rem", color: "var(--text-main)" }}>{d.name}</strong>
+                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "monospace" }}>ID: {d.id}</div>
+                          </div>
                         </div>
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
+                          {deptDivs.map((div) => (
+                            <Badge key={div} variant="primary">
+                              Division {div}
+                            </Badge>
+                          ))}
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: "600", fontSize: "0.88rem" }}>{d.hod || "Unassigned"}</div>
+                        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>Head of Department</div>
+                      </td>
+                      <td>
                         <div>
-                          <strong style={{ fontSize: "0.95rem", color: "var(--text-main)" }}>{d.name}</strong>
-                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "monospace" }}>ID: {d.id}</div>
+                          <div style={{ fontWeight: "700", fontSize: "0.88rem", color: "var(--text-main)", marginBottom: "3px" }}>
+                            {counts.total} Registered
+                          </div>
+                          <div style={{ display: "flex", gap: "6px", fontSize: "0.75rem", color: "var(--text-muted)", flexWrap: "wrap" }}>
+                            <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px" }}>FE: <strong>{counts.fe}</strong></span>
+                            <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px" }}>SE: <strong>{counts.se}</strong></span>
+                            <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px" }}>TE: <strong>{counts.te}</strong></span>
+                            <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px" }}>BE: <strong>{counts.be}</strong></span>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: "600", fontSize: "0.88rem" }}>{d.hod || "Unassigned"}</div>
-                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>Head of Department</div>
-                    </td>
-                    <td>
-                      <strong>{d.studentCount || 0}</strong>
-                      <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}> students</span>
-                    </td>
-                    <td>
-                      <strong>{d.facultyCount || 0}</strong>
-                      <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}> professors</span>
-                    </td>
-                    <td>
-                      <Badge variant={d.avgAttendance >= 75 ? "success" : "danger"}>
-                        {d.avgAttendance}%
-                      </Badge>
-                    </td>
-                    <td>
-                      <Badge variant="purple">
-                        {d.avgMarks}%
-                      </Badge>
-                    </td>
-                    <td style={{ textAlign: "right" }}>
-                      <div style={{ display: "inline-flex", gap: "6px" }}>
-                        <button
-                          onClick={() => handleOpenEdit(d)}
-                          className="btn btn-primary btn-sm"
-                          style={{ display: "flex", alignItems: "center", gap: "4px", padding: "4px 10px", fontSize: "0.75rem" }}
-                          title={`Edit ${d.name}`}
-                        >
-                          <Edit size={13} />
-                          <span>Edit Name & Info</span>
-                        </button>
+                      </td>
+                      <td>
+                        <strong>{d.facultyCount || 0}</strong>
+                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}> professors</span>
+                      </td>
+                      <td>
+                        <Badge variant={d.avgAttendance >= 75 ? "success" : "danger"}>
+                          {d.avgAttendance}%
+                        </Badge>
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        <div style={{ display: "inline-flex", gap: "6px" }}>
+                          <button
+                            onClick={() => handleOpenEdit(d)}
+                            className="btn btn-primary btn-sm"
+                            style={{ display: "flex", alignItems: "center", gap: "4px", padding: "4px 10px", fontSize: "0.75rem" }}
+                            title={`Edit ${d.name}`}
+                          >
+                            <Edit size={13} />
+                            <span>Edit</span>
+                          </button>
 
-                        <button
-                          onClick={() => handleDelete(d)}
-                          className="btn btn-danger btn-sm"
-                          style={{ padding: "4px 8px", fontSize: "0.75rem" }}
-                          title="Delete department"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          <button
+                            onClick={() => handleDelete(d)}
+                            className="btn btn-danger btn-sm"
+                            style={{ padding: "4px 8px", fontSize: "0.75rem" }}
+                            title="Delete department"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -1993,7 +2031,7 @@ export function AdminDepartments() {
         {editingDept && (
           <form onSubmit={handleSaveEdit} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
             <div style={{ background: "var(--bg-surface-secondary)", padding: "14px", borderRadius: "10px", border: "1px solid var(--border-subtle)", fontSize: "0.82rem", color: "var(--text-muted)" }}>
-              💡 Updating the department name will automatically synchronize across all registered students, teachers, subjects, and timetables belonging to this department.
+              💡 Updating department configuration updates student registration division choices and synchronization across academic modules.
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "14px" }}>
@@ -2004,7 +2042,7 @@ export function AdminDepartments() {
                   className="form-control"
                   value={editFormData.name || ""}
                   onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                  placeholder="e.g. Computer Engineering"
+                  placeholder="e.g. Electronic Engineering (VLSI)"
                   required
                 />
               </div>
@@ -2016,7 +2054,7 @@ export function AdminDepartments() {
                   className="form-control"
                   value={editFormData.code || ""}
                   onChange={(e) => setEditFormData({ ...editFormData, code: e.target.value.toUpperCase() })}
-                  placeholder="e.g. CE, CSE"
+                  placeholder="e.g. VLSI, CE"
                   required
                 />
               </div>
@@ -2035,13 +2073,20 @@ export function AdminDepartments() {
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
               <div className="form-group">
-                <label className="form-label">Total Student Intake</label>
-                <input
-                  type="number"
+                <label className="form-label">Active Divisions for Students *</label>
+                <select
                   className="form-control"
-                  value={editFormData.studentCount ?? 0}
-                  onChange={(e) => setEditFormData({ ...editFormData, studentCount: e.target.value })}
-                />
+                  value={editFormData.divisionCount || 1}
+                  onChange={(e) => setEditFormData({ ...editFormData, divisionCount: Number(e.target.value) })}
+                  style={{ fontWeight: "700" }}
+                >
+                  <option value={1}>1 Division — Division A only (Default for VLSI)</option>
+                  <option value={2}>2 Divisions — Division A & B</option>
+                  <option value={3}>3 Divisions — Division A, B & C</option>
+                </select>
+                <small style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginTop: "4px", display: "block" }}>
+                  Students selecting this department in registration will see these division options.
+                </small>
               </div>
 
               <div className="form-group">
@@ -2053,28 +2098,36 @@ export function AdminDepartments() {
                   onChange={(e) => setEditFormData({ ...editFormData, facultyCount: e.target.value })}
                 />
               </div>
+            </div>
 
-              <div className="form-group">
-                <label className="form-label">Average Attendance %</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  className="form-control"
-                  value={editFormData.avgAttendance ?? 75.0}
-                  onChange={(e) => setEditFormData({ ...editFormData, avgAttendance: e.target.value })}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Average Academic Score %</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  className="form-control"
-                  value={editFormData.avgMarks ?? 70.0}
-                  onChange={(e) => setEditFormData({ ...editFormData, avgMarks: e.target.value })}
-                />
-              </div>
+            {/* Current Year-Wise Student Enrollment Breakdown */}
+            <div style={{ background: "#f8fafc", padding: "14px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+              <label style={{ fontSize: "0.8rem", fontWeight: "700", color: "#334155", display: "block", marginBottom: "8px" }}>
+                Current Registered Students Breakdown by Year:
+              </label>
+              {(() => {
+                const c = getYearCounts(editingDept.id);
+                return (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", textAlign: "center" }}>
+                    <div style={{ background: "#fff", padding: "8px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+                      <div style={{ fontSize: "0.72rem", color: "#64748b" }}>1st Year (FE)</div>
+                      <div style={{ fontSize: "1.1rem", fontWeight: "800", color: "#2563eb" }}>{c.fe}</div>
+                    </div>
+                    <div style={{ background: "#fff", padding: "8px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+                      <div style={{ fontSize: "0.72rem", color: "#64748b" }}>2nd Year (SE)</div>
+                      <div style={{ fontSize: "1.1rem", fontWeight: "800", color: "#2563eb" }}>{c.se}</div>
+                    </div>
+                    <div style={{ background: "#fff", padding: "8px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+                      <div style={{ fontSize: "0.72rem", color: "#64748b" }}>3rd Year (TE)</div>
+                      <div style={{ fontSize: "1.1rem", fontWeight: "800", color: "#2563eb" }}>{c.te}</div>
+                    </div>
+                    <div style={{ background: "#fff", padding: "8px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+                      <div style={{ fontSize: "0.72rem", color: "#64748b" }}>4th Year (BE)</div>
+                      <div style={{ fontSize: "1.1rem", fontWeight: "800", color: "#2563eb" }}>{c.be}</div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </form>
         )}
@@ -2109,7 +2162,7 @@ export function AdminDepartments() {
                 className="form-control"
                 value={addFormData.name}
                 onChange={(e) => setAddFormData({ ...addFormData, name: e.target.value })}
-                placeholder="e.g. Artificial Intelligence & Data Science"
+                placeholder="e.g. Computer Engineering"
                 required
               />
             </div>
@@ -2121,7 +2174,7 @@ export function AdminDepartments() {
                 className="form-control"
                 value={addFormData.code}
                 onChange={(e) => setAddFormData({ ...addFormData, code: e.target.value.toUpperCase() })}
-                placeholder="e.g. AI-DS"
+                placeholder="e.g. CE, CSE"
                 required
               />
             </div>
@@ -2140,13 +2193,20 @@ export function AdminDepartments() {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
             <div className="form-group">
-              <label className="form-label">Student Intake</label>
-              <input
-                type="number"
+              <label className="form-label">Number of Divisions to Assign *</label>
+              <select
                 className="form-control"
-                value={addFormData.studentCount}
-                onChange={(e) => setAddFormData({ ...addFormData, studentCount: e.target.value })}
-              />
+                value={addFormData.divisionCount || 1}
+                onChange={(e) => setAddFormData({ ...addFormData, divisionCount: Number(e.target.value) })}
+                style={{ fontWeight: "700" }}
+              >
+                <option value={1}>1 Division (Division A)</option>
+                <option value={2}>2 Divisions (Division A & B)</option>
+                <option value={3}>3 Divisions (Division A, B & C)</option>
+              </select>
+              <small style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginTop: "4px", display: "block" }}>
+                Controls how many divisions are selectable during student sign-up.
+              </small>
             </div>
 
             <div className="form-group">

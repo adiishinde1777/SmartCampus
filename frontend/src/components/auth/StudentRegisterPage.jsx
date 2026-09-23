@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import api from "../../services/api";
+import { useSmartCampus } from "../../context/SmartCampusContext";
 import {
   GraduationCap,
   User,
@@ -13,10 +14,15 @@ import {
   ArrowLeft,
   Send,
   AlertCircle,
-  ShieldCheck
+  ShieldCheck,
+  Lock
 } from "lucide-react";
 
 export default function StudentRegisterPage({ onBackToLogin }) {
+  const { departments, addUser } = useSmartCampus();
+
+  const defaultDept = departments[0] || { id: "dept-vlsi", name: "Electronic Engineering (VLSI Design And Technology)", divisions: ["A"] };
+
   const [formData, setFormData] = useState({
     name: "",
     prn: "",
@@ -26,16 +32,19 @@ export default function StudentRegisterPage({ onBackToLogin }) {
     bloodGroup: "O+",
     phone: "",
     email: "",
+    password: "",
+    confirmPassword: "",
     address: "",
-    departmentId: "dept-vlsi",
-    departmentName: "Electronic Engineering (VLSI Design And Technology)",
+    departmentId: defaultDept.id,
+    departmentName: defaultDept.name,
     year: "1st Year",
     semester: 1,
-    division: "A",
+    division: defaultDept.divisions?.[0] || "A",
     batch: "A1",
     parentName: "",
     parentPhone: "",
     parentEmail: "",
+    parentPassword: "",
     parentOccupation: ""
   });
 
@@ -43,9 +52,24 @@ export default function StudentRegisterPage({ onBackToLogin }) {
   const [error, setError] = useState("");
   const [successData, setSuccessData] = useState(null);
 
+  const selectedDept = departments.find((d) => d.id === formData.departmentId) || defaultDept;
+  const availableDivisions = selectedDept?.divisions?.length ? selectedDept.divisions : ["A"];
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleDepartmentChange = (e) => {
+    const deptId = e.target.value;
+    const dept = departments.find((d) => d.id === deptId) || defaultDept;
+    const firstDiv = dept.divisions?.[0] || "A";
+    setFormData((prev) => ({
+      ...prev,
+      departmentId: deptId,
+      departmentName: dept.name,
+      division: firstDiv
+    }));
   };
 
   const handleYearChange = (e) => {
@@ -65,8 +89,18 @@ export default function StudentRegisterPage({ onBackToLogin }) {
     e.preventDefault();
     setError("");
 
-    if (!formData.name || !formData.prn || !formData.dob) {
-      setError("Please fill in all required fields: Name, PRN, and Date of Birth.");
+    if (!formData.name || !formData.phone) {
+      setError("Please fill in Student Full Name and Student Mobile Number.");
+      return;
+    }
+
+    if (!formData.password) {
+      setError("Please create a password for your account.");
+      return;
+    }
+
+    if (formData.confirmPassword && formData.password !== formData.confirmPassword) {
+      setError("Student passwords do not match. Please re-enter.");
       return;
     }
 
@@ -76,15 +110,51 @@ export default function StudentRegisterPage({ onBackToLogin }) {
     }
 
     setLoading(true);
+
     try {
-      const res = await api.submitStudentRegistration(formData);
+      const studentPayload = {
+        role: "student",
+        name: formData.name,
+        prn: formData.prn || `PRN-${Date.now().toString().slice(-6)}`,
+        dob: formData.dob || "2005-01-01",
+        rollNo: formData.rollNo || "",
+        gender: formData.gender,
+        bloodGroup: formData.bloodGroup,
+        phone: formData.phone.trim(),
+        email: formData.email.trim(),
+        password: formData.password.trim(),
+        address: formData.address,
+        departmentId: formData.departmentId,
+        departmentName: selectedDept.name,
+        year: formData.year,
+        semester: formData.semester,
+        division: formData.division,
+        batch: formData.batch,
+        parentName: formData.parentName,
+        parentPhone: formData.parentPhone.trim(),
+        parentEmail: formData.parentEmail.trim(),
+        parentPassword: (formData.parentPassword || formData.password).trim(),
+        parentOccupation: formData.parentOccupation
+      };
+
+      // 1. Immediately register student & parent into live state & persistence
+      addUser(studentPayload);
+
+      // 2. Asynchronously sync to backend API if live
+      api.submitStudentRegistration(studentPayload).catch((err) => {
+        console.warn("[API Registration notice]", err.message);
+      });
+
       setSuccessData({
         name: formData.name,
-        prn: formData.prn,
-        dob: formData.dob
+        studentPhone: formData.phone,
+        parentPhone: formData.parentPhone,
+        department: selectedDept.name,
+        year: formData.year,
+        division: formData.division
       });
     } catch (err) {
-      setError(err.message || "Failed to submit registration. Please check your data.");
+      setError(err.message || "Failed to submit registration. Please verify details.");
     } finally {
       setLoading(false);
     }
@@ -110,32 +180,32 @@ export default function StudentRegisterPage({ onBackToLogin }) {
             background: "white",
             color: "#0f172a",
             borderRadius: "20px",
-            padding: "40px",
+            padding: "36px 30px",
             textAlign: "center",
             boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)"
           }}
         >
           <div
             style={{
-              width: "70px",
-              height: "70px",
+              width: "64px",
+              height: "64px",
               borderRadius: "50%",
               background: "#ecfdf5",
               color: "#10b981",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              margin: "0 auto 20px"
+              margin: "0 auto 16px"
             }}
           >
-            <CheckCircle2 size={40} />
+            <CheckCircle2 size={38} />
           </div>
 
-          <h2 style={{ fontSize: "1.75rem", fontWeight: "800", color: "#0f172a" }}>
+          <h2 style={{ fontSize: "1.6rem", fontWeight: "800", color: "#0f172a" }}>
             Registration Successful!
           </h2>
-          <p style={{ color: "#64748b", marginTop: "8px", fontSize: "0.95rem" }}>
-            Your student profile and parent details have been securely recorded in the college database.
+          <p style={{ color: "#64748b", marginTop: "6px", fontSize: "0.9rem" }}>
+            Student and Parent accounts have been created and are ready for immediate mobile login.
           </p>
 
           <div
@@ -143,26 +213,27 @@ export default function StudentRegisterPage({ onBackToLogin }) {
               background: "#f8fafc",
               border: "1px solid #e2e8f0",
               borderRadius: "14px",
-              padding: "20px",
-              margin: "24px 0",
-              textAlign: "left"
+              padding: "18px",
+              margin: "20px 0",
+              textAlign: "left",
+              fontSize: "0.85rem",
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px"
             }}
           >
-            <div style={{ fontSize: "0.8rem", fontWeight: "700", color: "#2563eb", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
-              Your Authorized Login Credentials:
+            <div>
+              <span style={{ color: "#64748b" }}>Student Name:</span> <strong>{successData.name}</strong>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-              <span style={{ color: "#64748b" }}>Username (PRN):</span>
-              <strong style={{ fontFamily: "monospace", fontSize: "1.05rem" }}>{successData.prn}</strong>
+            <div>
+              <span style={{ color: "#64748b" }}>Branch & Year:</span> <strong>{successData.department} • {successData.year} (Div {successData.division})</strong>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#64748b" }}>Password (Birthdate):</span>
-              <strong style={{ fontFamily: "monospace", fontSize: "1.05rem" }}>{successData.dob}</strong>
+            <div style={{ borderTop: "1px dashed #cbd5e1", paddingTop: "8px", marginTop: "4px" }}>
+              <span style={{ color: "#64748b" }}>📱 Student Login ID:</span> <strong style={{ color: "#2563eb" }}>{successData.studentPhone}</strong>
             </div>
-          </div>
-
-          <div style={{ fontSize: "0.82rem", color: "#64748b", marginBottom: "24px" }}>
-            🔒 Parent Portal is linked with parent's mobile number. Faculty can verify and review your details.
+            <div>
+              <span style={{ color: "#64748b" }}>👨‍👩‍👧 Parent Login ID:</span> <strong style={{ color: "#059669" }}>{successData.parentPhone}</strong>
+            </div>
           </div>
 
           <button
@@ -171,7 +242,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
             style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
           >
             <ArrowLeft size={18} />
-            <span>Go to Student Login</span>
+            <span>Proceed to Login</span>
           </button>
         </div>
       </div>
@@ -187,11 +258,11 @@ export default function StudentRegisterPage({ onBackToLogin }) {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        padding: "16px 12px",
+        padding: "24px 16px",
         color: "white"
       }}
     >
-      <div className="register-form-card">
+      <div className="register-form-card" style={{ maxWidth: "820px", width: "100%", background: "white", color: "#0f172a", borderRadius: "20px", padding: "32px 28px" }}>
         {/* Top Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "14px", marginBottom: "24px", borderBottom: "1px solid #e2e8f0", paddingBottom: "16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -251,19 +322,18 @@ export default function StudentRegisterPage({ onBackToLogin }) {
         )}
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-          
           {/* SECTION 1: Student Information */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
               <User size={18} color="#2563eb" />
               <h3 style={{ fontSize: "1.05rem", fontWeight: "700", color: "#1e293b", margin: 0 }}>
-                1. Student Information
+                1. Student Profile & Credentials
               </h3>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
               <div className="form-group">
-                <label className="form-label">Full Name *</label>
+                <label className="form-label" style={{ fontWeight: "700" }}>Student Full Name *</label>
                 <input
                   type="text"
                   name="name"
@@ -276,34 +346,56 @@ export default function StudentRegisterPage({ onBackToLogin }) {
               </div>
 
               <div className="form-group">
-                <label className="form-label">PRN Number (Permanent Reg. No.) *</label>
+                <label className="form-label" style={{ fontWeight: "700" }}>Student Mobile Number (Login Username) *</label>
                 <input
-                  type="text"
-                  name="prn"
+                  type="tel"
+                  name="phone"
                   className="form-control"
-                  placeholder="e.g. 24025331378056"
-                  value={formData.prn}
+                  placeholder="e.g. 9876543210"
+                  value={formData.phone}
                   onChange={handleChange}
                   required
                 />
-                <small style={{ color: "#64748b", fontSize: "0.75rem" }}>
-                  💡 This will be your permanent Student Login Username
+                <small style={{ color: "#64748b", fontSize: "0.74rem" }}>
+                  💡 This mobile number will be your Student Login ID
                 </small>
               </div>
 
               <div className="form-group">
-                <label className="form-label">Date of Birth (DOB) *</label>
+                <label className="form-label" style={{ fontWeight: "700" }}>Create Password *</label>
                 <input
-                  type="date"
-                  name="dob"
+                  type="password"
+                  name="password"
                   className="form-control"
-                  value={formData.dob}
+                  placeholder="Choose any password"
+                  value={formData.password}
                   onChange={handleChange}
                   required
                 />
-                <small style={{ color: "#64748b", fontSize: "0.75rem" }}>
-                  💡 This will be your Student Login Password
-                </small>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "700" }}>Confirm Password</label>
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  className="form-control"
+                  placeholder="Re-enter password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Student PRN Number</label>
+                <input
+                  type="text"
+                  name="prn"
+                  className="form-control"
+                  placeholder="e.g. 24025331733722"
+                  value={formData.prn}
+                  onChange={handleChange}
+                />
               </div>
 
               <div className="form-group">
@@ -319,54 +411,34 @@ export default function StudentRegisterPage({ onBackToLogin }) {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Student Mobile Number</label>
+                <label className="form-label">Date of Birth</label>
                 <input
-                  type="tel"
-                  name="phone"
+                  type="date"
+                  name="dob"
                   className="form-control"
-                  placeholder="e.g. 9876543210"
-                  value={formData.phone}
+                  value={formData.dob}
                   onChange={handleChange}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Student Email</label>
-                <input
-                  type="email"
-                  name="email"
-                  className="form-control"
-                  placeholder="e.g. student@campus.edu"
-                  value={formData.email}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Department / Branch</label>
+                <label className="form-label">Department / Branch *</label>
                 <select
                   name="departmentId"
                   className="form-control"
                   value={formData.departmentId}
-                  onChange={(e) => {
-                    const dName = e.target.value === "dept-vlsi"
-                      ? "Electronic Engineering (VLSI Design And Technology)"
-                      : e.target.value === "dept-cs"
-                      ? "Computer Science and Engineering"
-                      : "Engineering";
-                    setFormData((prev) => ({ ...prev, departmentId: e.target.value, departmentName: dName }));
-                  }}
+                  onChange={handleDepartmentChange}
                 >
-                  <option value="dept-vlsi">VLSI Design & Technology</option>
-                  <option value="dept-cs">Computer Science & Engineering</option>
-                  <option value="dept-mech">Mechanical Engineering</option>
-                  <option value="dept-civil">Civil Engineering</option>
-                  <option value="dept-ee">Electrical Engineering</option>
+                  {departments.map((dept) => (
+                    <option key={dept.id} value={dept.id}>
+                      {dept.name} ({dept.code})
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div className="form-group">
-                <label className="form-label" style={{ fontWeight: "700" }}>Academic Year</label>
+                <label className="form-label" style={{ fontWeight: "700" }}>Academic Year *</label>
                 <select
                   name="year"
                   className="form-control"
@@ -379,9 +451,30 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                   <option value="4th Year">4th Year (Final Year - BE)</option>
                 </select>
               </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "700" }}>Division *</label>
+                <select
+                  name="division"
+                  className="form-control"
+                  value={formData.division}
+                  onChange={handleChange}
+                >
+                  {availableDivisions.map((div) => (
+                    <option key={div} value={div}>
+                      Division {div}
+                    </option>
+                  ))}
+                </select>
+                {selectedDept.id === "dept-vlsi" && (
+                  <small style={{ color: "#64748b", fontSize: "0.74rem" }}>
+                    VLSI department has a single active Division A
+                  </small>
+                )}
+              </div>
             </div>
 
-            <div className="form-group" style={{ marginTop: "12px" }}>
+            <div className="form-group" style={{ marginTop: "14px" }}>
               <label className="form-label">Residential Address</label>
               <textarea
                 name="address"
@@ -399,13 +492,13 @@ export default function StudentRegisterPage({ onBackToLogin }) {
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
               <HeartHandshake size={18} color="#f59e0b" />
               <h3 style={{ fontSize: "1.05rem", fontWeight: "700", color: "#1e293b", margin: 0 }}>
-                2. Parent / Guardian Details
+                2. Parent / Guardian Credentials
               </h3>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
               <div className="form-group">
-                <label className="form-label">Parent / Guardian Full Name *</label>
+                <label className="form-label" style={{ fontWeight: "700" }}>Parent / Guardian Full Name *</label>
                 <input
                   type="text"
                   name="parentName"
@@ -418,7 +511,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Parent Mobile Number *</label>
+                <label className="form-label" style={{ fontWeight: "700" }}>Parent Mobile Number (Login Username) *</label>
                 <input
                   type="tel"
                   name="parentPhone"
@@ -428,65 +521,55 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                   onChange={handleChange}
                   required
                 />
-                <small style={{ color: "#64748b", fontSize: "0.75rem" }}>
-                  Used for absence SMS alerts & parent authentication
+                <small style={{ color: "#64748b", fontSize: "0.74rem" }}>
+                  💡 This mobile number will be the Parent Login ID
                 </small>
               </div>
 
               <div className="form-group">
-                <label className="form-label">Parent Email</label>
+                <label className="form-label">Parent Password (Optional)</label>
                 <input
-                  type="email"
-                  name="parentEmail"
+                  type="password"
+                  name="parentPassword"
                   className="form-control"
-                  placeholder="e.g. parent@gmail.com"
-                  value={formData.parentEmail}
+                  placeholder="Defaults to student password if blank"
+                  value={formData.parentPassword}
                   onChange={handleChange}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Occupation / Profession</label>
+                <label className="form-label">Parent Occupation / Profession</label>
                 <input
                   type="text"
                   name="parentOccupation"
                   className="form-control"
-                  placeholder="e.g. Business / Government Service"
+                  placeholder="e.g. Farmer / Business / Service"
                   value={formData.parentOccupation}
                   onChange={handleChange}
                 />
               </div>
             </div>
-
-            {/* Privacy note */}
-            <div
-              style={{
-                background: "#f0fdf4",
-                border: "1px solid #bbf7d0",
-                borderRadius: "10px",
-                padding: "12px 16px",
-                marginTop: "16px",
-                display: "flex",
-                alignItems: "center",
-                gap: "10px"
-              }}
-            >
-              <ShieldCheck size={20} color="#16a34a" />
-              <div style={{ fontSize: "0.8rem", color: "#166534" }}>
-                <strong>Privacy Protected:</strong> Parent Portal login uses the parent's registered mobile number and student's birthdate. Only teachers, administrators, and parents have authorization to manage parent profile settings.
-              </div>
-            </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn btn-primary btn-lg"
-            style={{ width: "100%", marginTop: "8px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
-          >
-            <Send size={18} />
-            <span>{loading ? "Submitting Registration..." : "Submit Enrollment Record to Database"}</span>
-          </button>
+          <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "20px", display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+            <button
+              type="button"
+              onClick={onBackToLogin}
+              className="btn btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn btn-primary btn-lg"
+              style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: "180px", justifyContent: "center" }}
+            >
+              <Send size={18} />
+              <span>{loading ? "Registering..." : "Submit Enrollment"}</span>
+            </button>
+          </div>
         </form>
       </div>
     </div>

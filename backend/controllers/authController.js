@@ -153,7 +153,7 @@ export async function login(req, res) {
       if (!isDobValid) {
         return res.status(401).json({
           success: false,
-          message: "Incorrect Password. Enter your student's Date of Birth (YYYY-MM-DD or DD-MM-YYYY)."
+          message: "Incorrect Password. Please verify your password."
         });
       }
 

@@ -54,57 +54,56 @@ export default function LoginPage() {
     }
   };
 
-  // Dynamic input label and placeholder definitions
   const getFieldLabels = () => {
     switch (selectedRole) {
       case "student":
         return {
-          userLabel: "Student PRN Number",
-          userPlaceholder: "e.g. 24025331378056",
-          passLabel: "Student Date of Birth (Password)",
-          passPlaceholder: "YYYY-MM-DD (e.g. 2004-08-22)",
-          hint: "Student login: Enter PRN as Username & Birthdate as Password"
+          userLabel: "Student Mobile Number (or PRN)",
+          userPlaceholder: "e.g. 9876543210",
+          passLabel: "Student Password",
+          passPlaceholder: "Enter your password",
+          hint: "Student login: Enter registered Mobile Number & your Password"
         };
       case "parent":
         return {
           userLabel: "Registered Parent Mobile Number",
           userPlaceholder: "e.g. 9422000000",
-          passLabel: "Student's Date of Birth (Password)",
-          passPlaceholder: "YYYY-MM-DD (e.g. 2004-08-22)",
-          hint: "Parent login: Enter Parent Mobile as Username & Ward DOB as Password"
+          passLabel: "Parent Password",
+          passPlaceholder: "Enter your password",
+          hint: "Parent login: Enter Parent Mobile Number & Password"
         };
       case "teacher":
         return {
           userLabel: "Faculty Mobile Number",
           userPlaceholder: "e.g. 9822000000",
-          passLabel: "Faculty Date of Birth (Password)",
-          passPlaceholder: "YYYY-MM-DD (e.g. 1982-06-15)",
-          hint: "Teacher login: Enter Mobile Number as Username & DOB as Password"
+          passLabel: "Faculty Password",
+          passPlaceholder: "Enter your password",
+          hint: "Teacher login: Enter Mobile Number & Password"
         };
       case "hod":
         return {
           userLabel: "HOD Mobile Number",
           userPlaceholder: "e.g. 9822000000",
-          passLabel: "HOD Date of Birth (Password)",
-          passPlaceholder: "YYYY-MM-DD (e.g. 1978-04-12)",
-          hint: "HOD login: Enter Mobile Number as Username & DOB as Password"
+          passLabel: "HOD Password",
+          passPlaceholder: "Enter your password",
+          hint: "HOD login: Enter Mobile Number & Password"
         };
       case "principal":
         return {
           userLabel: "Principal Mobile Number",
           userPlaceholder: "e.g. 9822000000",
-          passLabel: "Principal Date of Birth (Password)",
-          passPlaceholder: "YYYY-MM-DD (e.g. 1972-11-20)",
-          hint: "Principal login: Enter Mobile Number as Username & DOB as Password"
+          passLabel: "Principal Password",
+          passPlaceholder: "Enter your password",
+          hint: "Principal login: Enter Mobile Number & Password"
         };
       case "admin":
       default:
         return {
-          userLabel: "Admin Username",
-          userPlaceholder: "admin",
+          userLabel: "Admin Mobile Number or Username",
+          userPlaceholder: "admin or 7378535499",
           passLabel: "Admin Password",
           passPlaceholder: "••••••••",
-          hint: "System Administrator: Enter admin credentials"
+          hint: "System Administrator: Enter admin credentials (admin / admin123)"
         };
     }
   };
@@ -218,7 +217,7 @@ export default function LoginPage() {
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "700" }}>{fields.passLabel}</label>
               <input
-                type={selectedRole === "admin" ? "password" : "text"}
+                type="password"
                 className="form-control"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -226,9 +225,11 @@ export default function LoginPage() {
                 style={{ padding: "10px 14px" }}
                 required
               />
-              <small style={{ color: "#64748b", fontSize: "0.75rem", marginTop: "4px", display: "block" }}>
-                {selectedRole === "admin" ? "Default admin password is admin123" : "Format: YYYY-MM-DD or DD-MM-YYYY"}
-              </small>
+              {selectedRole === "admin" && (
+                <small style={{ color: "#64748b", fontSize: "0.75rem", marginTop: "4px", display: "block" }}>
+                  Default admin credentials: admin / admin123
+                </small>
+              )}
             </div>
 
             <button

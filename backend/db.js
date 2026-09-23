@@ -39,11 +39,7 @@ let memoryStore = {
     }
   ],
   departments: [
-    { id: 'dept-vlsi', name: 'Electronic Engineering (VLSI Design And Technology)', code: 'VLSI' },
-    { id: 'dept-cs', name: 'Computer Science and Engineering', code: 'CSE' },
-    { id: 'dept-mech', name: 'Mechanical Engineering', code: 'MECH' },
-    { id: 'dept-civil', name: 'Civil Engineering', code: 'CIVIL' },
-    { id: 'dept-ee', name: 'Electrical Engineering', code: 'EE' }
+    { id: 'dept-vlsi', name: 'Electronic Engineering (VLSI Design And Technology)', code: 'VLSI', divisions: ['A'] }
   ],
   subjects: [],
   timetables: [],
