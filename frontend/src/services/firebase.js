@@ -43,8 +43,19 @@ export const isFirebaseConfigured = () => {
  */
 export const setupRecaptcha = (containerId = "recaptcha-container") => {
   try {
+    if (typeof window === "undefined") return null;
+
+    let container = document.getElementById(containerId);
+    if (!container) {
+      container = document.createElement("div");
+      container.id = containerId;
+      document.body.appendChild(container);
+    }
+
     if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
+      try {
+        window.recaptchaVerifier.clear();
+      } catch (e) {}
       window.recaptchaVerifier = null;
     }
 
@@ -79,6 +90,9 @@ export const sendFirebasePhoneOtp = async (rawPhone, appVerifier) => {
   const internationalPhone = `+91${digits}`;
 
   try {
+    if (appVerifier && typeof appVerifier.render === "function") {
+      await appVerifier.render();
+    }
     const confirmationResult = await signInWithPhoneNumber(auth, internationalPhone, appVerifier);
     window.confirmationResult = confirmationResult;
     return {

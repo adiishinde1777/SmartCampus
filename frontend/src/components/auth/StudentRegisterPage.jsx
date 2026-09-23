@@ -135,13 +135,23 @@ export default function StudentRegisterPage({ onBackToLogin }) {
             setFirebaseConfirmation(fbRes.confirmationResult);
             setIsOtpSent(true);
             setOtpCooldown(60);
-            setOtpMessage(`Google Firebase SMS OTP sent to +91 ${cleanDigits}.`);
+            setPreviewOtp(""); // Real SMS dispatched to student's mobile
+            setOtpMessage(`✅ Real SMS OTP sent to your phone (+91 ${cleanDigits})! Check your mobile SMS.`);
             setOtpLoading(false);
             return;
           }
         }
       } catch (fbErr) {
-        console.warn("[Firebase Phone Auth Fallback to Backend Gateway]", fbErr.message);
+        console.warn("[Firebase Phone Auth Error]", fbErr.code, fbErr.message);
+        if (fbErr.code === "auth/operation-not-allowed") {
+          setError("⚠️ Firebase Phone Provider is not enabled! Please go to Firebase Console > Authentication > Sign-in method > Enable 'Phone'.");
+        } else if (fbErr.code === "auth/too-many-requests" || fbErr.code === "auth/quota-exceeded") {
+          setError("⚠️ SMS limit reached. Please wait 5 minutes or add your number under Firebase 'Phone numbers for testing'.");
+        } else if (fbErr.code === "auth/invalid-phone-number") {
+          setError("⚠️ Invalid mobile number format (+91 " + cleanDigits + ").");
+        } else {
+          setError(`⚠️ SMS error: ${fbErr.message || "Failed to dispatch SMS to phone."}`);
+        }
       }
     }
 
@@ -176,7 +186,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
     setError("");
     const entered = (otpCode || "").trim();
     if (!entered || entered.length !== 6) {
-      setError("Please enter the complete 6-digit OTP code received.");
+      setError("Please enter the complete 6-digit OTP code received on your mobile phone.");
       return;
     }
 
@@ -189,12 +199,15 @@ export default function StudentRegisterPage({ onBackToLogin }) {
           const fbConfirm = await confirmFirebaseOtp(firebaseConfirmation, entered);
           if (fbConfirm?.success) {
             setIsPhoneVerified(true);
-            setOtpMessage("Mobile number verified via Google Firebase!");
+            setOtpMessage("✅ Student mobile number verified via Google Firebase SMS!");
             setOtpLoading(false);
             return;
           }
         } catch (fbErr) {
           console.warn("[Firebase Confirmation Error]", fbErr.message);
+          setError("❌ Invalid OTP! The code entered does not match the SMS sent to your phone. Please check and re-enter.");
+          setOtpLoading(false);
+          return;
         }
       }
 
@@ -557,6 +570,9 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                         )}
                       </button>
                     </div>
+
+                    {/* Firebase ReCAPTCHA container */}
+                    <div id="recaptcha-container-student"></div>
 
                     {/* OTP verification box */}
                     {isOtpSent && (
