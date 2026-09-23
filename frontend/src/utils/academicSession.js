@@ -81,3 +81,40 @@ export function getTimeBasedGreeting() {
     return "Good Evening";
   }
 }
+
+/**
+ * Deduplicates user arrays by ID, normalized Phone (per role), and Student PRN.
+ * Guarantees zero duplicate entries across client state and database renders.
+ */
+export function deduplicateUsers(usersList) {
+  if (!Array.isArray(usersList)) return [];
+  const seenIds = new Set();
+  const seenPhoneRole = new Set();
+  const seenPrn = new Set();
+  const result = [];
+
+  for (const u of usersList) {
+    if (!u) continue;
+    const cleanId = String(u.id || "").trim();
+    const cleanPhone = String(u.phone || "").replace(/\D/g, "").slice(-10);
+    const cleanPrn = String(u.prn || "").trim().toLowerCase();
+    const role = String(u.role || "").toLowerCase();
+
+    // Check if duplicate ID
+    if (cleanId && seenIds.has(cleanId)) continue;
+
+    // Check if duplicate student PRN
+    if (role === "student" && cleanPrn && seenPrn.has(cleanPrn)) continue;
+
+    // Check if duplicate 10-digit Phone for the same role
+    if (cleanPhone && cleanPhone.length === 10 && seenPhoneRole.has(`${role}-${cleanPhone}`)) continue;
+
+    if (cleanId) seenIds.add(cleanId);
+    if (role === "student" && cleanPrn) seenPrn.add(cleanPrn);
+    if (cleanPhone && cleanPhone.length === 10) seenPhoneRole.add(`${role}-${cleanPhone}`);
+
+    result.push(u);
+  }
+
+  return result;
+}

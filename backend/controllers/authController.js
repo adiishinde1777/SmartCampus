@@ -128,36 +128,55 @@ export async function login(req, res) {
     if (role === 'student') {
       const phoneDigits = cleanPhone(cleanUsername);
       let students = await query(
-        `SELECT * FROM users WHERE role = 'student' AND (prn = ? OR phone = ? OR roll_no = ? OR email = ?) LIMIT 1`,
-        [cleanUsername, phoneDigits || cleanUsername, cleanUsername, cleanUsername]
+        `SELECT * FROM users WHERE role = 'student' AND (
+           prn = ? OR 
+           phone = ? OR 
+           (phone IS NOT NULL AND RIGHT(phone, 10) = ?) OR 
+           roll_no = ? OR 
+           LOWER(email) = LOWER(?)
+         ) LIMIT 1`,
+        [cleanUsername, cleanUsername, phoneDigits || cleanUsername, cleanUsername, cleanUsername]
       );
 
       // If student not found in MySQL, but client passed cached student profile (e.g. from local registration)
       if (students.length === 0 && cachedUser && cachedUser.role === 'student') {
         const cPhone = cleanPhone(cachedUser.phone);
-        const matchUser =
-          (cPhone && cPhone === phoneDigits) ||
-          (cachedUser.prn && cachedUser.prn.toLowerCase() === cleanUsername.toLowerCase()) ||
-          (cachedUser.email && cachedUser.email.toLowerCase() === cleanUsername.toLowerCase());
-        const matchPass = !cleanPassword || cleanPassword === cachedUser.password || verifyDob(cleanPassword, cachedUser.dob);
-        if (matchUser && matchPass) {
-          // Auto-persist into MySQL so they exist in database forever
-          const sId = cachedUser.id || ('stu-' + Date.now());
-          await query(
-            `INSERT INTO users (id, role, name, email, phone, prn, dob, password, department_id, department_name, semester, year, division, batch, roll_no, gender, blood_group, is_verified)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE name = VALUES(name), phone = VALUES(phone)`,
-            [
-              sId, 'student', cachedUser.name, cachedUser.email || null, cachedUser.phone || null,
-              cachedUser.prn || null, cachedUser.dob || null, cachedUser.password || 'password123',
-              cachedUser.departmentId || null, cachedUser.departmentName || null,
-              cachedUser.semester || 1, cachedUser.year || '1st Year', cachedUser.division || 'A',
-              cachedUser.batch || 'A1', cachedUser.rollNo || null, cachedUser.gender || 'Male',
-              cachedUser.bloodGroup || 'O+', true
-            ]
-          ).catch((e) => console.warn('[Auto-Persist Student on Login]', e.message));
+        // Check if an entry with this phone or PRN already exists in database
+        const existingStudent = await query(
+          `SELECT * FROM users WHERE role = 'student' AND (
+             (prn IS NOT NULL AND prn = ?) OR 
+             (phone IS NOT NULL AND (phone = ? OR RIGHT(phone, 10) = ?))
+           ) LIMIT 1`,
+          [cachedUser.prn || '', cachedUser.phone || '', cPhone || '']
+        );
 
-          students = await query(`SELECT * FROM users WHERE id = ? LIMIT 1`, [sId]);
+        if (existingStudent.length > 0) {
+          students = existingStudent;
+        } else {
+          const matchUser =
+            (cPhone && cPhone === phoneDigits) ||
+            (cachedUser.prn && cachedUser.prn.toLowerCase() === cleanUsername.toLowerCase()) ||
+            (cachedUser.email && cachedUser.email.toLowerCase() === cleanUsername.toLowerCase());
+          const matchPass = !cleanPassword || cleanPassword === cachedUser.password || verifyDob(cleanPassword, cachedUser.dob);
+          if (matchUser && matchPass) {
+            // Auto-persist into MySQL without generating duplicate ID
+            const sId = cachedUser.id || ('stu-' + (cPhone || Date.now()));
+            await query(
+              `INSERT INTO users (id, role, name, email, phone, prn, dob, password, department_id, department_name, semester, year, division, batch, roll_no, gender, blood_group, is_verified)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               ON DUPLICATE KEY UPDATE name = VALUES(name), phone = VALUES(phone)`,
+              [
+                sId, 'student', cachedUser.name, cachedUser.email || null, cachedUser.phone || null,
+                cachedUser.prn || null, cachedUser.dob || null, cachedUser.password || 'password123',
+                cachedUser.departmentId || null, cachedUser.departmentName || null,
+                cachedUser.semester || 1, cachedUser.year || '1st Year', cachedUser.division || 'A',
+                cachedUser.batch || 'A1', cachedUser.rollNo || null, cachedUser.gender || 'Male',
+                cachedUser.bloodGroup || 'O+', true
+              ]
+            ).catch((e) => console.warn('[Auto-Persist Student on Login]', e.message));
+
+            students = await query(`SELECT * FROM users WHERE id = ? LIMIT 1`, [sId]);
+          }
         }
       }
 
@@ -190,22 +209,42 @@ export async function login(req, res) {
     // Username: Parent Mobile Number
     if (role === 'parent') {
       const phoneDigits = cleanPhone(cleanUsername);
-      const parents = await query(
-        `SELECT * FROM users WHERE (role = 'parent' AND (phone = ? OR parent_phone = ?))
-         OR (role = 'student' AND parent_phone = ?) LIMIT 1`,
-        [phoneDigits, phoneDigits, phoneDigits]
+      // First look for explicit parent user record
+      let parents = await query(
+        `SELECT * FROM users WHERE role = 'parent' AND (phone = ? OR parent_phone = ? OR RIGHT(phone, 10) = ? OR id = ?) LIMIT 1`,
+        [phoneDigits, phoneDigits, phoneDigits, cleanUsername]
       );
 
-      const record = parents[0];
+      let record = parents[0];
+      if (!record) {
+        // Look up student whose parent_phone matches
+        const students = await query(
+          `SELECT * FROM users WHERE role = 'student' AND (parent_phone = ? OR RIGHT(parent_phone, 10) = ?) LIMIT 1`,
+          [phoneDigits, phoneDigits]
+        );
+        if (students.length > 0) {
+          const stu = students[0];
+          const parCheck = await query(
+            `SELECT * FROM users WHERE role = 'parent' AND (parent_id = ? OR id = ? OR id = ?) LIMIT 1`,
+            [stu.id, `par-${stu.id}`, `par-${phoneDigits}`]
+          );
+          if (parCheck.length > 0) {
+            record = parCheck[0];
+          } else {
+            record = stu;
+          }
+        }
+      }
+
       if (!record) {
         return res.status(404).json({
           success: false,
-          message: `Parent with mobile "${phoneDigits}" not found in records.`
+          message: `Parent with mobile "${phoneDigits || cleanUsername}" not found in records.`
         });
       }
 
       // Check if password has been assigned by teacher
-      const parentStoredPass = record.password;
+      const parentStoredPass = record.role === 'parent' ? record.password : null;
       if (!parentStoredPass) {
         return res.status(403).json({
           success: false,

@@ -30,6 +30,7 @@ import {
   MessageSquare
 } from "lucide-react";
 import { Badge, Modal, StatCard } from "../common/UIPrimitives";
+import { deduplicateUsers } from "../../utils/academicSession";
 
 export default function TeacherMyClass({ onNavigate }) {
   const {
@@ -109,10 +110,10 @@ export default function TeacherMyClass({ onNavigate }) {
   // Edit Student Form State
   const [editFormData, setEditFormData] = useState({});
 
-  // Enrolled class students - shows all students matching department or registered
-  const classStudents = users
-    .filter((u) => u.role === "student" && (!teacher?.departmentId || u.departmentId === teacher.departmentId || u.departmentId === activeClass?.departmentId || !u.departmentId))
-    .sort((a, b) => (a.rollNo || a.name || "").localeCompare(b.rollNo || b.name || ""));
+  // Enrolled class students - shows all students matching department or registered (strictly deduplicated)
+  const classStudents = deduplicateUsers(
+    users.filter((u) => u.role === "student" && (!teacher?.departmentId || u.departmentId === teacher.departmentId || u.departmentId === activeClass?.departmentId || !u.departmentId))
+  ).sort((a, b) => (a.rollNo || a.name || "").localeCompare(b.rollNo || b.name || ""));
 
   const threshold = systemSettings?.attendanceThreshold || 75;
 
@@ -278,7 +279,13 @@ export default function TeacherMyClass({ onNavigate }) {
   // Action: Open Parent Password Modal
   const handleOpenParentModal = (stu) => {
     setParentModalStudent(stu);
-    const existingParent = users.find((u) => u.role === "parent" && (u.studentId === stu.id || u.phone === stu.parentPhone || u.id === `par-${stu.id}`));
+    const parentDigits = (stu.parentPhone || "").replace(/\D/g, '').slice(-10);
+    const existingParent = users.find((u) => u.role === "parent" && (
+      u.studentId === stu.id ||
+      (parentDigits && u.phone && u.phone.replace(/\D/g, '').slice(-10) === parentDigits) ||
+      u.id === `par-${stu.id}` ||
+      (parentDigits && u.id === `par-${parentDigits}`)
+    ));
     setParentPasswordInput(existingParent?.password || `P@${Math.floor(100000 + Math.random() * 900000)}`);
   };
 
@@ -290,13 +297,21 @@ export default function TeacherMyClass({ onNavigate }) {
 
     try {
       const parentPhone = (parentModalStudent.parentPhone || "").trim();
-      const parentId = `par-${parentModalStudent.id}`;
+      const parentDigits = parentPhone.replace(/\D/g, '').slice(-10);
+      const studentIdClean = parentModalStudent.id.startsWith("stu-") ? parentModalStudent.id.slice(4) : parentModalStudent.id;
+      const parentId = parentDigits ? `par-${parentDigits}` : `par-${studentIdClean}`;
       const cleanPass = parentPasswordInput.trim();
 
       // 1. Update or create parent in frontend state
-      const existingParent = users.find((u) => u.role === "parent" && (u.studentId === parentModalStudent.id || u.phone === parentPhone || u.id === parentId));
+      const existingParent = users.find((u) => u.role === "parent" && (
+        u.studentId === parentModalStudent.id ||
+        (parentDigits && u.phone && u.phone.replace(/\D/g, '').slice(-10) === parentDigits) ||
+        u.id === parentId ||
+        u.id === `par-${parentModalStudent.id}`
+      ));
+
       if (existingParent) {
-        updateUser(existingParent.id, { password: cleanPass, canLogin: true });
+        updateUser(existingParent.id, { password: cleanPass, canLogin: true, isPasswordSet: true });
       } else {
         addUser({
           id: parentId,
@@ -309,7 +324,8 @@ export default function TeacherMyClass({ onNavigate }) {
           studentName: parentModalStudent.name,
           departmentId: parentModalStudent.departmentId,
           departmentName: parentModalStudent.departmentName,
-          canLogin: true
+          canLogin: true,
+          isPasswordSet: true
         });
       }
 
@@ -532,7 +548,13 @@ export default function TeacherMyClass({ onNavigate }) {
                   </tr>
                 ) : (
                   filteredStudents.map((stu) => {
-                    const parentUser = users.find((u) => u.role === "parent" && (u.studentId === stu.id || u.phone === stu.parentPhone || u.id === `par-${stu.id}`));
+                    const parentDigits = (stu.parentPhone || "").replace(/\D/g, '').slice(-10);
+                    const parentUser = users.find((u) => u.role === "parent" && (
+                      u.studentId === stu.id ||
+                      (parentDigits && u.phone && u.phone.replace(/\D/g, '').slice(-10) === parentDigits) ||
+                      u.id === `par-${stu.id}` ||
+                      (parentDigits && u.id === `par-${parentDigits}`)
+                    ));
                     const hasParentPass = Boolean(parentUser?.password);
 
                     return (

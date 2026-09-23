@@ -203,8 +203,12 @@ export default function StudentRegisterPage({ onBackToLogin }) {
       const yrPrefix = getYearPrefix(formData.year, formData.semester);
       const session = getAcademicSession(formData.year, formData.semester);
       const computedClassName = `${yrPrefix} ${selectedDept.code || selectedDept.name} – Semester ${formData.semester} (${formData.year}) – Div ${formData.division}`;
+      const studentId = `stu-${cleanPhone}`;
+      const parentId = `par-${cleanParentPhone}`;
 
       const studentPayload = {
+        id: studentId,
+        parentId: parentId,
         role: "student",
         name: formData.name.trim(),
         prn: formData.prn.trim(),
@@ -231,7 +235,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
         parentOccupation: formData.parentOccupation.trim()
       };
 
-      // 1. Persist student & parent into MySQL database
+      // 1. Persist student & parent into MySQL database (idempotent ON DUPLICATE KEY UPDATE)
       let res = null;
       try {
         res = await api.submitStudentRegistration(studentPayload);
@@ -240,20 +244,21 @@ export default function StudentRegisterPage({ onBackToLogin }) {
       }
 
       // 2. Direct Firestore storage with NULL password for parent (Teacher sets password later)
-      const studentToStore = res?.student || studentPayload;
+      const studentToStore = res?.student ? { ...res.student, id: studentId } : studentPayload;
       saveUserToFirestore(studentToStore).catch((err) => console.warn('[Firestore Student Register Warning]', err.message));
       
-      const parentToStore = res?.parent || {
-        id: `par-${studentToStore.id || ('stu-' + Date.now())}`,
+      const parentToStore = {
+        ...(res?.parent || {}),
+        id: parentId,
         role: "parent",
         name: formData.parentName.trim(),
         phone: cleanParentPhone,
         email: formData.parentEmail.trim(),
-        studentId: studentToStore.id,
+        studentId: studentId,
         studentName: formData.name.trim(),
         departmentId: formData.departmentId,
         departmentName: selectedDept.name,
-        password: null, // NO password created yet - Teacher must assign it!
+        password: null, // Strictly NULL until Class Teacher sets it!
         canLogin: false,
         isPasswordSet: false
       };

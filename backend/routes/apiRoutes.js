@@ -381,23 +381,36 @@ router.post('/register-student', async (req, res) => {
     }
 
     const cleanPhone = String(body.phone).trim();
-    const cleanPrn = body.prn ? String(body.prn).trim() : `PRN-${cleanPhone.slice(-6)}`;
+    const cleanDigits = cleanPhone.replace(/\D/g, '').slice(-10);
+    const cleanPrn = body.prn ? String(body.prn).trim() : `PRN-${cleanDigits || cleanPhone.slice(-6)}`;
     const studentPass = body.password ? String(body.password).trim() : (body.dob || 'student123');
 
     // Check if Phone or PRN already registered
-    const existing = await query('SELECT id FROM users WHERE phone = ? OR prn = ? LIMIT 1', [cleanPhone, cleanPrn]);
+    const existing = await query(
+      'SELECT id FROM users WHERE phone = ? OR (RIGHT(phone, 10) = ? AND ? != "") OR (prn = ? AND prn IS NOT NULL AND prn != "") LIMIT 1',
+      [cleanPhone, cleanDigits || '', cleanDigits || '', cleanPrn]
+    );
     if (existing.length > 0) {
       return res.status(409).json({ success: false, message: `A student account with Mobile "${cleanPhone}" or PRN "${cleanPrn}" already exists.` });
     }
 
-    const studentId = body.id || ('stu-' + Date.now());
+    const studentId = body.id || (cleanDigits ? `stu-${cleanDigits}` : `stu-${Date.now()}`);
     await query(
       `INSERT INTO users (
         id, role, name, email, phone, prn, dob, password,
         department_id, department_name, semester, year, division, batch, roll_no,
         gender, blood_group, address, parent_name, parent_phone, parent_email,
         parent_occupation, is_verified
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        name = VALUES(name), email = VALUES(email), phone = VALUES(phone),
+        password = VALUES(password), department_id = VALUES(department_id),
+        department_name = VALUES(department_name), semester = VALUES(semester),
+        year = VALUES(year), division = VALUES(division), batch = VALUES(batch),
+        roll_no = VALUES(roll_no), gender = VALUES(gender), blood_group = VALUES(blood_group),
+        address = VALUES(address), parent_name = VALUES(parent_name),
+        parent_phone = VALUES(parent_phone), parent_email = VALUES(parent_email),
+        parent_occupation = VALUES(parent_occupation), is_verified = VALUES(is_verified)`,
       [
         studentId,
         'student',
@@ -428,12 +441,13 @@ router.post('/register-student', async (req, res) => {
     // Auto-create Parent user record with NULL password (Teacher will generate & send parent password)
     let parentRecord = null;
     if (body.parentPhone) {
-      const parentId = `par-${studentId}`;
       const parentPhoneClean = String(body.parentPhone).trim();
+      const parentDigits = parentPhoneClean.replace(/\D/g, '').slice(-10);
+      const parentId = body.parentId || (parentDigits ? `par-${parentDigits}` : `par-${studentId}`);
       await query(
         `INSERT INTO users (id, role, name, phone, email, dob, password, parent_id, department_id, department_name, is_verified)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE name = VALUES(name), phone = VALUES(phone)`,
+         ON DUPLICATE KEY UPDATE name = VALUES(name), phone = VALUES(phone), email = VALUES(email), parent_id = VALUES(parent_id)`,
         [
           parentId,
           'parent',
@@ -458,7 +472,9 @@ router.post('/register-student', async (req, res) => {
         studentName: body.name.trim(),
         departmentId: body.departmentId || 'dept-vlsi',
         departmentName: body.departmentName || 'Electronic Engineering (VLSI Design And Technology)',
-        canLogin: false
+        password: null,
+        canLogin: false,
+        isPasswordSet: false
       };
     }
 

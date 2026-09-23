@@ -17,6 +17,7 @@ import {
   VLSI_CLASS_METADATA,
   getStudentBatchInfo
 } from "../data/initialData";
+import { deduplicateUsers } from "../utils/academicSession";
 
 const SmartCampusContext = createContext();
 
@@ -117,7 +118,7 @@ export function SmartCampusProvider({ children }) {
 
           setState((prev) => ({
             ...prev,
-            users: Array.isArray(d.users) && d.users.length > 0 ? d.users : prev.users,
+            users: deduplicateUsers(Array.isArray(d.users) && d.users.length > 0 ? d.users : prev.users),
             departments: Array.isArray(d.departments) && d.departments.length > 0 ? d.departments : prev.departments,
             subjects: Array.isArray(d.subjects) ? d.subjects : prev.subjects,
             attendanceLogs: Array.isArray(d.attendanceLogs) ? d.attendanceLogs : prev.attendanceLogs,
@@ -149,7 +150,7 @@ export function SmartCampusProvider({ children }) {
             });
             return {
               ...prev,
-              users: Array.from(userMap.values())
+              users: deduplicateUsers(Array.from(userMap.values()))
             };
           });
         }
@@ -170,7 +171,7 @@ export function SmartCampusProvider({ children }) {
           });
           return {
             ...prev,
-            users: Array.from(userMap.values())
+            users: deduplicateUsers(Array.from(userMap.values()))
           };
         });
       }
@@ -314,7 +315,31 @@ export function SmartCampusProvider({ children }) {
       }
       return { success: false, message: res.message || "Invalid credentials." };
     } catch (err) {
+      const isNetworkError = err?.message && (
+        err.message.includes("fetch") ||
+        err.message.includes("Network") ||
+        err.message.includes("Failed to") ||
+        err.message.includes("ECONNREFUSED")
+      );
+
+      // If backend explicitly rejected (e.g. 401 wrong password, 403 parent password not set, 404 user not found):
+      // Return that exact error to the user!
+      if (!isNetworkError) {
+        return {
+          success: false,
+          message: err.message || "Invalid credentials. Please try again."
+        };
+      }
+
+      // Offline fallback only for real network outage:
       if (localUser) {
+        if (selectedRole === "parent" && (!localUser.password || localUser.canLogin === false)) {
+          return {
+            success: false,
+            message: "पालक लॉगिन पासवर्ड अद्याप वर्गशिक्षकांनी (Class Teacher) सेट केलेला नाही. कृपया वर्गशिक्षकांशी संपर्क साधा. (Parent login password has not been assigned by Class Teacher yet.)"
+          };
+        }
+
         const smsRecord = triggerLoginSms(localUser);
         setState((prev) => ({
           ...prev,
@@ -1225,7 +1250,7 @@ export function SmartCampusProvider({ children }) {
 
       return {
         ...prev,
-        users: updatedUsers,
+        users: deduplicateUsers(updatedUsers),
         auditLogs: [audit, ...prev.auditLogs]
       };
     });
@@ -1251,13 +1276,12 @@ export function SmartCampusProvider({ children }) {
     }
 
     setState((prev) => {
-      let updatedUsers = [student, ...prev.users.filter((u) => u.id !== student.id && (!u.phone || u.phone !== student.phone))];
-      if (cleanParent) {
-        updatedUsers = [cleanParent, ...updatedUsers.filter((u) => u.id !== cleanParent.id && (!u.phone || u.phone !== cleanParent.phone))];
-      }
+      const incoming = [student];
+      if (cleanParent) incoming.push(cleanParent);
+      const combined = [...incoming, ...prev.users];
       return {
         ...prev,
-        users: updatedUsers
+        users: deduplicateUsers(combined)
       };
     });
   };
