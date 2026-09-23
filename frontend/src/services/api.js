@@ -13,13 +13,29 @@ async function request(endpoint, options = {}) {
 
   try {
     const response = await fetch(`${API_BASE}${endpoint}`, config);
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || `Request failed with status ${response.status}`);
+    const contentType = response.headers.get('content-type') || '';
+
+    let data = null;
+    if (contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      const rawText = await response.text();
+      try {
+        data = rawText ? JSON.parse(rawText) : null;
+      } catch {
+        // Not a JSON response (e.g., HTML fallback or empty body)
+        data = null;
+      }
     }
-    return data;
+
+    if (!response.ok) {
+      const errMsg = data?.message || `Request failed with status ${response.status}`;
+      throw new Error(errMsg);
+    }
+
+    return data || { success: true };
   } catch (error) {
-    console.error(`[API Error] ${endpoint}:`, error.message);
+    console.warn(`[API] ${endpoint}:`, error.message);
     throw error;
   }
 }

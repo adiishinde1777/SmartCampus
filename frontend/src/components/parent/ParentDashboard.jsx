@@ -31,7 +31,7 @@ export default function ParentDashboard({ onNavigate }) {
   } = useSmartCampus();
 
   const parent = currentUser;
-  const ward = users.find((u) => u.id === parent?.studentId) || users[0];
+  const ward = users.find((u) => u.id === parent?.studentId || (u.parentPhone && parent?.phone && u.parentPhone === parent?.phone)) || null;
   const threshold = systemSettings.attendanceThreshold;
 
   // Ward doctor letters

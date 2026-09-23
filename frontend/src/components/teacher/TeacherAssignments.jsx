@@ -6,34 +6,32 @@ import {
   CheckCircle2,
   Clock,
   Award,
-  Upload,
-  FileText,
+  Users,
   Calendar,
-  ShieldAlert,
-  ShieldCheck,
-  Fingerprint,
-  AlertTriangle,
-  ExternalLink,
-  Eye,
-  X
+  Save,
+  Check,
+  X,
+  FileCheck
 } from "lucide-react";
 import { Badge, Modal } from "../common/UIPrimitives";
 
 export default function TeacherAssignments() {
-  const { subjects, assignments, createAssignment, gradeAssignment, flagPlagiarizedAssignment } = useSmartCampus();
+  const { users, subjects, assignments, createAssignment, updateStudentAssignmentStatus } = useSmartCampus();
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [selectedAsgForGrading, setSelectedAsgForGrading] = useState(null);
+
+  // New assignment form state
   const [title, setTitle] = useState("");
-  const [subjectId, setSubjectId] = useState("sub-vlsi503");
-  const [deadline, setDeadline] = useState("2026-09-20");
-  const [totalPoints, setTotalPoints] = useState(50);
+  const [subjectId, setSubjectId] = useState(subjects[0]?.id || "sub-1");
+  const [deadline, setDeadline] = useState(new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0]);
+  const [totalPoints, setTotalPoints] = useState(25);
   const [description, setDescription] = useState("");
 
-  const [gradeModalData, setGradeModalData] = useState(null); // { asgId, studentId, studentName, file, maxMarks }
-  const [gradeMarks, setGradeMarks] = useState(45);
-  const [gradeFeedback, setGradeFeedback] = useState("Well structured analysis.");
+  // Grade edit state for individual students in modal
+  const [studentGrades, setStudentGrades] = useState({});
 
-  const [plagiarismModalData, setPlagiarismModalData] = useState(null); // { asg, sub, sourceSub }
+  const enrolledStudents = users.filter((u) => u.role === "student");
 
   const handleCreate = (e) => {
     e.preventDefault();
@@ -49,34 +47,86 @@ export default function TeacherAssignments() {
     setDescription("");
   };
 
-  const handleGradeSubmit = (e) => {
-    e.preventDefault();
-    if (!gradeModalData) return;
-    gradeAssignment(gradeModalData.asgId, gradeModalData.studentId, Number(gradeMarks), gradeFeedback);
-    setGradeModalData(null);
+  const handleOpenGradingModal = (asg) => {
+    setSelectedAsgForGrading(asg);
+    // Initialize grade state from existing submissions
+    const initialMap = {};
+    enrolledStudents.forEach((stu) => {
+      const sub = asg.submissions?.find((s) => s.studentId === stu.id);
+      initialMap[stu.id] = {
+        isSubmitted: Boolean(sub && sub.isSubmitted),
+        marks: sub?.marks !== undefined && sub?.marks !== null ? sub.marks : asg.totalPoints,
+        feedback: sub?.feedback || "Checked and verified in class."
+      };
+    });
+    setStudentGrades(initialMap);
   };
 
-  const handleInspectPlagiarism = (asg, sub) => {
-    // Find matching source if any
-    const sourceSub = (asg.submissions || []).find(
-      (s) => s.studentId !== sub.studentId && (sub.copiedFrom?.includes(s.studentName) || sub.copiedFrom?.includes(s.rollNo))
-    ) || (asg.submissions || []).find((s) => s.studentId !== sub.studentId);
+  const handleToggleSubmitted = (stuId) => {
+    setStudentGrades((prev) => ({
+      ...prev,
+      [stuId]: {
+        ...prev[stuId],
+        isSubmitted: !prev[stuId]?.isSubmitted
+      }
+    }));
+  };
 
-    setPlagiarismModalData({
-      asg,
-      sub,
-      sourceSub
+  const handleMarksChange = (stuId, marksVal) => {
+    setStudentGrades((prev) => ({
+      ...prev,
+      [stuId]: {
+        ...prev[stuId],
+        marks: marksVal
+      }
+    }));
+  };
+
+  const handleFeedbackChange = (stuId, feedbackVal) => {
+    setStudentGrades((prev) => ({
+      ...prev,
+      [stuId]: {
+        ...prev[stuId],
+        feedback: feedbackVal
+      }
+    }));
+  };
+
+  const handleSaveStudentGrade = (asgId, stuId) => {
+    const data = studentGrades[stuId];
+    if (!data) return;
+    updateStudentAssignmentStatus(asgId, stuId, {
+      isSubmitted: data.isSubmitted,
+      marks: Number(data.marks),
+      feedback: data.feedback
     });
   };
 
-  const handleApplyPenalty = (asgId, studentId) => {
-    flagPlagiarizedAssignment(
-      asgId,
-      studentId,
-      0,
-      "Zero marks awarded: High-similarity automated match confirmed. Unauthorized assignment copying violates college academic code."
-    );
-    setPlagiarismModalData(null);
+  const handleSaveAllGrades = (asgId) => {
+    enrolledStudents.forEach((stu) => {
+      const data = studentGrades[stu.id];
+      if (data) {
+        updateStudentAssignmentStatus(asgId, stu.id, {
+          isSubmitted: data.isSubmitted,
+          marks: Number(data.marks),
+          feedback: data.feedback
+        });
+      }
+    });
+    setSelectedAsgForGrading(null);
+  };
+
+  const handleMarkAllSubmitted = () => {
+    setStudentGrades((prev) => {
+      const updated = { ...prev };
+      enrolledStudents.forEach((stu) => {
+        updated[stu.id] = {
+          ...(updated[stu.id] || {}),
+          isSubmitted: true
+        };
+      });
+      return updated;
+    });
   };
 
   return (
@@ -84,473 +134,304 @@ export default function TeacherAssignments() {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
         <div>
-          <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "var(--text-main)" }}>
-            Assignment Management & Grading Console
+          <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "var(--text-main)", margin: 0 }}>
+            Coursework & Assignment Management Console
           </h2>
           <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "4px" }}>
-            Publish new coursework, inspect automated plagiarism similarity checks, and enforce academic integrity
+            Create coursework, verify physical in-class student submissions, and record evaluation marks
           </p>
         </div>
 
         <button
           onClick={() => setCreateModalOpen(true)}
           className="btn btn-primary btn-sm"
+          style={{ display: "flex", alignItems: "center", gap: "6px" }}
         >
           <PlusCircle size={16} /> Create New Assignment
         </button>
       </div>
 
       {/* Assignment List */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-        {assignments.map((asg) => (
-          <div key={asg.id} className="card">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <Badge variant="purple">{asg.subjectName}</Badge>
-                  <Badge variant="info">Max {asg.totalPoints} Marks</Badge>
-                </div>
-                <h3 style={{ fontSize: "1.2rem", fontWeight: "700", marginTop: "6px" }}>{asg.title}</h3>
-              </div>
-              <div style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
-                Due Date: <strong style={{ color: "#b91c1c" }}>{asg.deadline}</strong>
-              </div>
-            </div>
+      {assignments.length === 0 ? (
+        <div className="card" style={{ textAlign: "center", padding: "40px 20px" }}>
+          <BookOpen size={44} color="#94a3b8" style={{ margin: "0 auto 12px" }} />
+          <h3 style={{ fontSize: "1.1rem", fontWeight: "700", color: "var(--text-main)" }}>No Assignments Created Yet</h3>
+          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "4px" }}>
+            Click "Create New Assignment" above to assign coursework to students.
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: "20px" }}>
+          {assignments.map((asg) => {
+            const submittedCount = (asg.submissions || []).filter((s) => s.isSubmitted).length;
+            const totalStudents = enrolledStudents.length;
+            const completionPercent = totalStudents > 0 ? Math.round((submittedCount / totalStudents) * 100) : 0;
 
-            <p style={{ fontSize: "0.86rem", color: "var(--text-muted)", marginBottom: "16px" }}>
-              {asg.description}
-            </p>
+            return (
+              <div key={asg.id} className="card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px", gap: "8px" }}>
+                    <Badge variant="purple">{asg.subjectName}</Badge>
+                    <Badge variant="info">Max {asg.totalPoints} Marks</Badge>
+                  </div>
 
-            {/* Submissions Section */}
-            <div style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: "14px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
-                <div style={{ fontSize: "0.88rem", fontWeight: "700", color: "var(--text-main)" }}>
-                  Student Submissions ({asg.submissions?.length || 0} received):
-                </div>
+                  <h3 style={{ fontSize: "1.15rem", fontWeight: "700", color: "var(--text-main)", marginBottom: "6px" }}>
+                    {asg.title}
+                  </h3>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.78rem", color: "var(--text-muted)" }}>
-                  <ShieldCheck size={15} color="#10b981" />
-                  <span>Automated similarity check & anti-copy fingerprint active</span>
-                </div>
-              </div>
+                  <p style={{ fontSize: "0.84rem", color: "var(--text-muted)", lineHeight: 1.5, marginBottom: "14px" }}>
+                    {asg.description || "Coursework assignment to be submitted in physical journal form."}
+                  </p>
 
-              {asg.submissions?.length === 0 ? (
-                <div style={{ padding: "16px", background: "var(--bg-surface-secondary)", borderRadius: "8px", fontSize: "0.82rem", color: "var(--text-muted)" }}>
-                  No student has submitted work for this assignment yet.
-                </div>
-              ) : (
-                <div className="table-container table-spacious">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Student & Roll No</th>
-                        <th>Submission Time</th>
-                        <th>Attached Solution</th>
-                        <th>Plagiarism / Anti-Copy Scan</th>
-                        <th>Status</th>
-                        <th>Marks</th>
-                        <th>Evaluation Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {asg.submissions.map((sub) => {
-                        const isFlagged = sub.status === "Flagged Copied" || (sub.plagiarismScore > 35);
-                        const isReviewed = sub.status === "Reviewed";
-
-                        return (
-                          <tr key={sub.studentId} style={{ background: isFlagged ? "#fff5f5" : "inherit" }}>
-                            <td>
-                              <div style={{ fontWeight: "700", color: "var(--text-main)" }}>{sub.studentName}</div>
-                              <div style={{ fontSize: "0.74rem", color: "var(--text-muted)" }}>Roll: {sub.rollNo || "VL3101"}</div>
-                            </td>
-                            <td>
-                              <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{sub.submittedOn}</span>
-                            </td>
-                            <td>
-                              <span
-                                style={{ fontSize: "0.8rem", color: "var(--primary-600)", textDecoration: "underline", cursor: "pointer", fontWeight: "500" }}
-                                onClick={() => alert(`Downloading student file: ${sub.file}`)}
-                              >
-                                {sub.file}
-                              </span>
-                              {sub.digitalSignature && (
-                                <div style={{ fontSize: "0.68rem", color: "#64748b", marginTop: "2px", fontFamily: "monospace" }}>
-                                  Seal: {sub.digitalSignature.substring(0, 16)}...
-                                </div>
-                              )}
-                            </td>
-                            <td>
-                              {isFlagged ? (
-                                <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-                                  <Badge variant="danger" icon={ShieldAlert}>
-                                    {sub.plagiarismScore}% Copied Match
-                                  </Badge>
-                                  {sub.copiedFrom && (
-                                    <span style={{ fontSize: "0.72rem", color: "#b91c1c", fontWeight: "600" }}>
-                                      Copied from: {sub.copiedFrom}
-                                    </span>
-                                  )}
-                                  <button
-                                    type="button"
-                                    onClick={() => handleInspectPlagiarism(asg, sub)}
-                                    style={{
-                                      background: "none",
-                                      border: "none",
-                                      padding: 0,
-                                      color: "#2563eb",
-                                      fontSize: "0.74rem",
-                                      fontWeight: "700",
-                                      textAlign: "left",
-                                      cursor: "pointer",
-                                      textDecoration: "underline"
-                                    }}
-                                  >
-                                    Compare side-by-side →
-                                  </button>
-                                </div>
-                              ) : (
-                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                  <Badge variant="success" icon={ShieldCheck}>
-                                    {sub.plagiarismScore || 3}% Original
-                                  </Badge>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleInspectPlagiarism(asg, sub)}
-                                    title="View originality report"
-                                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}
-                                  >
-                                    <Eye size={14} />
-                                  </button>
-                                </div>
-                              )}
-                            </td>
-                            <td>
-                              {isFlagged ? (
-                                <Badge variant="danger">Disciplinary Flag</Badge>
-                              ) : isReviewed ? (
-                                <Badge variant="success" icon={CheckCircle2}>Reviewed</Badge>
-                              ) : (
-                                <Badge variant="warning" icon={Clock}>Pending Review</Badge>
-                              )}
-                            </td>
-                            <td>
-                              {sub.marks !== null ? (
-                                <strong style={{ color: isFlagged ? "#dc2626" : "var(--primary-700)", fontSize: "0.95rem" }}>
-                                  {sub.marks} / {asg.totalPoints}
-                                </strong>
-                              ) : (
-                                <span style={{ color: "var(--text-muted)" }}>Not Graded</span>
-                              )}
-                            </td>
-                            <td>
-                              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                                <button
-                                  onClick={() => {
-                                    setGradeModalData({ asgId: asg.id, studentId: sub.studentId, studentName: sub.studentName, file: sub.file, maxMarks: asg.totalPoints });
-                                    setGradeMarks(sub.marks !== null ? sub.marks : 45);
-                                    setGradeFeedback(sub.feedback || "Well done.");
-                                  }}
-                                  className="btn btn-secondary btn-sm"
-                                  style={{ padding: "5px 10px", fontSize: "0.76rem" }}
-                                >
-                                  <Award size={13} /> Grade
-                                </button>
-
-                                {isFlagged ? (
-                                  <button
-                                    onClick={() => handleApplyPenalty(asg.id, sub.studentId)}
-                                    className="btn btn-danger btn-sm"
-                                    style={{ padding: "5px 10px", fontSize: "0.76rem" }}
-                                  >
-                                    0 Marks
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={() => handleInspectPlagiarism(asg, sub)}
-                                    className="btn btn-secondary btn-sm"
-                                    style={{ padding: "5px 8px", fontSize: "0.76rem" }}
-                                    title="Audit originality"
-                                  >
-                                    Scan
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* SIDE-BY-SIDE PLAGIARISM & ANTI-COPY INSPECTION MODAL */}
-      <Modal
-        isOpen={Boolean(plagiarismModalData)}
-        onClose={() => setPlagiarismModalData(null)}
-        title={`Automated Plagiarism & Anti-Copy Inspection Report`}
-      >
-        {plagiarismModalData && (
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", background: "#f8fafc", padding: "12px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-              <div>
-                <strong style={{ color: "var(--text-main)", fontSize: "0.95rem" }}>
-                  {plagiarismModalData.asg.title}
-                </strong>
-                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                  Target Student: <strong>{plagiarismModalData.sub.studentName}</strong> (Roll: {plagiarismModalData.sub.rollNo || "VL3105"})
-                </div>
-              </div>
-
-              <div style={{ textAlign: "right" }}>
-                <Badge variant={plagiarismModalData.sub.plagiarismScore > 35 ? "danger" : "success"}>
-                  {plagiarismModalData.sub.plagiarismScore}% Code Similarity
-                </Badge>
-                <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "2px" }}>
-                  {plagiarismModalData.sub.plagiarismScore > 35 ? "⚠️ Unauthorized Copy Flagged" : "✓ Original Submission"}
-                </div>
-              </div>
-            </div>
-
-            {/* Side-by-Side Comparison Panels */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "16px" }}>
-              {/* Target Submission */}
-              <div style={{ border: `2px solid ${plagiarismModalData.sub.plagiarismScore > 35 ? "#fca5a5" : "#cbd5e1"}`, borderRadius: "8px", padding: "12px", background: "white" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e2e8f0", paddingBottom: "8px", marginBottom: "8px" }}>
-                  <div>
-                    <strong style={{ fontSize: "0.85rem", color: "var(--text-main)" }}>
-                      {plagiarismModalData.sub.studentName}
-                    </strong>
-                    <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
-                      Time: {plagiarismModalData.sub.submittedOn}
+                  <div style={{ background: "var(--bg-surface-secondary)", padding: "10px 14px", borderRadius: "8px", fontSize: "0.8rem", display: "flex", flexDirection: "column", gap: "6px", marginBottom: "16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ color: "var(--text-muted)" }}>Submission Deadline:</span>
+                      <strong style={{ color: "#dc2626" }}>{asg.deadline}</strong>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ color: "var(--text-muted)" }}>Class Submissions:</span>
+                      <strong>{submittedCount} / {totalStudents} Students ({completionPercent}%)</strong>
                     </div>
                   </div>
-                  <Badge variant={plagiarismModalData.sub.plagiarismScore > 35 ? "danger" : "primary"}>
-                    {plagiarismModalData.sub.plagiarismScore > 35 ? "Suspected Copy" : "Candidate"}
-                  </Badge>
                 </div>
 
-                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "6px" }}>
-                  File: <strong>{plagiarismModalData.sub.file}</strong>
-                </div>
-
-                <pre style={{
-                  background: "#1e293b",
-                  color: "#f8fafc",
-                  padding: "10px",
-                  borderRadius: "6px",
-                  fontSize: "0.72rem",
-                  fontFamily: "monospace",
-                  maxHeight: "160px",
-                  overflowY: "auto",
-                  whiteSpace: "pre-wrap"
-                }}>
-                  {plagiarismModalData.sub.submissionSnippet || "module counter_4bit(clk, rst_n, count);\ninput clk, rst_n;\noutput reg [3:0] count;\nalways @(posedge clk or negedge rst_n) begin\n  if(!rst_n) count <= 4'b0000;\n  else count <= count + 1'b1;\nend\nendmodule"}
-                </pre>
-              </div>
-
-              {/* Original Source Submission */}
-              <div style={{ border: "2px solid #86efac", borderRadius: "8px", padding: "12px", background: "white" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e2e8f0", paddingBottom: "8px", marginBottom: "8px" }}>
-                  <div>
-                    <strong style={{ fontSize: "0.85rem", color: "var(--text-main)" }}>
-                      {plagiarismModalData.sourceSub?.studentName || "Aditya Shinde (Author)"}
-                    </strong>
-                    <div style={{ fontSize: "0.72rem", color: "#059669", fontWeight: "600" }}>
-                      First Submitted: {plagiarismModalData.sourceSub?.submittedOn || "2026-09-08 (Earlier)"}
-                    </div>
-                  </div>
-                  <Badge variant="success">Original Author</Badge>
-                </div>
-
-                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "6px" }}>
-                  File: <strong>{plagiarismModalData.sourceSub?.file || "Aditya_Shinde_Solution.pdf"}</strong>
-                </div>
-
-                <pre style={{
-                  background: "#1e293b",
-                  color: "#86efac",
-                  padding: "10px",
-                  borderRadius: "6px",
-                  fontSize: "0.72rem",
-                  fontFamily: "monospace",
-                  maxHeight: "160px",
-                  overflowY: "auto",
-                  whiteSpace: "pre-wrap"
-                }}>
-                  {plagiarismModalData.sourceSub?.submissionSnippet || "module counter_4bit(clk, rst_n, count);\ninput clk, rst_n;\noutput reg [3:0] count;\nalways @(posedge clk or negedge rst_n) begin\n  if(!rst_n) count <= 4'b0000;\n  else count <= count + 1'b1;\nend\nendmodule"}
-                </pre>
-              </div>
-            </div>
-
-            {/* Analysis Summary */}
-            <div style={{ background: plagiarismModalData.sub.plagiarismScore > 35 ? "#fef2f2" : "#f0fdf4", border: `1px solid ${plagiarismModalData.sub.plagiarismScore > 35 ? "#fecaca" : "#bbf7d0"}`, padding: "12px", borderRadius: "8px", fontSize: "0.8rem", marginBottom: "16px" }}>
-              <div style={{ fontWeight: "700", color: plagiarismModalData.sub.plagiarismScore > 35 ? "#991b1b" : "#166534" }}>
-                {plagiarismModalData.sub.plagiarismScore > 35
-                  ? "🚨 Plagiarism Verdict: Direct Copy Identified"
-                  : "✓ Originality Audit: Passed"}
-              </div>
-              <p style={{ margin: "4px 0 0 0", color: plagiarismModalData.sub.plagiarismScore > 35 ? "#7f1d1d" : "#14532d", fontSize: "0.75rem" }}>
-                {plagiarismModalData.sub.plagiarismScore > 35
-                  ? `Chronological analysis confirms that ${plagiarismModalData.sourceSub?.studentName || "Aditya Shinde"} submitted their work first. ${plagiarismModalData.sub.studentName}'s solution exhibits 92% token, variable, and procedural block duplication.`
-                  : `Submission demonstrates unique logic implementation aligned with the student's seeded problem parameters.`}
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setPlagiarismModalData(null)}
-              >
-                Close Report
-              </button>
-
-              {plagiarismModalData.sub.plagiarismScore > 35 && (
                 <button
                   type="button"
-                  className="btn btn-danger"
-                  onClick={() => handleApplyPenalty(plagiarismModalData.asg.id, plagiarismModalData.sub.studentId)}
+                  onClick={() => handleOpenGradingModal(asg)}
+                  className="btn btn-secondary btn-sm"
+                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "10px" }}
                 >
-                  <AlertTriangle size={15} /> Award 0 Marks & Flag Disciplinary Violation
+                  <FileCheck size={16} />
+                  <span>Verify Submissions & Grade ({submittedCount}/{totalStudents})</span>
                 </button>
-              )}
-            </div>
-          </div>
-        )}
-      </Modal>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-      {/* Create Assignment Modal */}
+      {/* CREATE ASSIGNMENT MODAL */}
       <Modal
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
-        title="Create New Coursework Assignment"
+        title="Publish New Assignment"
       >
-        <form onSubmit={handleCreate}>
+        <form onSubmit={handleCreate} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <div className="form-group">
-            <label className="form-label">Assignment Title</label>
+            <label className="form-label" style={{ fontWeight: "700" }}>Assignment Title</label>
             <input
               type="text"
+              required
               className="form-control"
-              placeholder="e.g. Relational Calculus & Indexing"
+              placeholder="e.g. Assignment 1: Design CMOS Inverter Schematic"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              required
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <div className="form-group">
-              <label className="form-label">Subject</label>
+              <label className="form-label" style={{ fontWeight: "700" }}>Subject</label>
               <select
                 className="form-control"
                 value={subjectId}
                 onChange={(e) => setSubjectId(e.target.value)}
               >
-                {subjects.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
+                {subjects.length > 0 ? (
+                  subjects.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))
+                ) : (
+                  <option value="sub-gen">General Coursework</option>
+                )}
               </select>
             </div>
 
             <div className="form-group">
-              <label className="form-label">Total Points</label>
+              <label className="form-label" style={{ fontWeight: "700" }}>Total Points</label>
               <input
                 type="number"
+                min="5"
+                max="100"
                 className="form-control"
                 value={totalPoints}
                 onChange={(e) => setTotalPoints(e.target.value)}
-                min="10"
-                required
               />
             </div>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Submission Deadline</label>
+            <label className="form-label" style={{ fontWeight: "700" }}>Submission Deadline</label>
             <input
               type="date"
+              required
               className="form-control"
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
-              required
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">Instructions & Requirements</label>
+            <label className="form-label" style={{ fontWeight: "700" }}>Instructions / Description</label>
             <textarea
               className="form-control"
-              rows={4}
-              placeholder="Specify questions, rubrics, and formatting guidelines..."
+              rows={3}
+              placeholder="Provide questions, textbook reference, or journal requirements..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              required
             />
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "16px" }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setCreateModalOpen(false)}>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }}>
+            <button
+              type="button"
+              onClick={() => setCreateModalOpen(false)}
+              className="btn btn-secondary"
+            >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">
+            <button
+              type="submit"
+              className="btn btn-primary"
+            >
               Publish Assignment
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* Grade Submission Modal */}
-      <Modal
-        isOpen={Boolean(gradeModalData)}
-        onClose={() => setGradeModalData(null)}
-        title={`Grade Submission: ${gradeModalData?.studentName}`}
-      >
-        <form onSubmit={handleGradeSubmit}>
-          <div style={{ marginBottom: "14px", padding: "10px", background: "var(--bg-surface-secondary)", borderRadius: "8px", fontSize: "0.82rem" }}>
-            Submitted File: <strong>{gradeModalData?.file}</strong> • Max Points: <strong>{gradeModalData?.maxMarks}</strong>
-          </div>
+      {/* VERIFY SUBMISSIONS & GRADE MODAL */}
+      {selectedAsgForGrading && (
+        <Modal
+          isOpen={Boolean(selectedAsgForGrading)}
+          onClose={() => setSelectedAsgForGrading(null)}
+          title={`Grade: ${selectedAsgForGrading.title} (Max ${selectedAsgForGrading.totalPoints} Marks)`}
+          maxWidth="750px"
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc", padding: "10px 14px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+              <span style={{ fontSize: "0.85rem", color: "#64748b" }}>
+                Total Enrolled Students: <strong>{enrolledStudents.length}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={handleMarkAllSubmitted}
+                className="btn btn-secondary btn-sm"
+              >
+                Mark All as Submitted
+              </button>
+            </div>
 
-          <div className="form-group">
-            <label className="form-label">Marks Awarded</label>
-            <input
-              type="number"
-              className="form-control"
-              value={gradeMarks}
-              onChange={(e) => setGradeMarks(e.target.value)}
-              min="0"
-              max={gradeModalData?.maxMarks || 100}
-              required
-            />
-          </div>
+            {enrolledStudents.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "30px", color: "var(--text-muted)" }}>
+                No students enrolled in the system yet. Once students register, they will appear here for grading.
+              </div>
+            ) : (
+              <div style={{ maxHeight: "380px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "12px" }}>
+                {enrolledStudents.map((stu) => {
+                  const currentGrade = studentGrades[stu.id] || {
+                    isSubmitted: false,
+                    marks: selectedAsgForGrading.totalPoints,
+                    feedback: "Checked in class"
+                  };
 
-          <div className="form-group">
-            <label className="form-label">Instructor Feedback & Comments</label>
-            <textarea
-              className="form-control"
-              rows={3}
-              value={gradeFeedback}
-              onChange={(e) => setGradeFeedback(e.target.value)}
-              placeholder="Provide suggestions for improvement..."
-              required
-            />
-          </div>
+                  return (
+                    <div
+                      key={stu.id}
+                      style={{
+                        padding: "12px 14px",
+                        borderRadius: "10px",
+                        border: currentGrade.isSubmitted ? "1.5px solid #a7f3d0" : "1.5px solid #e2e8f0",
+                        background: currentGrade.isSubmitted ? "#f0fdf4" : "white",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "10px"
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                        <div>
+                          <div style={{ fontWeight: "700", color: "#0f172a" }}>
+                            {stu.name}
+                          </div>
+                          <div style={{ fontSize: "0.78rem", color: "#64748b" }}>
+                            PRN: {stu.prn || "N/A"} • Roll: {stu.rollNo || "N/A"} • Year: {stu.year || "1st Year"}
+                          </div>
+                        </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "16px" }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setGradeModalData(null)}>
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-primary">
-              Save Grade & Feedback
-            </button>
+                        <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "0.84rem", fontWeight: "700", color: currentGrade.isSubmitted ? "#059669" : "#64748b" }}>
+                          <input
+                            type="checkbox"
+                            checked={currentGrade.isSubmitted}
+                            onChange={() => handleToggleSubmitted(stu.id)}
+                            style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                          />
+                          <span>{currentGrade.isSubmitted ? "Submitted ✓" : "Not Submitted"}</span>
+                        </label>
+                      </div>
+
+                      {currentGrade.isSubmitted && (
+                        <div style={{ display: "grid", gridTemplateColumns: "100px 1fr auto", gap: "10px", alignItems: "center" }}>
+                          <div>
+                            <input
+                              type="number"
+                              min="0"
+                              max={selectedAsgForGrading.totalPoints}
+                              value={currentGrade.marks}
+                              onChange={(e) => handleMarksChange(stu.id, e.target.value)}
+                              className="form-control"
+                              placeholder="Marks"
+                              style={{ padding: "6px 10px", fontSize: "0.85rem" }}
+                            />
+                          </div>
+
+                          <div>
+                            <input
+                              type="text"
+                              value={currentGrade.feedback}
+                              onChange={(e) => handleFeedbackChange(stu.id, e.target.value)}
+                              className="form-control"
+                              placeholder="Remarks (e.g. Good journal work)"
+                              style={{ padding: "6px 10px", fontSize: "0.85rem" }}
+                            />
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleSaveStudentGrade(selectedAsgForGrading.id, stu.id)}
+                            className="btn btn-primary btn-sm"
+                            style={{ padding: "6px 12px", whiteSpace: "nowrap" }}
+                          >
+                            <Save size={14} /> Save
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", borderTop: "1px solid #e2e8f0", paddingTop: "14px", marginTop: "8px" }}>
+              <button
+                type="button"
+                onClick={() => setSelectedAsgForGrading(null)}
+                className="btn btn-secondary"
+              >
+                Close
+              </button>
+              {enrolledStudents.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => handleSaveAllGrades(selectedAsgForGrading.id)}
+                  className="btn btn-primary"
+                >
+                  Save All Records
+                </button>
+              )}
+            </div>
           </div>
-        </form>
-      </Modal>
+        </Modal>
+      )}
     </div>
   );
 }

@@ -9,14 +9,20 @@ import {
 
 const SmartCampusContext = createContext();
 
-const STORAGE_KEY = "smart_campus_erp_mysql_clean_v2";
+const STORAGE_KEY = "smartcampus_zero_data_v3";
+
+// Clean old localStorage entries if present
+try {
+  localStorage.removeItem("smart_campus_erp_mysql_clean_v2");
+  localStorage.removeItem("smartcampus_state");
+} catch (e) {}
 
 const CLEAN_BASELINE_ADMIN = {
   id: "adm-1",
   role: "admin",
   name: "System Administrator",
   email: "admin@campus.edu",
-  phone: "9876543210",
+  phone: "7378535499",
   prn: "admin",
   dob: "1985-01-01",
   password: "admin123",
@@ -201,7 +207,29 @@ export function SmartCampusProvider({ children }) {
         addToast("Login Successful", `Welcome back, ${user.name}!`, "success");
         return { success: true, user };
       }
-      return { success: false, message: err.message || "Invalid credentials." };
+
+      if (selectedRole === "parent") {
+        return {
+          success: false,
+          message: "No registered student/ward found with this Parent Mobile Number. Please verify your mobile number or enroll first via Student Enrollment Form."
+        };
+      }
+      if (selectedRole === "student") {
+        return {
+          success: false,
+          message: "No registered student found with this PRN / Birthdate. Please verify your credentials or enroll via Student Enrollment Form."
+        };
+      }
+      if (selectedRole === "admin") {
+        return {
+          success: false,
+          message: "Invalid Administrator credentials. Default credentials: admin / admin123."
+        };
+      }
+      return {
+        success: false,
+        message: "Invalid credentials. Please verify your mobile number and date of birth."
+      };
     }
   };
 
@@ -700,21 +728,46 @@ export function SmartCampusProvider({ children }) {
   };
 
   const gradeAssignment = (assignmentId, studentId, marks, feedback) => {
+    updateStudentAssignmentStatus(assignmentId, studentId, { isSubmitted: true, marks, feedback });
+  };
+
+  const updateStudentAssignmentStatus = (assignmentId, studentId, { isSubmitted, marks, feedback }) => {
     setState((prev) => {
+      const student = prev.users.find((u) => u.id === studentId);
+      const studentName = student ? student.name : "Student";
+      const rollNo = student ? (student.rollNo || student.prn || "") : "";
+
       const updated = prev.assignments.map((asg) => {
         if (asg.id === assignmentId) {
-          const subs = asg.submissions.map((s) => {
-            if (s.studentId === studentId) {
-              return { ...s, status: "Reviewed", marks: Number(marks), feedback };
-            }
-            return s;
-          });
+          const subs = [...(asg.submissions || [])];
+          const existingIdx = subs.findIndex((s) => s.studentId === studentId);
+          const subRecord = {
+            studentId,
+            studentName,
+            rollNo,
+            isSubmitted: Boolean(isSubmitted),
+            status: isSubmitted ? "Reviewed" : "Pending",
+            marks: isSubmitted && marks !== undefined && marks !== "" ? Number(marks) : null,
+            maxMarks: asg.totalPoints,
+            feedback: feedback || (isSubmitted ? "Checked & Verified by Faculty in class" : null),
+            submittedOn: new Date().toLocaleDateString("en-GB")
+          };
+
+          if (existingIdx >= 0) {
+            subs[existingIdx] = { ...subs[existingIdx], ...subRecord };
+          } else {
+            subs.push(subRecord);
+          }
           return { ...asg, submissions: subs };
         }
         return asg;
       });
 
-      const audit = logAudit("Graded Assignment", `Graded student ${studentId}: ${marks} pts`, "Assignments");
+      const audit = logAudit(
+        "Updated Assignment Status",
+        `${isSubmitted ? "Marked Submitted & Graded" : "Reset"}: ${studentName} (${marks ?? 0} pts)`,
+        "Assignments"
+      );
 
       return {
         ...prev,
@@ -723,7 +776,7 @@ export function SmartCampusProvider({ children }) {
       };
     });
 
-    addToast("Submission Graded", "Feedback & score sent to student.", "success");
+    addToast("Assignment Record Saved", "Student submission status and marks updated successfully.", "success");
   };
 
   // ==========================================
@@ -2829,6 +2882,7 @@ export function SmartCampusProvider({ children }) {
         createAssignment,
         submitAssignment,
         gradeAssignment,
+        updateStudentAssignmentStatus,
         flagPlagiarizedAssignment,
         createNotice,
         applyLeave,

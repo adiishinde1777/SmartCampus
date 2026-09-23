@@ -29,7 +29,7 @@ let memoryStore = {
       role: 'admin',
       name: 'System Administrator',
       email: 'admin@campus.edu',
-      phone: '9876543210',
+      phone: '7378535499',
       prn: 'admin',
       dob: '1985-01-01',
       password: 'admin123',

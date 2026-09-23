@@ -29,10 +29,10 @@ export default function StudentRegisterPage({ onBackToLogin }) {
     address: "",
     departmentId: "dept-vlsi",
     departmentName: "Electronic Engineering (VLSI Design And Technology)",
-    semester: 5,
-    year: "3rd Year",
+    year: "1st Year",
+    semester: 1,
     division: "A",
-    batch: "TA1",
+    batch: "A1",
     parentName: "",
     parentPhone: "",
     parentEmail: "",
@@ -46,6 +46,19 @@ export default function StudentRegisterPage({ onBackToLogin }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleYearChange = (e) => {
+    const chosenYear = e.target.value;
+    let sem = 1;
+    if (chosenYear === "2nd Year") sem = 3;
+    if (chosenYear === "3rd Year") sem = 5;
+    if (chosenYear === "4th Year") sem = 7;
+    setFormData((prev) => ({
+      ...prev,
+      year: chosenYear,
+      semester: sem
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -353,29 +366,18 @@ export default function StudentRegisterPage({ onBackToLogin }) {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Semester & Division</label>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                  <select
-                    name="semester"
-                    className="form-control"
-                    value={formData.semester}
-                    onChange={handleChange}
-                  >
-                    <option value={1}>Sem 1 (1st Year)</option>
-                    <option value={3}>Sem 3 (2nd Year)</option>
-                    <option value={5}>Sem 5 (3rd Year)</option>
-                    <option value={7}>Sem 7 (4th Year)</option>
-                  </select>
-                  <select
-                    name="division"
-                    className="form-control"
-                    value={formData.division}
-                    onChange={handleChange}
-                  >
-                    <option value="A">Div A</option>
-                    <option value="B">Div B</option>
-                  </select>
-                </div>
+                <label className="form-label" style={{ fontWeight: "700" }}>Academic Year</label>
+                <select
+                  name="year"
+                  className="form-control"
+                  value={formData.year}
+                  onChange={handleYearChange}
+                >
+                  <option value="1st Year">1st Year (First Year - FE)</option>
+                  <option value="2nd Year">2nd Year (Second Year - SE)</option>
+                  <option value="3rd Year">3rd Year (Third Year - TE)</option>
+                  <option value="4th Year">4th Year (Final Year - BE)</option>
+                </select>
               </div>
             </div>
 
