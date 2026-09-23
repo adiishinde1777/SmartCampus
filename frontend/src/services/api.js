@@ -85,14 +85,6 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(smsData)
   }),
-  sendOtp: (otpData) => request('/otp/send', {
-    method: 'POST',
-    body: JSON.stringify(otpData)
-  }),
-  verifyOtp: (verifyData) => request('/otp/verify', {
-    method: 'POST',
-    body: JSON.stringify(verifyData)
-  }),
 
   // Attendance & SMS Flow
   submitAttendance: (attendanceData) => request('/attendance', {
