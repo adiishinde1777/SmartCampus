@@ -131,6 +131,7 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
       case "hod":
         return [
           { id: "dashboard", label: "HOD Dashboard", icon: LayoutDashboard },
+          { id: "placement-skills", label: "Industry & Placement Radar", icon: Briefcase, highlight: true },
           { id: "department-talent", label: "Dept Talent & Events", icon: Sparkles, highlight: true },
           { id: "students", label: "Dept Students", icon: Users },
           { id: "faculty", label: "Faculty Tracking", icon: GraduationCap },

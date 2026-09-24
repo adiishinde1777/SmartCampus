@@ -329,6 +329,48 @@ export default function PrincipalPlacementSkills() {
     s.courses.some((c) => c.status === "Ongoing")
   ).length;
 
+  // 1-CLICK INDUSTRY SKILL ANALYTICS (Branch-wise & Skill-wise breakdown)
+  const skillAnalytics = useMemo(() => {
+    const skillMap = {};
+
+    consolidatedStudentProfiles.forEach((stu) => {
+      const studentSkillsSet = new Set();
+      // Extract from skills
+      (stu.skills || []).forEach((sk) => {
+        if (sk.skill) studentSkillsSet.add(sk.skill.trim());
+      });
+      // Extract from courses
+      (stu.courses || []).forEach((c) => {
+        if (c.name) studentSkillsSet.add(c.name.trim());
+      });
+
+      const branchName = stu.departmentName || "Engineering";
+      const branchId = stu.departmentId || "dept-vlsi";
+
+      studentSkillsSet.forEach((skName) => {
+        if (!skillMap[skName]) {
+          skillMap[skName] = {
+            skill: skName,
+            totalStudents: 0,
+            branches: {}
+          };
+        }
+        skillMap[skName].totalStudents += 1;
+        if (!skillMap[skName].branches[branchName]) {
+          skillMap[skName].branches[branchName] = {
+            name: branchName,
+            id: branchId,
+            count: 0
+          };
+        }
+        skillMap[skName].branches[branchName].count += 1;
+      });
+    });
+
+    // Sort by most popular skills
+    return Object.values(skillMap).sort((a, b) => b.totalStudents - a.totalStudents);
+  }, [consolidatedStudentProfiles]);
+
   // Filtered List based on Search & Criteria
   const filteredCandidates = useMemo(() => {
     return consolidatedStudentProfiles.filter((student) => {
@@ -629,8 +671,25 @@ export default function PrincipalPlacementSkills() {
             </select>
           </div>
 
+          {/* Department / Branch Dropdown */}
+          <div style={{ flex: "1", minWidth: "180px" }}>
+            <select
+              value={deptFilter}
+              onChange={(e) => setDeptFilter(e.target.value)}
+              className="form-control"
+              style={{ height: "44px", borderRadius: "10px", fontSize: "0.85rem" }}
+            >
+              <option value="all">🏛️ All Departments (सर्व शाखा)</option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name} ({d.code})
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Minimum Attendance Filter */}
-          <div style={{ flex: "1", minWidth: "160px" }}>
+          <div style={{ flex: "1", minWidth: "150px" }}>
             <select
               value={minAttendanceFilter}
               onChange={(e) => setMinAttendanceFilter(Number(e.target.value))}
@@ -641,6 +700,76 @@ export default function PrincipalPlacementSkills() {
               <option value={75}>⚡ Attendance: ≥ 75% Eligible</option>
               <option value={85}>⭐ Attendance: ≥ 85% High</option>
             </select>
+          </div>
+        </div>
+
+        {/* 1-CLICK INDUSTRY SKILL & BRANCH BREAKDOWN ANALYTICS CONSOLE */}
+        <div style={{ background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Sparkles size={16} color="#4f46e5" />
+              <strong style={{ fontSize: "0.9rem", color: "#1e293b" }}>
+                🎯 1-Click Industry Skills & Branch Matrix (कंपनी आल्यावर त्वरित ॲनालिसीस)
+              </strong>
+            </div>
+            <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
+              Click any skill chip below to instantly filter candidates and see branch-wise distribution
+            </span>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "10px" }}>
+            {skillAnalytics.slice(0, 10).map((item) => {
+              const isSelected = selectedTechTag.toLowerCase() === item.skill.toLowerCase();
+              return (
+                <div
+                  key={item.skill}
+                  onClick={() => {
+                    setSelectedTechTag(isSelected ? "All" : item.skill);
+                    setSearchTerm("");
+                  }}
+                  style={{
+                    background: isSelected ? "#eff6ff" : "#ffffff",
+                    border: isSelected ? "2px solid #2563eb" : "1px solid #cbd5e1",
+                    borderRadius: "10px",
+                    padding: "10px 14px",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                    boxShadow: isSelected ? "0 4px 12px rgba(37, 99, 235, 0.15)" : "0 1px 3px rgba(0,0,0,0.04)"
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <Code2 size={15} color={isSelected ? "#2563eb" : "#6366f1"} />
+                      <span style={{ fontWeight: "800", fontSize: "0.9rem", color: isSelected ? "#1d4ed8" : "#0f172a" }}>
+                        {item.skill}
+                      </span>
+                    </div>
+                    <Badge variant={isSelected ? "primary" : "neutral"} style={{ fontWeight: "800", fontSize: "0.75rem" }}>
+                      {item.totalStudents} Students
+                    </Badge>
+                  </div>
+
+                  {/* Branch Breakdown Pills */}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                    {Object.values(item.branches).map((b) => (
+                      <span
+                        key={b.name}
+                        style={{
+                          fontSize: "0.7rem",
+                          background: isSelected ? "#dbeafe" : "#f1f5f9",
+                          color: isSelected ? "#1e40af" : "#475569",
+                          padding: "2px 7px",
+                          borderRadius: "4px",
+                          fontWeight: "600"
+                        }}
+                      >
+                        {b.name.split(" ")[0]}: <strong>{b.count}</strong>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 

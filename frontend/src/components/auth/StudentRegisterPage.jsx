@@ -24,13 +24,18 @@ import {
   ShieldCheck,
   Lock,
   Smartphone,
-  Info
+  Info,
+  Code2,
+  Sparkles,
+  Plus,
+  Trash2,
+  Briefcase
 } from "lucide-react";
 
 import { getDepartmentYearDivisions } from "../../utils/departmentUtils";
 
 export default function StudentRegisterPage({ onBackToLogin }) {
-  const { departments, addUser, addRegisteredUsers } = useSmartCampus();
+  const { departments, addUser, addRegisteredUsers, addStudentSkill } = useSmartCampus();
 
   const defaultDept = departments[0] || { id: "dept-vlsi", code: "VLSI", name: "Electronic Engineering (VLSI Design And Technology)", divisions: ["A"] };
   const initialYearDivs = getDepartmentYearDivisions(defaultDept, "1st Year");
@@ -58,6 +63,49 @@ export default function StudentRegisterPage({ onBackToLogin }) {
     parentEmail: "",
     parentOccupation: ""
   });
+
+  // Technical Skills & Industry Readiness Information
+  const [selectedSkills, setSelectedSkills] = useState(["Python"]);
+  const [customSkillInput, setCustomSkillInput] = useState("");
+  const [certificationsInput, setCertificationsInput] = useState("");
+  const [gateAspirant, setGateAspirant] = useState("No");
+
+  const PRESET_TECH_SKILLS = [
+    "Python",
+    "Java",
+    "C++",
+    "C Programming",
+    "React",
+    "JavaScript",
+    "HTML & CSS",
+    "Node.js",
+    "SQL / MySQL",
+    "Verilog / VLSI",
+    "Embedded Systems",
+    "Arduino / Microcontrollers",
+    "IoT (Internet of Things)",
+    "AI / Machine Learning",
+    "Data Science",
+    "Cloud Computing (AWS/Azure)",
+    "Cyber Security",
+    "AutoCAD / MATLAB"
+  ];
+
+  const handleToggleSkill = (skillName) => {
+    if (selectedSkills.includes(skillName)) {
+      setSelectedSkills((prev) => prev.filter((s) => s !== skillName));
+    } else {
+      setSelectedSkills((prev) => [...prev, skillName]);
+    }
+  };
+
+  const handleAddCustomSkill = () => {
+    const trimmed = customSkillInput.trim();
+    if (trimmed && !selectedSkills.includes(trimmed)) {
+      setSelectedSkills((prev) => [...prev, trimmed]);
+      setCustomSkillInput("");
+    }
+  };
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -279,6 +327,76 @@ export default function StudentRegisterPage({ onBackToLogin }) {
         addUser(studentPayload);
       }
 
+      // 4. Save Technical Skills into Student Skills Intelligence Repository
+      if (addStudentSkill && selectedSkills.length > 0) {
+        selectedSkills.forEach((sk) => {
+          try {
+            addStudentSkill({
+              studentId: studentId,
+              studentName: formData.name.trim(),
+              rollNo: formData.rollNo.trim(),
+              prn: formData.prn.trim(),
+              departmentId: formData.departmentId,
+              departmentName: selectedDept.name,
+              year: formData.year,
+              division: formData.division,
+              skill: sk,
+              category: "Technical",
+              skillLevel: "Intermediate",
+              experienceLevel: "College Level",
+              availableForEvents: "Yes"
+            });
+          } catch (skErr) {
+            console.warn("[Register Skill Save Error]", skErr);
+          }
+        });
+      }
+
+      // If student mentioned course/certifications
+      if (addStudentSkill && certificationsInput.trim()) {
+        try {
+          addStudentSkill({
+            studentId: studentId,
+            studentName: formData.name.trim(),
+            rollNo: formData.rollNo.trim(),
+            prn: formData.prn.trim(),
+            departmentId: formData.departmentId,
+            departmentName: selectedDept.name,
+            year: formData.year,
+            division: formData.division,
+            type: "course",
+            courseName: certificationsInput.trim(),
+            coursePlatform: "Online / University",
+            courseStatus: "Completed",
+            category: "Certification"
+          });
+        } catch (cErr) {
+          console.warn("[Register Course Save Error]", cErr);
+        }
+      }
+
+      // If student is GATE aspirant
+      if (addStudentSkill && gateAspirant === "Yes") {
+        try {
+          addStudentSkill({
+            studentId: studentId,
+            studentName: formData.name.trim(),
+            rollNo: formData.rollNo.trim(),
+            prn: formData.prn.trim(),
+            departmentId: formData.departmentId,
+            departmentName: selectedDept.name,
+            year: formData.year,
+            division: formData.division,
+            type: "exam",
+            examName: "GATE",
+            examStatus: "Preparing",
+            category: "Competitive Exam"
+          });
+        } catch (gErr) {
+          console.warn("[Register GATE Save Error]", gErr);
+        }
+      }
+
       setSuccessData({
         name: formData.name.trim(),
         studentPhone: cleanPhone,
@@ -290,7 +408,8 @@ export default function StudentRegisterPage({ onBackToLogin }) {
         semester: formData.semester,
         division: formData.division,
         className: computedClassName,
-        academicSession: session
+        academicSession: session,
+        skillsCount: selectedSkills.length
       });
     } catch (err) {
       setError(err.message || "नोंदणी सबमिट करण्यात त्रुटी आली. कृपया सर्व माहिती तपासा. (Failed to submit registration).");
@@ -379,6 +498,9 @@ export default function StudentRegisterPage({ onBackToLogin }) {
             </div>
             <div>
               <span style={{ color: "#64748b" }}>👨‍👩‍👧 पालक लॉगिन आयडी:</span> <strong style={{ color: "#059669" }}>{successData.parentPhone}</strong>
+            </div>
+            <div>
+              <span style={{ color: "#64748b" }}>🎯 नोंदवलेली तांत्रिक कौशल्ये (Skills):</span> <strong style={{ color: "#7c3aed" }}>{successData.skillsCount || 0} Registered for Industry Radar</strong>
             </div>
             <div style={{ background: "#fef3c7", padding: "10px 12px", borderRadius: "8px", border: "1px solid #fde68a", fontSize: "0.8rem", color: "#92400e", marginTop: "4px" }}>
               🔒 <strong>पालक पासवर्ड सूचना (Parent Password Notice):</strong> पालकांचा पासवर्ड वर्गशिक्षकांकडून (Class Teacher) दिला जाईल. वर्गशिक्षकांनी पासवर्ड सेट केल्यानंतरच पालक लॉगिन करू शकतील.
@@ -696,6 +818,123 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                 onChange={handleChange}
                 required
               />
+            </div>
+          </div>
+
+          {/* SECTION 1.5: Technical Skills & Industry Readiness (Campus Placement Analysis) */}
+          <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "20px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px", marginBottom: "12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Code2 size={20} color="#4f46e5" />
+                <h3 style={{ fontSize: "1.05rem", fontWeight: "700", color: "#1e293b", margin: 0 }}>
+                  विद्यार्थ्यांची तांत्रिक कौशल्ये (Technical Skills & Industry Profile)
+                </h3>
+              </div>
+              <span style={{ fontSize: "0.78rem", background: "#ede9fe", color: "#6d28d9", padding: "3px 10px", borderRadius: "12px", fontWeight: "700" }}>
+                🎯 Campus Placement & Industry Radar Analysis
+              </span>
+            </div>
+
+            <div style={{ background: "#f5f3ff", padding: "12px 16px", borderRadius: "10px", border: "1px solid #ddd6fe", fontSize: "0.82rem", color: "#5b21b6", marginBottom: "14px" }}>
+              💡 <strong>Industry Readiness Notice:</strong> जेव्हा कॅम्पसमध्ये कंपनी (Industry) येईल, तेव्हा मुख्याध्यापक (Principal), HOD व शिक्षक एका क्लिकवर पाहू शकतील की कोणत्या शाखेच्या किती विद्यार्थ्यांकडे कोणते स्किल (Python, Java, React, VLSI, IoT) आहे.
+            </div>
+
+            {/* Selectable Skill Chips */}
+            <div style={{ marginBottom: "14px" }}>
+              <label className="form-label" style={{ fontWeight: "700", marginBottom: "8px", display: "block" }}>
+                तुमच्याकडे असलेली स्किल्स निवडा (Select Your Programming & Technical Skills) *
+              </label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                {PRESET_TECH_SKILLS.map((sk) => {
+                  const isChecked = selectedSkills.includes(sk);
+                  return (
+                    <button
+                      key={sk}
+                      type="button"
+                      onClick={() => handleToggleSkill(sk)}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: "20px",
+                        fontSize: "0.8rem",
+                        fontWeight: isChecked ? "700" : "500",
+                        cursor: "pointer",
+                        border: isChecked ? "1.5px solid #6366f1" : "1px solid #cbd5e1",
+                        background: isChecked ? "linear-gradient(135deg, #4f46e5, #6366f1)" : "#ffffff",
+                        color: isChecked ? "#ffffff" : "#334155",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        transition: "all 0.15s ease"
+                      }}
+                    >
+                      {isChecked && <CheckCircle2 size={13} />}
+                      <span>{sk}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Custom Skill Input & Add Button */}
+            <div style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "16px", flexWrap: "wrap" }}>
+              <input
+                type="text"
+                className="form-control"
+                style={{ flex: 1, minWidth: "220px", fontSize: "0.85rem" }}
+                placeholder="Other Custom Skill (e.g. Flutter, Docker, MATLAB, Spring Boot)..."
+                value={customSkillInput}
+                onChange={(e) => setCustomSkillInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddCustomSkill();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleAddCustomSkill}
+                className="btn btn-secondary btn-sm"
+                style={{ display: "flex", alignItems: "center", gap: "4px", padding: "8px 14px" }}
+              >
+                <Plus size={15} /> Add Other Skill
+              </button>
+            </div>
+
+            {/* Current Chosen Skills Summary */}
+            <div style={{ fontSize: "0.8rem", color: "#64748b", marginBottom: "16px" }}>
+              निवडलेली एकूण स्किल्स: <strong style={{ color: "#4f46e5" }}>{selectedSkills.length} Skills</strong> ({selectedSkills.join(", ") || "None selected"})
+            </div>
+
+            {/* Online Certifications / Courses + GATE Aspirant */}
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "14px" }}>
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "700" }}>
+                  पूर्ण केलेली किंवा सुरू असलेली सर्टिफिकेशन्स (Certifications / Online Courses)
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. NPTEL Python, Coursera Full Stack, AWS Cloud Practitioner"
+                  value={certificationsInput}
+                  onChange={(e) => setCertificationsInput(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "700" }}>
+                  GATE / Competitive Aspirant?
+                </label>
+                <select
+                  className="form-control"
+                  value={gateAspirant}
+                  onChange={(e) => setGateAspirant(e.target.value)}
+                  style={{ fontWeight: "600" }}
+                >
+                  <option value="No">❌ नाही (No)</option>
+                  <option value="Yes">🎯 हो (Yes - Preparing for GATE)</option>
+                </select>
+              </div>
             </div>
           </div>
 

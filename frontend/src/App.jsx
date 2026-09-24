@@ -182,6 +182,7 @@ function MainApp() {
     if (activeRole === "hod") {
       switch (currentView) {
         case "dashboard": return <HODDashboard onNavigate={setCurrentView} />;
+        case "placement-skills": return <PrincipalPlacementSkills onNavigate={setCurrentView} />;
         case "department-talent": return <HODTalentEvents onNavigate={setCurrentView} />;
         case "students": return <HODStudents onNavigate={setCurrentView} />;
         case "faculty": return <HODFaculty onNavigate={setCurrentView} />;
