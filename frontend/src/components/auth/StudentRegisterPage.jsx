@@ -243,9 +243,8 @@ export default function StudentRegisterPage({ onBackToLogin }) {
         console.warn("[MySQL Student Registration Fallback]", dbErr.message);
       }
 
-      // 2. Direct Firestore storage with NULL password for parent (Teacher sets password later)
+      // 2. Prepare user records
       const studentToStore = res?.student ? { ...res.student, id: studentId } : studentPayload;
-      saveUserToFirestore(studentToStore).catch((err) => console.warn('[Firestore Student Register Warning]', err.message));
       
       const parentToStore = {
         ...(res?.parent || {}),
@@ -263,9 +262,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
         isPasswordSet: false
       };
 
-      saveUserToFirestore(parentToStore).catch((err) => console.warn('[Firestore Parent Register Warning]', err.message));
-
-      // 3. Update live React context users
+      // 3. Update live React context and Firestore (single synchronized persistence)
       if (addRegisteredUsers) {
         addRegisteredUsers(studentToStore, parentToStore);
       } else {
@@ -597,6 +594,20 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                   onChange={handleChange}
                   required
                 />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "700" }}>Gender (लिंग) *</label>
+                <select
+                  name="gender"
+                  className="form-control"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="Male">👨 Male (पुरुष)</option>
+                  <option value="Female">👩 Female (स्त्री)</option>
+                </select>
               </div>
 
               <div className="form-group">

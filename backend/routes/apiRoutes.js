@@ -584,12 +584,14 @@ router.post('/register-faculty', async (req, res) => {
       ? 'Principal & Director'
       : (body.designation || (cleanRole === 'hod' ? 'Head of Department' : 'Assistant Professor'));
 
+    const cleanGender = body.gender || 'Male';
+
     await query(
       `INSERT INTO users (
         id, role, name, email, phone, dob, password,
         department_id, department_name, designation, assigned_divisions,
-        is_verified
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        gender, is_verified
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         facultyId,
         cleanRole,
@@ -602,6 +604,7 @@ router.post('/register-faculty', async (req, res) => {
         deptName,
         designation,
         assignedDivs,
+        cleanGender,
         true
       ]
     );
@@ -633,6 +636,7 @@ router.post('/register-faculty', async (req, res) => {
       departmentName: deptName,
       designation,
       assignedDivisions: assignedDivs,
+      gender: cleanGender,
       isVerified: true
     };
 

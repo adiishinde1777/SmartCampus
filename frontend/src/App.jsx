@@ -24,6 +24,7 @@ import StudentProfile from "./components/student/StudentProfile";
 import StudentTimetable from "./components/student/StudentTimetable";
 import StudentStudyMaterial from "./components/student/StudentStudyMaterial";
 import StudentSkills from "./components/student/StudentSkills";
+import StudentFacultyDirectory from "./components/student/StudentFacultyDirectory";
 
 // Teacher Views
 import TeacherDashboard from "./components/teacher/TeacherDashboard";
@@ -119,6 +120,7 @@ function MainApp() {
     if (activeRole === "student") {
       switch (currentView) {
         case "dashboard": return <StudentDashboard onNavigate={setCurrentView} />;
+        case "faculty": return <StudentFacultyDirectory onNavigate={setCurrentView} />;
         case "skills": return <StudentSkills onNavigate={setCurrentView} />;
         case "attendance": return <StudentAttendance onNavigate={setCurrentView} />;
         case "marks": return <StudentMarks onNavigate={setCurrentView} />;

@@ -59,6 +59,7 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
       case "student":
         return [
           { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+          { id: "faculty", label: "Department Faculty & HOD", icon: Users, highlight: true },
           { id: "skills", label: "My Skills & Interests", icon: Sparkles, highlight: true },
           { id: "attendance", label: "Attendance", icon: CalendarCheck },
           { id: "marks", label: "Marks & Grades", icon: Award },

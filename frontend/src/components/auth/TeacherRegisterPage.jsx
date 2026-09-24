@@ -37,9 +37,9 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
   );
   const [formData, setFormData] = useState({
     name: "",
+    gender: "Male",
     phone: "",
     email: "",
-    dob: "",
     password: "",
     confirmPassword: "",
     departmentId: isInitialPrincipal ? "dept-all" : defaultDept.id,
@@ -109,14 +109,15 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
     setLoading(true);
 
     try {
-      const cleanPhone = formData.phone.trim();
       const isPrincipal = role === "principal";
+      const facultyId = (isPrincipal ? "prin-" : role === "hod" ? "hod-" : "tea-") + cleanPhone;
       const payload = {
+        id: facultyId,
         role,
         name: formData.name.trim(),
+        gender: formData.gender || "Male",
         phone: cleanPhone,
         email: formData.email.trim(),
-        dob: formData.dob || "1988-01-01",
         password: formData.password.trim(),
         departmentId: isPrincipal ? "dept-all" : formData.departmentId,
         departmentName: isPrincipal ? "Entire College (All Departments)" : selectedDept.name,
@@ -126,11 +127,9 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
       };
 
       // 1. Submit to Backend MySQL API if available
-      let registeredFaculty = payload;
       try {
         const res = await api.submitFacultyRegistration(payload);
         if (res?.faculty) {
-          registeredFaculty = res.faculty;
           addUser(res.faculty);
         } else {
           addUser(payload);
@@ -139,11 +138,6 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
         console.warn("[Faculty Register API Fallback to Local State]", apiErr.message);
         addUser(payload);
       }
-
-      // 2. Persist faculty profile to Firebase Firestore Cloud Database
-      saveUserToFirestore(registeredFaculty).catch((fsErr) =>
-        console.warn("[Firestore Faculty Register Warning]", fsErr.message)
-      );
 
       // 2. Dispatch Welcome & Login Credentials SMS via API & log
       const welcomeSms = `CSMSS SmartCampus: Dear ${formData.name.trim()}, your ${role.toUpperCase()} account is activated! Login Username: ${cleanPhone}, Password: ${formData.password.trim()}. Portal: CSMSS Chh. Shahu College of Engineering.`;
@@ -160,6 +154,7 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
 
       setSuccessData({
         name: formData.name.trim(),
+        gender: formData.gender || "Male",
         phone: cleanPhone,
         password: formData.password.trim(),
         role,
@@ -258,6 +253,10 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
               <span style={{ color: "#64748b" }}>Login Password:</span>
               <strong style={{ color: "#059669" }}>{successData.password}</strong>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+              <span style={{ color: "#64748b" }}>Gender (लिंग):</span>
+              <span style={{ color: "#0f172a", fontWeight: "600" }}>{successData.gender === "Female" ? "👩 Female (स्त्री)" : "👨 Male (पुरुष)"}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "#64748b" }}>
@@ -462,7 +461,7 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
             <h4 style={{ fontSize: "0.95rem", fontWeight: "700", marginBottom: "12px", color: "#1e293b", borderBottom: "1px solid #e2e8f0", paddingBottom: "6px" }}>
               1. Personal & Contact Information
             </h4>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px" }}>
               <div className="form-group">
                 <label className="form-label">Full Name with Title *</label>
                 <input
@@ -474,6 +473,20 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
                   value={formData.name}
                   onChange={handleChange}
                 />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "700" }}>Gender (लिंग) *</label>
+                <select
+                  name="gender"
+                  className="form-control"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="Male">👨 Male (पुरुष)</option>
+                  <option value="Female">👩 Female (स्त्री)</option>
+                </select>
               </div>
 
               <div className="form-group">

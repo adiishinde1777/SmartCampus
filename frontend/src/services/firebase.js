@@ -91,9 +91,41 @@ export const FIRESTORE_COLLECTIONS = {
  */
 export const saveUserToFirestore = async (user) => {
   if (!user) return null;
-  const docId = String(user.id || (user.role ? `${user.role}-${Date.now()}` : `user-${Date.now()}`));
+  const cleanPhone = (user.phone || user.parentPhone || "").replace(/\D/g, "").slice(-10);
+
+  // Check if this user already exists in Firestore by ID or by Role + Phone
+  let docId = user.id ? String(user.id) : null;
+
+  if (!docId && cleanPhone && user.role) {
+    try {
+      const colRef = collection(db, FIRESTORE_COLLECTIONS.USERS);
+      const q = query(
+        colRef,
+        where("role", "==", user.role),
+        where("phone", "==", cleanPhone)
+      );
+      const querySnap = await getDocs(q);
+      if (!querySnap.empty) {
+        docId = querySnap.docs[0].id;
+      }
+    } catch (qErr) {
+      console.warn("[Firestore Duplicate Check Warning]", qErr.message);
+    }
+  }
+
+  // If still no docId, use deterministic ID based on role and phone so multiple calls update the SAME document
+  if (!docId) {
+    docId = cleanPhone && user.role ? `${user.role}-${cleanPhone}` : (user.id || `${user.role || 'user'}-${Date.now()}`);
+  }
+
+  // Remove empty or dummy dob for faculty/principal/hod if not provided
+  const userToSave = { ...user };
+  if (!userToSave.dob || (userToSave.dob === "1988-01-01" && (user.role === "teacher" || user.role === "hod" || user.role === "principal"))) {
+    delete userToSave.dob;
+  }
+
   const cleanData = sanitizeForFirestore({
-    ...user,
+    ...userToSave,
     id: docId,
     firestoreUpdatedAt: new Date().toISOString()
   });
@@ -101,7 +133,7 @@ export const saveUserToFirestore = async (user) => {
   try {
     const userDocRef = doc(db, FIRESTORE_COLLECTIONS.USERS, docId);
     await setDoc(userDocRef, cleanData, { merge: true });
-    console.log(`[Firestore] User successfully saved: ${user.name || docId} (${user.role || 'user'})`);
+    console.log(`[Firestore] User successfully saved without duplicates: ${user.name || docId} (${user.role || 'user'})`);
     return { success: true, id: docId, user: cleanData };
   } catch (err) {
     console.warn(`[Firestore User Save Warning] (${docId}):`, err.message);
