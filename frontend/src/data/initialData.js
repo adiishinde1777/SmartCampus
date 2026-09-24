@@ -23,8 +23,15 @@ export const DEPARTMENTS = [
     id: "dept-vlsi",
     name: "Electronic Engineering (VLSI Design And Technology)",
     code: "VLSI",
-    divisions: ["A"],
-    hod: "Dr. Shrikant Honade"
+    divisions: ["A", "B"],
+    yearDivisions: {
+      "1st Year": ["A", "B"],
+      "2nd Year": ["A"],
+      "3rd Year": ["A"],
+      "4th Year": ["A"]
+    },
+    hod: "Dr. Shrikant Honade",
+    firstYearHod: "Dr. R. S. Pawar"
   }
 ];
 
@@ -46,6 +53,7 @@ export const INITIAL_SYSTEM_SETTINGS = {
   attendanceThreshold: 75,
   academicYear: "2026-2027",
   currentSemester: "Odd Semester",
+  firstYearHod: "Dr. R. S. Pawar (HOD First Year / Applied Science & Humanities)",
   smsNotificationsEnabled: true,
   whatsappNotificationsEnabled: true,
   emailNotificationsEnabled: true,

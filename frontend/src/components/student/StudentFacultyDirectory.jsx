@@ -16,19 +16,31 @@ import {
   Info
 } from "lucide-react";
 import { Badge } from "../common/UIPrimitives";
+import { getEffectiveHOD, normalizeYearKey } from "../../utils/departmentUtils";
 
 export default function StudentFacultyDirectory({ onNavigate }) {
-  const { currentUser, users, departments, subjects, addToast } = useSmartCampus();
+  const { currentUser, users, departments, subjects, addToast, systemSettings } = useSmartCampus();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
+
+  const isStudent = currentUser?.role === "student";
+  const isFirstYearStudent = isStudent && normalizeYearKey(currentUser?.year) === "1st Year";
 
   const studentDeptId = currentUser?.departmentId || "dept-vlsi";
   const studentDept = departments.find((d) => d.id === studentDeptId) || {
     id: studentDeptId,
     name: currentUser?.departmentName || "Electronic Engineering (VLSI Design And Technology)",
     code: "VLSI",
-    hod: "Dr. Shrikant Honade"
+    hod: "Dr. Shrikant Honade",
+    firstYearHod: "Dr. R. S. Pawar"
   };
+
+  const effectiveHOD = getEffectiveHOD({
+    studentYear: currentUser?.year,
+    department: studentDept,
+    users,
+    systemSettings
+  });
 
   // Find all faculty and HOD belonging to this student's department
   const isMatchDept = (u) => {
@@ -48,6 +60,17 @@ export default function StudentFacultyDirectory({ onNavigate }) {
 
   // Teachers/Professors for this department
   const teacherUsers = users.filter((u) => u.role === "teacher" && isMatchDept(u));
+
+  // If 1st Year student, ensure First Year HOD is also accessible or highlighted
+  const feHODUsers = users.filter(
+    (u) =>
+      u.role === "hod" &&
+      (u.isFirstYearHOD ||
+        u.departmentId === "dept-fe" ||
+        u.departmentId === "dept-first-year" ||
+        (u.departmentName && u.departmentName.toLowerCase().includes("first year")) ||
+        (u.designation && u.designation.toLowerCase().includes("first year")))
+  );
 
   // Combine faculty list
   const allDeptFaculty = [...hodUsers, ...teacherUsers];
@@ -91,7 +114,9 @@ export default function StudentFacultyDirectory({ onNavigate }) {
       {/* Header Banner */}
       <div
         style={{
-          background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e3a8a 100%)",
+          background: isFirstYearStudent
+            ? "linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #0369a1 100%)"
+            : "linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e3a8a 100%)",
           borderRadius: "16px",
           padding: "24px 28px",
           color: "white",
@@ -102,19 +127,27 @@ export default function StudentFacultyDirectory({ onNavigate }) {
       >
         <div style={{ position: "relative", zIndex: 1 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(255,255,255,0.12)", padding: "4px 12px", borderRadius: "20px", fontSize: "0.76rem", fontWeight: "700", marginBottom: "10px", color: "#c7d2fe" }}>
-            <Building2 size={14} /> DEPARTMENT FACULTY DIRECTORY
+            <Building2 size={14} /> {isFirstYearStudent ? "FIRST YEAR ENGINEERING • ACADEMIC DIRECTORY" : "DEPARTMENT FACULTY DIRECTORY"}
           </div>
           <h2 style={{ fontSize: "1.6rem", fontWeight: "800", margin: "0 0 6px 0", color: "#ffffff" }}>
             {studentDept.name}
           </h2>
           <p style={{ margin: 0, fontSize: "0.88rem", color: "#cbd5e1", maxWidth: "750px", lineHeight: 1.5 }}>
-            Meet your Department Head (HOD), Professors, Assistant Professors, and Lecturers. Access their academic designations, teaching subjects, and official communication channels.
+            {isFirstYearStudent
+              ? "Welcome 1st Year (FE) student. Your academic coordination is directed by the First Year HOD alongside department faculty members, professors, and course coordinators."
+              : "Meet your Department Head (HOD), Professors, Assistant Professors, and Lecturers. Access their academic designations, teaching subjects, and official communication channels."}
           </p>
 
           <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginTop: "16px" }}>
-            <div style={{ background: "rgba(255,255,255,0.1)", padding: "6px 14px", borderRadius: "10px", fontSize: "0.82rem" }}>
-              🏛️ Head of Dept: <strong>{hodUsers[0]?.name || studentDept.hod || "Dr. Shrikant Honade"}</strong>
+            <div style={{ background: "rgba(255,255,255,0.15)", padding: "6px 14px", borderRadius: "10px", fontSize: "0.82rem", border: "1px solid rgba(255,255,255,0.2)" }}>
+              {isFirstYearStudent ? "🎓 First Year HOD: " : "🏛️ Department HOD: "}
+              <strong>{effectiveHOD.name}</strong>
             </div>
+            {isFirstYearStudent && (
+              <div style={{ background: "rgba(255,255,255,0.1)", padding: "6px 14px", borderRadius: "10px", fontSize: "0.82rem" }}>
+                🏛️ Branch HOD: <strong>{studentDept.hod || "Dr. Shrikant Honade"}</strong>
+              </div>
+            )}
             <div style={{ background: "rgba(255,255,255,0.1)", padding: "6px 14px", borderRadius: "10px", fontSize: "0.82rem" }}>
               👨‍🏫 Active Dept Faculty: <strong>{allDeptFaculty.length} Registered</strong>
             </div>
@@ -124,6 +157,62 @@ export default function StudentFacultyDirectory({ onNavigate }) {
           </div>
         </div>
       </div>
+
+      {/* 1st Year Student Special HOD Spotlight Banner */}
+      {isFirstYearStudent && (
+        <div
+          style={{
+            background: "#eff6ff",
+            border: "1.5px solid #93c5fd",
+            borderRadius: "14px",
+            padding: "16px 20px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: "16px"
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+            <div
+              style={{
+                width: "52px",
+                height: "52px",
+                borderRadius: "50%",
+                background: "#dbeafe",
+                color: "#1d4ed8",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: "800",
+                fontSize: "1.2rem",
+                border: "2px solid #3b82f6"
+              }}
+            >
+              FE
+            </div>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ fontSize: "1.1rem", fontWeight: "800", color: "#1e3a8a" }}>
+                  {effectiveHOD.name}
+                </span>
+                <span style={{ background: "#dbeafe", color: "#1d4ed8", padding: "2px 8px", borderRadius: "6px", fontSize: "0.74rem", fontWeight: "800" }}>
+                  🎓 Head of First Year (FE HOD)
+                </span>
+              </div>
+              <div style={{ fontSize: "0.82rem", color: "#475569", marginTop: "2px" }}>
+                Applied Science & Humanities • All 1st Year Engineering Academic Affairs Coordinator
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <span style={{ fontSize: "0.78rem", color: "#1e40af", background: "#ffffff", padding: "4px 10px", borderRadius: "6px", border: "1px solid #bfdbfe", fontWeight: "600" }}>
+              Designated FE Academic Authority
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* College Principal & Director Leadership Banner */}
       {principals.length > 0 && (

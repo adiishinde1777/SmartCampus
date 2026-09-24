@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { StatCard, Badge } from "../common/UIPrimitives";
 import { getAcademicSession, getStudentClassTitle, getTimeBasedGreeting } from "../../utils/academicSession";
+import { getEffectiveHOD } from "../../utils/departmentUtils";
 
 export default function StudentDashboard({ onNavigate }) {
   const {
@@ -492,22 +493,27 @@ export default function StudentDashboard({ onNavigate }) {
           id: studentDept,
           name: student?.departmentName || "Electronic Engineering (VLSI Design And Technology)",
           code: "VLSI",
-          hod: "Dr. Shrikant Honade"
+          hod: "Dr. Shrikant Honade",
+          firstYearHod: "Dr. R. S. Pawar"
         };
+        const effectiveHODInfo = getEffectiveHOD({
+          studentYear: student?.year,
+          department: myDeptObj,
+          users,
+          systemSettings
+        });
         const deptFacultyMembers = (users || []).filter(
           (u) => (u.role === "teacher" || u.role === "hod") &&
             (u.departmentId === studentDept || (u.departmentName && myDeptObj.name && u.departmentName.toLowerCase().includes(myDeptObj.code?.toLowerCase() || "vlsi")) || (!u.departmentId && studentDept === "dept-vlsi"))
         );
-        const deptHODUser = (users || []).find(
-          (u) => u.role === "hod" && (u.departmentId === studentDept || (u.departmentName && myDeptObj.name && u.departmentName.toLowerCase().includes(myDeptObj.code?.toLowerCase() || "vlsi")) || (!u.departmentId && studentDept === "dept-vlsi"))
-        );
-        const hodDisplayName = deptHODUser?.name || myDeptObj.hod || "Dr. Shrikant Honade";
+        const hodDisplayName = effectiveHODInfo.name;
+        const hodLabel = effectiveHODInfo.isFirstYear ? `🎓 FE HOD: ${hodDisplayName}` : `🏛️ HOD: ${hodDisplayName}`;
 
         return (
           <div
             style={{
               background: "white",
-              border: "1.5px solid #e0e7ff",
+              border: effectiveHODInfo.isFirstYear ? "1.5px solid #bfdbfe" : "1.5px solid #e0e7ff",
               borderRadius: "14px",
               padding: "16px 20px",
               display: "flex",
@@ -515,7 +521,7 @@ export default function StudentDashboard({ onNavigate }) {
               alignItems: "center",
               flexWrap: "wrap",
               gap: "16px",
-              boxShadow: "0 4px 15px rgba(99, 102, 241, 0.08)"
+              boxShadow: effectiveHODInfo.isFirstYear ? "0 4px 15px rgba(37, 99, 235, 0.08)" : "0 4px 15px rgba(99, 102, 241, 0.08)"
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
@@ -524,7 +530,7 @@ export default function StudentDashboard({ onNavigate }) {
                   width: "46px",
                   height: "46px",
                   borderRadius: "12px",
-                  background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
+                  background: effectiveHODInfo.isFirstYear ? "linear-gradient(135deg, #2563eb, #1d4ed8)" : "linear-gradient(135deg, #4f46e5, #7c3aed)",
                   color: "white",
                   display: "flex",
                   alignItems: "center",
@@ -539,12 +545,21 @@ export default function StudentDashboard({ onNavigate }) {
                   <span style={{ fontWeight: "800", fontSize: "1.05rem", color: "#0f172a" }}>
                     {myDeptObj.name}
                   </span>
-                  <span style={{ background: "#ede9fe", color: "#6d28d9", padding: "2px 8px", borderRadius: "6px", fontSize: "0.74rem", fontWeight: "800" }}>
-                    🏛️ HOD: {hodDisplayName}
+                  <span
+                    style={{
+                      background: effectiveHODInfo.isFirstYear ? "#eff6ff" : "#ede9fe",
+                      color: effectiveHODInfo.isFirstYear ? "#1d4ed8" : "#6d28d9",
+                      padding: "2px 8px",
+                      borderRadius: "6px",
+                      fontSize: "0.74rem",
+                      fontWeight: "800"
+                    }}
+                  >
+                    {hodLabel}
                   </span>
                 </div>
                 <div style={{ fontSize: "0.82rem", color: "#64748b", marginTop: "3px" }}>
-                  Department Faculty & Mentors: <strong>{deptFacultyMembers.length} Registered</strong> • HOD, Professors, Lecturers & Course Information
+                  Department Faculty & Mentors: <strong>{deptFacultyMembers.length} Registered</strong> • {effectiveHODInfo.isFirstYear ? "First Year Academic Head, Professors & Lecturers" : "HOD, Professors, Lecturers & Course Information"}
                 </div>
               </div>
             </div>

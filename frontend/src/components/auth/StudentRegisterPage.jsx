@@ -27,10 +27,13 @@ import {
   Info
 } from "lucide-react";
 
+import { getDepartmentYearDivisions } from "../../utils/departmentUtils";
+
 export default function StudentRegisterPage({ onBackToLogin }) {
   const { departments, addUser, addRegisteredUsers } = useSmartCampus();
 
   const defaultDept = departments[0] || { id: "dept-vlsi", code: "VLSI", name: "Electronic Engineering (VLSI Design And Technology)", divisions: ["A"] };
+  const initialYearDivs = getDepartmentYearDivisions(defaultDept, "1st Year");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -48,7 +51,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
     departmentName: defaultDept.name,
     year: "1st Year",
     semester: 1,
-    division: defaultDept.divisions?.[0] || "A",
+    division: initialYearDivs[0] || "A",
     batch: "A1",
     parentName: "",
     parentPhone: "",
@@ -61,7 +64,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
   const [successData, setSuccessData] = useState(null);
 
   const selectedDept = departments.find((d) => d.id === formData.departmentId) || defaultDept;
-  const availableDivisions = selectedDept?.divisions?.length ? selectedDept.divisions : ["A"];
+  const availableDivisions = getDepartmentYearDivisions(selectedDept, formData.year);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -71,7 +74,8 @@ export default function StudentRegisterPage({ onBackToLogin }) {
   const handleDepartmentChange = (e) => {
     const deptId = e.target.value;
     const dept = departments.find((d) => d.id === deptId) || defaultDept;
-    const firstDiv = dept.divisions?.[0] || "A";
+    const yearDivs = getDepartmentYearDivisions(dept, formData.year);
+    const firstDiv = yearDivs[0] || "A";
     setFormData((prev) => ({
       ...prev,
       departmentId: deptId,
@@ -86,10 +90,16 @@ export default function StudentRegisterPage({ onBackToLogin }) {
     if (chosenYear === "2nd Year") sem = 3;
     if (chosenYear === "3rd Year") sem = 5;
     if (chosenYear === "4th Year") sem = 7;
+
+    const dept = departments.find((d) => d.id === formData.departmentId) || defaultDept;
+    const yearDivs = getDepartmentYearDivisions(dept, chosenYear);
+    const currentDivValid = yearDivs.includes(formData.division);
+
     setFormData((prev) => ({
       ...prev,
       year: chosenYear,
-      semester: sem
+      semester: sem,
+      division: currentDivValid ? prev.division : (yearDivs[0] || "A")
     }));
   };
 
@@ -661,6 +671,17 @@ export default function StudentRegisterPage({ onBackToLogin }) {
                     </option>
                   ))}
                 </select>
+                <div style={{ marginTop: "4px", fontSize: "0.72rem", color: "#64748b" }}>
+                  {formData.year === "1st Year" ? (
+                    <span style={{ color: "#2563eb" }}>
+                      🎓 1st Year (FE) HOD: <strong>{selectedDept.firstYearHod || "Dr. R. S. Pawar"}</strong> ({availableDivisions.length} active {availableDivisions.length > 1 ? "divisions" : "division"})
+                    </span>
+                  ) : (
+                    <span>
+                      🏛️ Branch HOD: <strong>{selectedDept.hod || "Unassigned"}</strong> ({availableDivisions.length} active {availableDivisions.length > 1 ? "divisions" : "division"})
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
