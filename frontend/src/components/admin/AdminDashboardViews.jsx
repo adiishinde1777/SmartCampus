@@ -40,6 +40,9 @@ export function AdminDashboard({ onNavigate }) {
 
   const displayedLogs = logLimit === "all" ? filteredLogs : filteredLogs.slice(0, Number(logLimit));
 
+  const stakeholdersCount = users.filter((u) => u.role !== "admin").length;
+  const adminCount = users.filter((u) => u.role === "admin").length;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       {/* Header Banner */}
@@ -84,8 +87,8 @@ export function AdminDashboard({ onNavigate }) {
       <div className="stats-grid">
         <StatCard
           label="Total Registered Users"
-          value={users.length}
-          subtext="Students, Teachers, Parents, HODs"
+          value={stakeholdersCount}
+          subtext={`${stakeholdersCount} Enrolled Stakeholders (+1 System Admin = ${users.length} Total)`}
           icon={Users}
           variant="primary"
           onClick={() => onNavigate("users")}

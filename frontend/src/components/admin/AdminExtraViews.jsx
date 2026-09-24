@@ -538,9 +538,12 @@ export function AdminUsers() {
                   key={r}
                   onClick={() => setRoleFilter(r)}
                   className={`btn btn-sm ${roleFilter === r ? "btn-primary" : "btn-secondary"}`}
-                  style={{ textTransform: "capitalize", fontSize: "0.75rem", padding: "4px 10px" }}
+                  style={{ textTransform: "capitalize", fontSize: "0.75rem", padding: "4px 10px", display: "inline-flex", alignItems: "center", gap: "5px" }}
                 >
-                  {r}
+                  <span>{r}</span>
+                  <span style={{ fontSize: "0.68rem", opacity: 0.85, background: roleFilter === r ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.08)", padding: "1px 5px", borderRadius: "10px" }}>
+                    {roleCounts[r]}
+                  </span>
                 </button>
               ))}
             </div>
