@@ -560,7 +560,7 @@ router.post('/register-faculty', async (req, res) => {
     }
 
     const cleanPhone = String(body.phone).trim();
-    const cleanRole = body.role === 'hod' ? 'hod' : 'teacher';
+    const cleanRole = body.role === 'principal' ? 'principal' : body.role === 'hod' ? 'hod' : 'teacher';
     const facultyPass = body.password ? String(body.password).trim() : 'faculty123';
 
     // Check if Phone already registered
@@ -569,8 +569,20 @@ router.post('/register-faculty', async (req, res) => {
       return res.status(409).json({ success: false, message: `An account with Mobile Number "${cleanPhone}" already exists.` });
     }
 
-    const facultyId = body.id || ((cleanRole === 'hod' ? 'hod-' : 'tea-') + Date.now());
-    const assignedDivs = Array.isArray(body.assignedDivisions) ? body.assignedDivisions.join(',') : (body.assignedDivisions || 'Div A');
+    const facultyId = body.id || (
+      (cleanRole === 'principal' ? 'pri-' : cleanRole === 'hod' ? 'hod-' : 'tea-') + Date.now()
+    );
+    const assignedDivs = cleanRole === 'principal'
+      ? 'All Divisions'
+      : (Array.isArray(body.assignedDivisions) ? body.assignedDivisions.join(',') : (body.assignedDivisions || 'Div A'));
+
+    const deptId = cleanRole === 'principal' ? 'dept-all' : (body.departmentId || 'dept-vlsi');
+    const deptName = cleanRole === 'principal'
+      ? 'Entire College (All Departments)'
+      : (body.departmentName || 'Electronic Engineering (VLSI Design And Technology)');
+    const designation = cleanRole === 'principal'
+      ? 'Principal & Director'
+      : (body.designation || (cleanRole === 'hod' ? 'Head of Department' : 'Assistant Professor'));
 
     await query(
       `INSERT INTO users (
@@ -586,9 +598,9 @@ router.post('/register-faculty', async (req, res) => {
         cleanPhone,
         body.dob || null,
         facultyPass,
-        body.departmentId || 'dept-vlsi',
-        body.departmentName || 'Electronic Engineering (VLSI Design And Technology)',
-        body.designation || (cleanRole === 'hod' ? 'Head of Department' : 'Assistant Professor'),
+        deptId,
+        deptName,
+        designation,
         assignedDivs,
         true
       ]
@@ -604,8 +616,8 @@ router.post('/register-faculty', async (req, res) => {
         timestampStr,
         body.name.trim(),
         cleanRole.toUpperCase(),
-        'FACULTY_SELF_REGISTRATION',
-        `New faculty registered: ${body.name.trim()} (${cleanRole.toUpperCase()}), Dept: ${body.departmentName || 'VLSI'}, Phone: ${cleanPhone}`,
+        cleanRole === 'principal' ? 'PRINCIPAL_SELF_REGISTRATION' : 'FACULTY_SELF_REGISTRATION',
+        `New ${cleanRole} registered: ${body.name.trim()} (${cleanRole.toUpperCase()}), Scope: ${deptName}, Phone: ${cleanPhone}`,
         'Staff Onboarding'
       ]
     ).catch(() => {});
@@ -617,9 +629,9 @@ router.post('/register-faculty', async (req, res) => {
       email: body.email ? body.email.trim() : null,
       phone: cleanPhone,
       password: facultyPass,
-      departmentId: body.departmentId || 'dept-vlsi',
-      departmentName: body.departmentName || 'Electronic Engineering (VLSI Design And Technology)',
-      designation: body.designation || (cleanRole === 'hod' ? 'Head of Department' : 'Assistant Professor'),
+      departmentId: deptId,
+      departmentName: deptName,
+      designation,
       assignedDivisions: assignedDivs,
       isVerified: true
     };

@@ -31,8 +31,9 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
     divisions: ["A"]
   };
 
+  const isInitialPrincipal = initialRole === "principal";
   const [role, setRole] = useState(
-    initialRole === "principal" ? "principal" : initialRole === "hod" ? "hod" : "teacher"
+    isInitialPrincipal ? "principal" : initialRole === "hod" ? "hod" : "teacher"
   );
   const [formData, setFormData] = useState({
     name: "",
@@ -41,10 +42,10 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
     dob: "",
     password: "",
     confirmPassword: "",
-    departmentId: defaultDept.id,
-    departmentName: defaultDept.name,
-    designation: initialRole === "principal" ? "Principal & Director" : initialRole === "hod" ? "Head of Department" : "Assistant Professor",
-    assignedDivisions: "Div A"
+    departmentId: isInitialPrincipal ? "dept-all" : defaultDept.id,
+    departmentName: isInitialPrincipal ? "Entire College (All Departments)" : defaultDept.name,
+    designation: isInitialPrincipal ? "Principal & Director" : initialRole === "hod" ? "Head of Department" : "Assistant Professor",
+    assignedDivisions: isInitialPrincipal ? "All Divisions" : "Div A"
   });
 
   // College Security Key (Required for Teacher, HOD, and Principal)
@@ -109,6 +110,7 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
 
     try {
       const cleanPhone = formData.phone.trim();
+      const isPrincipal = role === "principal";
       const payload = {
         role,
         name: formData.name.trim(),
@@ -116,10 +118,10 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
         email: formData.email.trim(),
         dob: formData.dob || "1988-01-01",
         password: formData.password.trim(),
-        departmentId: formData.departmentId,
-        departmentName: selectedDept.name,
-        designation: role === "hod" ? "Head of Department" : formData.designation,
-        assignedDivisions: formData.assignedDivisions,
+        departmentId: isPrincipal ? "dept-all" : formData.departmentId,
+        departmentName: isPrincipal ? "Entire College (All Departments)" : selectedDept.name,
+        designation: isPrincipal ? "Principal & Director" : role === "hod" ? "Head of Department" : formData.designation,
+        assignedDivisions: isPrincipal ? "All Divisions" : formData.assignedDivisions,
         isVerified: true
       };
 
@@ -161,8 +163,8 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
         phone: cleanPhone,
         password: formData.password.trim(),
         role,
-        department: selectedDept.name,
-        designation: role === "hod" ? "Head of Department" : formData.designation
+        department: isPrincipal ? "Entire College (All Departments)" : selectedDept.name,
+        designation: isPrincipal ? "Principal & Director" : role === "hod" ? "Head of Department" : formData.designation
       });
     } catch (err) {
       setError(err.message || "Failed to register account. Please check your network.");
@@ -214,10 +216,10 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
           </div>
 
           <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "#0f172a" }}>
-            Faculty Account Registered!
+            {successData.role === "principal" ? "Principal Account Registered!" : "Faculty Account Registered!"}
           </h2>
           <p style={{ fontSize: "0.88rem", color: "#64748b", marginTop: "6px" }}>
-            Welcome to CSMSS Chh. Shahu College of Engineering Faculty Portal. An activation SMS with your login credentials has been sent to your mobile.
+            Welcome to CSMSS Chh. Shahu College of Engineering {successData.role === "principal" ? "Executive Portal" : "Faculty Portal"}. An activation SMS with your login credentials has been sent to your mobile.
           </p>
 
           <div
@@ -232,7 +234,7 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-              <span style={{ color: "#64748b" }}>Faculty Name:</span>
+              <span style={{ color: "#64748b" }}>{successData.role === "principal" ? "Principal Name:" : "Faculty Name:"}</span>
               <strong style={{ color: "#0f172a" }}>{successData.name}</strong>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
@@ -258,7 +260,9 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
               <strong style={{ color: "#059669" }}>{successData.password}</strong>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#64748b" }}>Department:</span>
+              <span style={{ color: "#64748b" }}>
+                {successData.role === "principal" ? "College Jurisdiction:" : "Department:"}
+              </span>
               <span style={{ color: "#0f172a", fontWeight: "600" }}>{successData.department}</span>
             </div>
           </div>
@@ -359,13 +363,15 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
               marginBottom: "8px"
             }}
           >
-            <Users size={15} /> FACULTY & HOD ONBOARDING
+            <Users size={15} /> {role === "principal" ? "PRINCIPAL & EXECUTIVE ONBOARDING" : "FACULTY & HOD ONBOARDING"}
           </div>
           <h2 style={{ fontSize: "1.7rem", fontWeight: "800", color: "#0f172a" }}>
-            Teacher / HOD Self-Registration
+            {role === "principal" ? "Principal & Director Registration" : "Teacher / HOD Self-Registration"}
           </h2>
           <p style={{ fontSize: "0.88rem", color: "#64748b", marginTop: "4px" }}>
-            Join the academic faculty directory of CSMSS Chh. Shahu College of Engineering
+            {role === "principal"
+              ? "Executive leadership portal onboarding for CSMSS Chh. Shahu College of Engineering"
+              : "Join the academic faculty directory of CSMSS Chh. Shahu College of Engineering"}
           </p>
         </div>
 
@@ -401,7 +407,13 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
                 type="button"
                 onClick={() => {
                   setRole("teacher");
-                  setFormData((prev) => ({ ...prev, designation: "Assistant Professor" }));
+                  setFormData((prev) => ({
+                    ...prev,
+                    designation: "Assistant Professor",
+                    departmentId: prev.departmentId === "dept-all" ? defaultDept.id : prev.departmentId,
+                    departmentName: prev.departmentId === "dept-all" ? defaultDept.name : prev.departmentName,
+                    assignedDivisions: prev.assignedDivisions === "All Divisions" ? "Div A" : prev.assignedDivisions
+                  }));
                 }}
                 className={`btn btn-md ${role === "teacher" ? "btn-primary" : "btn-secondary"}`}
                 style={{ flex: 1, minWidth: "140px", fontWeight: "700" }}
@@ -412,7 +424,13 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
                 type="button"
                 onClick={() => {
                   setRole("hod");
-                  setFormData((prev) => ({ ...prev, designation: "Head of Department" }));
+                  setFormData((prev) => ({
+                    ...prev,
+                    designation: "Head of Department",
+                    departmentId: prev.departmentId === "dept-all" ? defaultDept.id : prev.departmentId,
+                    departmentName: prev.departmentId === "dept-all" ? defaultDept.name : prev.departmentName,
+                    assignedDivisions: "All Divisions"
+                  }));
                 }}
                 className={`btn btn-md ${role === "hod" ? "btn-primary" : "btn-secondary"}`}
                 style={{ flex: 1, minWidth: "140px", fontWeight: "700" }}
@@ -423,7 +441,13 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
                 type="button"
                 onClick={() => {
                   setRole("principal");
-                  setFormData((prev) => ({ ...prev, designation: "Principal & Director" }));
+                  setFormData((prev) => ({
+                    ...prev,
+                    designation: "Principal & Director",
+                    departmentId: "dept-all",
+                    departmentName: "Entire College (All Departments)",
+                    assignedDivisions: "All Divisions"
+                  }));
                 }}
                 className={`btn btn-md ${role === "principal" ? "btn-primary" : "btn-secondary"}`}
                 style={{ flex: 1, minWidth: "140px", fontWeight: "700" }}
@@ -494,71 +518,113 @@ export default function TeacherRegisterPage({ initialRole = "teacher", onBackToL
             </div>
           </div>
 
-          {/* Section 2: Department & Academic Designation */}
+          {/* Section 2: Department & Academic Designation / Institutional Scope */}
           <div>
             <h4 style={{ fontSize: "0.95rem", fontWeight: "700", marginBottom: "12px", color: "#1e293b", borderBottom: "1px solid #e2e8f0", paddingBottom: "6px" }}>
-              2. Academic Branch & Designation
+              {role === "principal" ? "2. Executive Institutional Scope & Designation" : "2. Academic Branch & Designation"}
             </h4>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" }}>
-              <div className="form-group">
-                <label className="form-label">Department *</label>
-                <select
-                  className="form-control"
-                  value={formData.departmentId}
-                  onChange={handleDepartmentChange}
+
+            {role === "principal" ? (
+              <div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" }}>
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontWeight: "700" }}>Executive Designation *</label>
+                    <input
+                      type="text"
+                      disabled
+                      className="form-control"
+                      value="Principal & Director"
+                      style={{ fontWeight: "700", background: "#f8fafc", color: "#0f172a" }}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontWeight: "700" }}>College / Institution *</label>
+                    <input
+                      type="text"
+                      disabled
+                      className="form-control"
+                      value="CSMSS Chh. Shahu College of Engineering"
+                      style={{ fontWeight: "600", background: "#f8fafc", color: "#0f172a" }}
+                    />
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "12px",
+                    background: "#ecfdf5",
+                    border: "1.5px solid #a7f3d0",
+                    borderRadius: "10px",
+                    padding: "12px 16px",
+                    fontSize: "0.84rem",
+                    color: "#065f46",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px"
+                  }}
                 >
-                  {departments.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name} ({d.code})
-                    </option>
-                  ))}
-                </select>
+                  <ShieldCheck size={24} color="#059669" style={{ flexShrink: 0 }} />
+                  <div>
+                    <strong>संपूर्ण महाविद्यालय अधिकारक्षेत्र (Entire College Jurisdiction):</strong> प्राचार्य हे संपूर्ण महाविद्यालयाचे प्रमुख असल्याने कोणत्याही एका शाखेची / विभागाची निवड करण्याची आवश्यकता नाही. Principal has supervisory & administrative jurisdiction over all departments, branches, faculty, and students.
+                  </div>
+                </div>
               </div>
-
-              <div className="form-group">
-                <label className="form-label">Designation *</label>
-                {role === "principal" ? (
-                  <input
-                    type="text"
-                    disabled
-                    className="form-control"
-                    value="Principal & Director"
-                  />
-                ) : role === "hod" ? (
-                  <input
-                    type="text"
-                    disabled
-                    className="form-control"
-                    value="Head of Department (HOD)"
-                  />
-                ) : (
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" }}>
+                <div className="form-group">
+                  <label className="form-label">Department *</label>
                   <select
-                    name="designation"
                     className="form-control"
-                    value={formData.designation}
-                    onChange={handleChange}
+                    value={formData.departmentId}
+                    onChange={handleDepartmentChange}
                   >
-                    <option value="Professor">Professor</option>
-                    <option value="Associate Professor">Associate Professor</option>
-                    <option value="Assistant Professor">Assistant Professor</option>
-                    <option value="Lecturer">Lecturer</option>
-                    <option value="Adjunct Faculty">Adjunct Faculty</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name} ({d.code})
+                      </option>
+                    ))}
                   </select>
-                )}
-              </div>
+                </div>
 
-              <div className="form-group">
-                <label className="form-label">Assigned Divisions</label>
-                <input
-                  type="text"
-                  name="assignedDivisions"
-                  placeholder="e.g. Div A, Div B"
-                  className="form-control"
-                  value={formData.assignedDivisions}
-                  onChange={handleChange}
-                />
+                <div className="form-group">
+                  <label className="form-label">Designation *</label>
+                  {role === "hod" ? (
+                    <input
+                      type="text"
+                      disabled
+                      className="form-control"
+                      value="Head of Department (HOD)"
+                    />
+                  ) : (
+                    <select
+                      name="designation"
+                      className="form-control"
+                      value={formData.designation}
+                      onChange={handleChange}
+                    >
+                      <option value="Professor">Professor</option>
+                      <option value="Associate Professor">Associate Professor</option>
+                      <option value="Assistant Professor">Assistant Professor</option>
+                      <option value="Lecturer">Lecturer</option>
+                      <option value="Adjunct Faculty">Adjunct Faculty</option>
+                    </select>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Assigned Divisions</label>
+                  <input
+                    type="text"
+                    name="assignedDivisions"
+                    placeholder="e.g. Div A, Div B"
+                    className="form-control"
+                    value={formData.assignedDivisions}
+                    onChange={handleChange}
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Section 3: Institute Faculty & Principal Security Key */}
