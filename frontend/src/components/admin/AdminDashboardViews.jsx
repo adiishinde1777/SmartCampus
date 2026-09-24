@@ -11,12 +11,34 @@ import {
   AlertOctagon,
   TrendingUp,
   Save,
-  CheckCircle2
+  CheckCircle2,
+  Search
 } from "lucide-react";
 import { StatCard, Badge } from "../common/UIPrimitives";
 
 export function AdminDashboard({ onNavigate }) {
   const { users, departments, subjects, complaints, auditLogs, systemSettings } = useSmartCampus();
+
+  const [logLimit, setLogLimit] = useState("all");
+  const [logSearch, setLogSearch] = useState("");
+  const [logModuleFilter, setLogModuleFilter] = useState("all");
+
+  const filteredLogs = (auditLogs || []).filter((l) => {
+    if (logModuleFilter !== "all" && l.module !== logModuleFilter) return false;
+    if (logSearch) {
+      const term = logSearch.toLowerCase();
+      const match =
+        (l.user && l.user.toLowerCase().includes(term)) ||
+        (l.action && l.action.toLowerCase().includes(term)) ||
+        (l.details && l.details.toLowerCase().includes(term)) ||
+        (l.role && l.role.toLowerCase().includes(term)) ||
+        (l.module && l.module.toLowerCase().includes(term));
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  const displayedLogs = logLimit === "all" ? filteredLogs : filteredLogs.slice(0, Number(logLimit));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -173,25 +195,70 @@ export function AdminDashboard({ onNavigate }) {
 
       {/* Recent System Activity Logs */}
       <div className="card">
-        <div className="card-header">
+        <div className="card-header" style={{ flexWrap: "wrap", gap: "12px", alignItems: "center" }}>
           <div>
             <div className="card-title">
               <FileText size={18} color="var(--primary-600)" />
-              Recent System Action Audit Trail
+              System Action & User Login Audit Trail ({filteredLogs.length})
             </div>
-            <div className="card-subtitle">Real-time trace of faculty attendance, marks uploads, and admin policy updates</div>
+            <div className="card-subtitle">
+              Live ledger of all registered user logins, profile updates, faculty attendance, and marks actions
+            </div>
           </div>
-          <button
-            onClick={() => onNavigate("audit-logs")}
-            style={{ background: "none", border: "none", color: "var(--primary-600)", fontSize: "0.8rem", fontWeight: "600", cursor: "pointer" }}
-          >
-            View Complete Audit Log
-          </button>
+
+          <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ position: "relative", minWidth: "180px" }}>
+              <Search size={14} color="var(--text-muted)" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)" }} />
+              <input
+                type="text"
+                placeholder="Search user, action..."
+                className="form-control"
+                style={{ paddingLeft: "30px", fontSize: "0.8rem", height: "34px" }}
+                value={logSearch}
+                onChange={(e) => setLogSearch(e.target.value)}
+              />
+            </div>
+
+            <select
+              className="form-control"
+              style={{ width: "140px", fontSize: "0.8rem", height: "34px" }}
+              value={logModuleFilter}
+              onChange={(e) => setLogModuleFilter(e.target.value)}
+            >
+              <option value="all">All Modules</option>
+              <option value="Authentication">Authentication / Logins</option>
+              <option value="User Management">User Management</option>
+              <option value="Attendance">Attendance</option>
+              <option value="Marks">Marks</option>
+              <option value="Policy & Settings">Settings</option>
+            </select>
+
+            <select
+              className="form-control"
+              style={{ width: "120px", fontSize: "0.8rem", height: "34px", fontWeight: "600" }}
+              value={logLimit}
+              onChange={(e) => setLogLimit(e.target.value)}
+              title="Display row limit"
+            >
+              <option value="all">Show All ({filteredLogs.length})</option>
+              <option value="10">10 Entries</option>
+              <option value="25">25 Entries</option>
+              <option value="50">50 Entries</option>
+            </select>
+
+            <button
+              onClick={() => onNavigate("audit-logs")}
+              className="btn btn-secondary btn-sm"
+              style={{ height: "34px", fontSize: "0.8rem" }}
+            >
+              Full Ledger →
+            </button>
+          </div>
         </div>
 
-        <div className="table-container">
+        <div className="table-container" style={{ maxHeight: "450px", overflowY: "auto" }}>
           <table>
-            <thead>
+            <thead style={{ position: "sticky", top: 0, background: "var(--bg-surface)", zIndex: 1 }}>
               <tr>
                 <th>Timestamp</th>
                 <th>Actor User & Role</th>
@@ -201,31 +268,55 @@ export function AdminDashboard({ onNavigate }) {
               </tr>
             </thead>
             <tbody>
-              {auditLogs.slice(0, 5).map((log) => (
-                <tr key={log.id}>
-                  <td>
-                    <span style={{ fontSize: "0.78rem", color: "var(--text-muted)", fontFamily: "monospace" }}>
-                      {log.timestamp}
-                    </span>
-                  </td>
-                  <td>
-                    <strong>{log.user}</strong>
-                    <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{log.role}</div>
-                  </td>
-                  <td>
-                    <Badge variant="purple">{log.action}</Badge>
-                  </td>
-                  <td>
-                    <span style={{ fontSize: "0.85rem" }}>{log.details}</span>
-                  </td>
-                  <td>
-                    <Badge variant="gray">{log.module}</Badge>
+              {displayedLogs.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: "center", padding: "28px", color: "var(--text-muted)" }}>
+                    No system action or login entries found.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                displayedLogs.map((log) => (
+                  <tr key={log.id}>
+                    <td>
+                      <span style={{ fontSize: "0.78rem", color: "var(--text-muted)", fontFamily: "monospace" }}>
+                        {log.timestamp}
+                      </span>
+                    </td>
+                    <td>
+                      <strong>{log.user}</strong>
+                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{log.role}</div>
+                    </td>
+                    <td>
+                      <Badge variant={log.action === "USER_LOGIN" ? "success" : log.action?.includes("PROVISION") ? "primary" : "purple"}>
+                        {log.action}
+                      </Badge>
+                    </td>
+                    <td>
+                      <span style={{ fontSize: "0.85rem" }}>{log.details}</span>
+                    </td>
+                    <td>
+                      <Badge variant="gray">{log.module}</Badge>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
+
+        {filteredLogs.length > 0 && (
+          <div style={{ padding: "10px 16px", background: "var(--bg-surface-secondary)", borderTop: "1px solid var(--border-subtle)", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.76rem", color: "var(--text-muted)" }}>
+            <span>Showing {displayedLogs.length} of {filteredLogs.length} entries ({auditLogs.length} total logged in system)</span>
+            {logLimit !== "all" && filteredLogs.length > Number(logLimit) && (
+              <button
+                onClick={() => setLogLimit("all")}
+                style={{ background: "none", border: "none", color: "var(--primary-600)", fontWeight: "700", cursor: "pointer", fontSize: "0.76rem" }}
+              >
+                View all {filteredLogs.length} entries
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

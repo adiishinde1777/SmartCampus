@@ -46,7 +46,7 @@ router.get('/bootstrap', async (req, res) => {
       query('SELECT * FROM notices ORDER BY created_at DESC'),
       query('SELECT * FROM leaves ORDER BY created_at DESC'),
       query('SELECT * FROM complaints ORDER BY created_at DESC'),
-      query('SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 200'),
+      query('SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 1000'),
       query('SELECT * FROM system_settings'),
       query('SELECT * FROM registration_links WHERE is_active = TRUE ORDER BY created_at DESC')
     ]);

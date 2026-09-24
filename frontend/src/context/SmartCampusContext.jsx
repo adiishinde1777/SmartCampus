@@ -118,7 +118,10 @@ export function SmartCampusProvider({ children }) {
 
           setState((prev) => ({
             ...prev,
-            users: deduplicateUsers(Array.isArray(d.users) && d.users.length > 0 ? d.users : prev.users),
+            users: deduplicateUsers([
+              ...(Array.isArray(d.users) ? d.users : []),
+              ...(Array.isArray(prev.users) ? prev.users : [])
+            ]),
             departments: Array.isArray(d.departments) && d.departments.length > 0 ? d.departments : prev.departments,
             subjects: Array.isArray(d.subjects) ? d.subjects : prev.subjects,
             attendanceLogs: Array.isArray(d.attendanceLogs) ? d.attendanceLogs : prev.attendanceLogs,
@@ -128,7 +131,19 @@ export function SmartCampusProvider({ children }) {
             notices: Array.isArray(d.notices) ? d.notices : prev.notices,
             leaves: Array.isArray(d.leaves) ? d.leaves : prev.leaves,
             complaints: Array.isArray(d.complaints) ? d.complaints : prev.complaints,
-            auditLogs: Array.isArray(d.auditLogs) ? d.auditLogs : prev.auditLogs,
+            auditLogs: (() => {
+              const incoming = Array.isArray(d.auditLogs) ? d.auditLogs : [];
+              const existing = Array.isArray(prev.auditLogs) ? prev.auditLogs : [];
+              const seenIds = new Set();
+              const merged = [];
+              [...existing, ...incoming].forEach((item) => {
+                if (item && item.id && !seenIds.has(item.id)) {
+                  seenIds.add(item.id);
+                  merged.push(item);
+                }
+              });
+              return merged;
+            })(),
             systemSettings: { ...prev.systemSettings, ...(d.systemSettings || {}) }
           }));
         }
@@ -326,11 +341,21 @@ export function SmartCampusProvider({ children }) {
 
     if (backendResponse && backendResponse.success && backendResponse.user) {
       const smsRecord = triggerLoginSms(backendResponse.user);
+      const loginAudit = {
+        id: "aud-login-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6),
+        timestamp: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) + " " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+        user: backendResponse.user.name || backendResponse.user.id,
+        role: (backendResponse.user.role || selectedRole).toUpperCase(),
+        action: "USER_LOGIN",
+        details: `User ${backendResponse.user.name} logged into SmartCampus portal via ${(backendResponse.user.role || selectedRole).toUpperCase()}`,
+        module: "Authentication"
+      };
       setState((prev) => ({
         ...prev,
         currentUser: backendResponse.user,
         activeRole: backendResponse.user.role,
-        smsLogs: [smsRecord, ...(prev.smsLogs || [])]
+        smsLogs: [smsRecord, ...(prev.smsLogs || [])],
+        auditLogs: [loginAudit, ...(prev.auditLogs || [])]
       }));
       addToast("Login Successful", `Welcome back, ${backendResponse.user.name}!`, "success");
       addToast("📱 SMS Alert Dispatched", `Sent to +91 ${backendResponse.user.phone || "registered mobile"}: Sign-in confirmed with Username & Password.`, "info", 5000);
@@ -357,11 +382,21 @@ export function SmartCampusProvider({ children }) {
     // Fallback safely to client / Firestore credentials verification!
     if (localUser) {
       const smsRecord = triggerLoginSms(localUser);
+      const loginAudit = {
+        id: "aud-login-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6),
+        timestamp: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) + " " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+        user: localUser.name || localUser.id,
+        role: (localUser.role || selectedRole).toUpperCase(),
+        action: "USER_LOGIN",
+        details: `User ${localUser.name} logged into SmartCampus portal via ${(localUser.role || selectedRole).toUpperCase()}`,
+        module: "Authentication"
+      };
       setState((prev) => ({
         ...prev,
         currentUser: localUser,
         activeRole: localUser.role,
-        smsLogs: [smsRecord, ...(prev.smsLogs || [])]
+        smsLogs: [smsRecord, ...(prev.smsLogs || [])],
+        auditLogs: [loginAudit, ...(prev.auditLogs || [])]
       }));
       addToast("Login Successful", `Welcome back, ${localUser.name}!`, "success");
       addToast("📱 SMS Alert Dispatched", `Sent to +91 ${localUser.phone || "registered mobile"}: Sign-in confirmed with Username & Password.`, "info", 5000);
