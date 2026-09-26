@@ -27,6 +27,7 @@ import {
   Activity,
   Library,
   Briefcase,
+  CheckCircle2,
   X
 } from "lucide-react";
 
@@ -38,6 +39,7 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
     notifications,
     complaints,
     leaves,
+    studentSkills = [],
     getTeacherResponsibilities
   } = useSmartCampus();
 
@@ -47,6 +49,11 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
 
   const pendingLeavesCount = leaves.filter((l) => l.status === "Pending").length;
   const pendingComplaintsCount = complaints.filter((c) => c.status !== "Resolved").length;
+
+  // Pending student skill approvals count for teacher
+  const pendingSkillApprovalsCount = (studentSkills || []).filter(
+    (s) => s.approvalStatus === "Pending" && (!currentUser?.departmentId || s.departmentId === currentUser?.departmentId || s.departmentId === "dept-vlsi")
+  ).length;
 
   // Resolve dynamic teacher responsibilities
   const teacherResp = activeRole === "teacher" && getTeacherResponsibilities
@@ -60,7 +67,7 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
         return [
           { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
           { id: "faculty", label: "Department Faculty & HOD", icon: Users, highlight: true },
-          { id: "skills", label: "My Skills & Interests", icon: Sparkles, highlight: true },
+          { id: "skills", label: "Skill Bucket", icon: Sparkles, highlight: true },
           { id: "attendance", label: "Attendance", icon: CalendarCheck },
           { id: "marks", label: "Marks & Grades", icon: Award },
           { id: "assignments", label: "Assignments", icon: BookOpen },
@@ -77,6 +84,7 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
       case "teacher": {
         const items = [
           { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+          { id: "skill-approvals", label: "Skill Bucket Approvals", icon: CheckCircle2, highlight: true, badge: pendingSkillApprovalsCount },
           { id: "talent-finder", label: "Event Talent Finder", icon: Users, highlight: true }
         ];
 

@@ -344,7 +344,8 @@ export default function StudentRegisterPage({ onBackToLogin }) {
               category: "Technical",
               skillLevel: "Intermediate",
               experienceLevel: "College Level",
-              availableForEvents: "Yes"
+              availableForEvents: "Yes",
+              approvalStatus: "Pending" // Sent to department teacher for verification
             });
           } catch (skErr) {
             console.warn("[Register Skill Save Error]", skErr);

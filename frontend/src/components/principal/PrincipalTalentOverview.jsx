@@ -50,20 +50,23 @@ export default function PrincipalTalentOverview() {
     users
   } = useSmartCampus();
 
-  const totalRegisteredTalents = new Set(studentSkills.map((s) => s.studentId)).size;
-  const sportsCount = studentSkills.filter((s) => s.category === "Sports").length;
-  const culturalCount = studentSkills.filter((s) => s.category === "Cultural").length;
-  const technicalCount = studentSkills.filter((s) => s.category === "Technical").length;
-  const managementCount = studentSkills.filter((s) => s.category === "Event & Management").length;
+  // Only faculty-approved skills are visible to Principal
+  const approvedSkills = (studentSkills || []).filter((s) => s.approvalStatus === "Approved");
+
+  const totalRegisteredTalents = new Set(approvedSkills.map((s) => s.studentId)).size;
+  const sportsCount = approvedSkills.filter((s) => s.category === "Sports").length;
+  const culturalCount = approvedSkills.filter((s) => s.category === "Cultural").length;
+  const technicalCount = approvedSkills.filter((s) => s.category === "Technical").length;
+  const managementCount = approvedSkills.filter((s) => s.category === "Event & Management").length;
 
   // Specific skill counts requested in user prompt
-  const anchoringCount = studentSkills.filter((s) => s.skill.toLowerCase().includes("anchoring")).length;
-  const photographyCount = studentSkills.filter((s) => s.skill.toLowerCase().includes("photography")).length;
-  const danceCount = studentSkills.filter((s) => s.skill.toLowerCase().includes("dance")).length;
-  const cricketCount = studentSkills.filter((s) => s.skill.toLowerCase().includes("cricket")).length;
+  const anchoringCount = approvedSkills.filter((s) => s.skill.toLowerCase().includes("anchoring")).length;
+  const photographyCount = approvedSkills.filter((s) => s.skill.toLowerCase().includes("photography")).length;
+  const danceCount = approvedSkills.filter((s) => s.skill.toLowerCase().includes("dance")).length;
+  const cricketCount = approvedSkills.filter((s) => s.skill.toLowerCase().includes("cricket")).length;
 
   // Active volunteer count
-  const volunteerCount = studentSkills.filter((s) => s.availableForEvents === "Yes").length;
+  const volunteerCount = approvedSkills.filter((s) => s.availableForEvents === "Yes").length;
 
   // 1. Doughnut Chart: Skills by Domain
   const domainChartData = {

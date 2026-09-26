@@ -29,6 +29,7 @@ import StudentFacultyDirectory from "./components/student/StudentFacultyDirector
 // Teacher Views
 import TeacherDashboard from "./components/teacher/TeacherDashboard";
 import TeacherTalentFinder from "./components/teacher/TeacherTalentFinder";
+import TeacherSkillApprovals from "./components/teacher/TeacherSkillApprovals";
 import TeacherAttendance from "./components/teacher/TeacherAttendance";
 import TeacherMarks from "./components/teacher/TeacherMarks";
 import TeacherAssignments from "./components/teacher/TeacherAssignments";
@@ -143,6 +144,7 @@ function MainApp() {
     if (activeRole === "teacher") {
       switch (currentView) {
         case "dashboard": return <TeacherDashboard onNavigate={setCurrentView} />;
+        case "skill-approvals": return <TeacherSkillApprovals onNavigate={setCurrentView} />;
         case "talent-finder": return <TeacherTalentFinder onNavigate={setCurrentView} />;
         case "my-class": return <TeacherMyClass onNavigate={setCurrentView} />;
         case "my-tg-batch": return <TeacherMyTGBatch onNavigate={setCurrentView} />;

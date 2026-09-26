@@ -36,7 +36,7 @@ import {
   getSkillEmoji
 } from "../../data/talentAndHealthData";
 
-export default function TeacherTalentFinder() {
+export default function TeacherTalentFinder({ onNavigate }) {
   const {
     currentUser,
     activeRole,
@@ -372,6 +372,29 @@ export default function TeacherTalentFinder() {
           <Users size={16} />
           Event Team Management
         </button>
+
+        {onNavigate && (
+          <button
+            onClick={() => onNavigate("skill-approvals")}
+            style={{
+              marginLeft: "auto",
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              color: "#1d4ed8",
+              borderRadius: "8px",
+              padding: "6px 14px",
+              fontSize: "0.82rem",
+              fontWeight: "700",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px"
+            }}
+          >
+            <CheckCircle2 size={15} color="#2563eb" />
+            <span>Skill Bucket Approvals ({studentSkills.filter((s) => s.approvalStatus === "Pending").length})</span>
+          </button>
+        )}
       </div>
 
       {/* 3. TAB 1: SMART STUDENT SEARCH */}

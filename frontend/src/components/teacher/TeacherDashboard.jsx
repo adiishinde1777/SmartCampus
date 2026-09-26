@@ -27,6 +27,7 @@ export default function TeacherDashboard({ onNavigate }) {
     assignments,
     leaves,
     systemSettings,
+    studentSkills = [],
     getTeacherResponsibilities
   } = useSmartCampus();
 
@@ -35,6 +36,11 @@ export default function TeacherDashboard({ onNavigate }) {
   const myStudents = users.filter((u) => u.role === "student" && u.departmentId === (teacher?.departmentId || "dept-vlsi"));
   const pendingLeaves = leaves.filter((l) => l.status === "Pending");
   const threshold = systemSettings.attendanceThreshold;
+
+  // Pending student skill approvals for teacher
+  const pendingSkillApprovals = (studentSkills || []).filter(
+    (s) => s.approvalStatus === "Pending" && (!teacher?.departmentId || s.departmentId === teacher?.departmentId || s.departmentId === "dept-vlsi")
+  ).length;
 
   // Resolve assigned responsibilities dynamically
   const responsibilities = useMemo(() => {
@@ -269,6 +275,15 @@ export default function TeacherDashboard({ onNavigate }) {
       {/* 4 Teacher Metric Cards */}
       <div className="stats-grid">
         <StatCard
+          label="Skill Bucket Approvals"
+          value={pendingSkillApprovals > 0 ? `${pendingSkillApprovals} Pending` : "All Verified"}
+          subtext="Faculty verification desk"
+          icon={CheckCircle2}
+          variant={pendingSkillApprovals > 0 ? "warning" : "success"}
+          onClick={() => onNavigate("skill-approvals")}
+        />
+
+        <StatCard
           label="Assigned Subjects"
           value={mySubjects.length || 2}
           subtext="DBMS, Operating Systems (Sem 5)"
@@ -294,15 +309,67 @@ export default function TeacherDashboard({ onNavigate }) {
           variant={pendingLeaves.length > 0 ? "warning" : "success"}
           onClick={() => onNavigate("leaves")}
         />
+      </div>
 
-        <StatCard
-          label="Attendance Defaulters"
-          value={`${lowAttendanceStudents.length} Students`}
-          subtext={`Below ${threshold}% attendance threshold`}
-          icon={AlertTriangle}
-          variant={lowAttendanceStudents.length > 0 ? "danger" : "success"}
-          onClick={() => onNavigate("attendance")}
-        />
+      {/* Student Skill Bucket Approvals Highlight Card */}
+      <div
+        className="card"
+        style={{
+          background: "linear-gradient(135deg, #312e81 0%, #1e1b4b 100%)",
+          color: "white",
+          padding: "20px 28px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "16px",
+          boxShadow: "0 8px 20px -4px rgba(49, 46, 129, 0.4)",
+          border: pendingSkillApprovals > 0 ? "1px solid #f59e0b" : "1px solid rgba(255,255,255,0.15)"
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div
+            style={{
+              width: "46px",
+              height: "46px",
+              borderRadius: "12px",
+              background: "rgba(255, 255, 255, 0.18)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fbbf24"
+            }}
+          >
+            <Sparkles size={24} />
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+              <h3 style={{ fontSize: "1.15rem", fontWeight: "800", color: "white" }}>
+                🎯 Student Skill Bucket Approvals (कौशल्य पडताळणी)
+              </h3>
+              {pendingSkillApprovals > 0 ? (
+                <span style={{ background: "#f59e0b", color: "#1e1b4b", borderRadius: "10px", padding: "2px 8px", fontSize: "0.72rem", fontWeight: "800" }}>
+                  ⏳ {pendingSkillApprovals} Approval{pendingSkillApprovals > 1 ? "s" : ""} Pending
+                </span>
+              ) : (
+                <span style={{ background: "#10b981", color: "white", borderRadius: "10px", padding: "2px 8px", fontSize: "0.72rem", fontWeight: "800" }}>
+                  ✅ Up to Date
+                </span>
+              )}
+            </div>
+            <p style={{ fontSize: "0.86rem", color: "#c7d2fe", marginTop: "3px" }}>
+              Students claim technical skills (Python, Java, VLSI...). Once approved by you, skills are forwarded to the HOD & Principal placement radar.
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => onNavigate("skill-approvals")}
+          className="btn btn-sm"
+          style={{ background: "#4f46e5", color: "white", fontWeight: "700", border: "none", padding: "8px 16px" }}
+        >
+          Review Student Skills ({pendingSkillApprovals}) <ArrowRight size={14} style={{ marginLeft: "4px", display: "inline" }} />
+        </button>
       </div>
 
       {/* Event Talent Finder Highlight Card */}

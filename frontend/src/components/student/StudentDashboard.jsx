@@ -402,90 +402,113 @@ export default function StudentDashboard({ onNavigate }) {
         />
       </div>
 
-      {/* My Skills & Interests Highlight Card */}
-      <div
-        className="card"
-        style={{
-          background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)",
-          color: "white",
-          padding: "22px 28px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "16px",
-          boxShadow: "0 8px 20px -4px rgba(49, 46, 129, 0.3)"
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+      {/* Skill Bucket Highlight Card */}
+      {(() => {
+        const approvedCount = mySkills.filter((s) => s.approvalStatus === "Approved").length;
+        const pendingCount = mySkills.filter((s) => s.approvalStatus === "Pending").length;
+
+        return (
           <div
+            className="card"
             style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "12px",
-              background: "rgba(255, 255, 255, 0.15)",
+              background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)",
+              color: "white",
+              padding: "22px 28px",
               display: "flex",
+              justifyContent: "space-between",
               alignItems: "center",
-              justifyContent: "center",
-              color: "#fbbf24",
-              flexShrink: 0
+              flexWrap: "wrap",
+              gap: "16px",
+              boxShadow: "0 8px 20px -4px rgba(49, 46, 129, 0.3)"
             }}
           >
-            <Sparkles size={26} />
-          </div>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <h3 style={{ fontSize: "1.15rem", fontWeight: "800", color: "white" }}>
-                My Skills & Interests
-              </h3>
-              {pendingInvitesCount > 0 && (
-                <span style={{ background: "#ef4444", color: "white", borderRadius: "10px", padding: "2px 8px", fontSize: "0.72rem", fontWeight: "800" }}>
-                  {pendingInvitesCount} New Invitation{pendingInvitesCount > 1 ? "s" : ""}
-                </span>
-              )}
-            </div>
-            <p style={{ fontSize: "0.86rem", color: "#c7d2fe", marginTop: "3px" }}>
-              Tell your college what you are good at — Sports, Cultural, Event Management, and Technical Skills.
-            </p>
-            {mySkills.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "8px" }}>
-                {mySkills.map((s) => (
-                  <span
-                    key={s.id}
-                    style={{
-                      background: "rgba(255,255,255,0.12)",
-                      padding: "2px 8px",
-                      borderRadius: "6px",
-                      fontSize: "0.75rem",
-                      fontWeight: "600",
-                      color: "white"
-                    }}
-                  >
-                    {s.skill} ({s.skillLevel})
-                  </span>
-                ))}
+            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              <div
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "12px",
+                  background: "rgba(255, 255, 255, 0.15)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#fbbf24",
+                  flexShrink: 0
+                }}
+              >
+                <Sparkles size={26} />
               </div>
-            )}
-          </div>
-        </div>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  <h3 style={{ fontSize: "1.15rem", fontWeight: "800", color: "white" }}>
+                    🎯 Skill Bucket (कौशल्य संच)
+                  </h3>
+                  <span style={{ background: "#10b981", color: "white", borderRadius: "10px", padding: "2px 8px", fontSize: "0.72rem", fontWeight: "800" }}>
+                    {approvedCount} Verified
+                  </span>
+                  {pendingCount > 0 && (
+                    <span style={{ background: "#f59e0b", color: "#1e1b4b", borderRadius: "10px", padding: "2px 8px", fontSize: "0.72rem", fontWeight: "800" }}>
+                      ⏳ {pendingCount} Pending Verification
+                    </span>
+                  )}
+                  {pendingInvitesCount > 0 && (
+                    <span style={{ background: "#ef4444", color: "white", borderRadius: "10px", padding: "2px 8px", fontSize: "0.72rem", fontWeight: "800" }}>
+                      {pendingInvitesCount} New Invitation{pendingInvitesCount > 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
+                <p style={{ fontSize: "0.86rem", color: "#c7d2fe", marginTop: "3px" }}>
+                  Skills are verified by your department faculty before being presented to HOD & Principal for campus placements.
+                </p>
+                {mySkills.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "8px" }}>
+                    {mySkills.map((s) => {
+                      const isApp = s.approvalStatus === "Approved";
+                      const isRej = s.approvalStatus === "Rejected";
+                      return (
+                        <span
+                          key={s.id}
+                          style={{
+                            background: isApp ? "rgba(16, 185, 129, 0.25)" : isRej ? "rgba(239, 68, 68, 0.25)" : "rgba(245, 158, 11, 0.25)",
+                            border: `1px solid ${isApp ? "rgba(16, 185, 129, 0.6)" : isRej ? "rgba(239, 68, 68, 0.6)" : "rgba(245, 158, 11, 0.6)"}`,
+                            padding: "2px 8px",
+                            borderRadius: "6px",
+                            fontSize: "0.75rem",
+                            fontWeight: "600",
+                            color: "white",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px"
+                          }}
+                        >
+                          {isApp ? "✅" : isRej ? "❌" : "⏳"} {s.skill} ({s.skillLevel})
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
 
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          <button
-            onClick={() => onNavigate("skills")}
-            className="btn btn-sm"
-            style={{ background: "#4f46e5", color: "white", border: "none" }}
-          >
-            Add Skills
-          </button>
-          <button
-            onClick={() => onNavigate("skills")}
-            className="btn btn-sm"
-            style={{ background: "rgba(255,255,255,0.15)", color: "white", border: "1px solid rgba(255,255,255,0.25)" }}
-          >
-            View My Skills
-          </button>
-        </div>
-      </div>
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              <button
+                onClick={() => onNavigate("skills")}
+                className="btn btn-sm"
+                style={{ background: "#4f46e5", color: "white", border: "none", fontWeight: "700" }}
+              >
+                + Add Skill to Bucket
+              </button>
+              <button
+                onClick={() => onNavigate("skills")}
+                className="btn btn-sm"
+                style={{ background: "rgba(255,255,255,0.15)", color: "white", border: "1px solid rgba(255,255,255,0.25)", fontWeight: "600" }}
+              >
+                Open Skill Bucket
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* DEPARTMENT FACULTY & HOD SPOTLIGHT WIDGET */}
       {(() => {

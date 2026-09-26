@@ -48,8 +48,8 @@ export default function HODTalentEvents() {
   const deptStudents = users.filter((u) => u.role === "student" && (u.departmentId === dept.id || !u.departmentId));
   const deptStudentIds = new Set(deptStudents.map((s) => s.id));
 
-  // Department skills
-  const deptSkills = studentSkills.filter((s) => deptStudentIds.has(s.studentId));
+  // Department skills - ONLY faculty-approved skills are visible to HOD
+  const deptSkills = studentSkills.filter((s) => deptStudentIds.has(s.studentId) && s.approvalStatus === "Approved");
 
   // Department health records
   const deptHealthRecords = studentHealthRecords.filter((h) => deptStudentIds.has(h.studentId));

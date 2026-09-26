@@ -18,6 +18,7 @@ import {
   getStudentBatchInfo
 } from "../data/initialData";
 import { deduplicateUsers } from "../utils/academicSession";
+import { INITIAL_STUDENT_SKILLS } from "../data/talentAndHealthData";
 
 const SmartCampusContext = createContext();
 
@@ -55,6 +56,7 @@ export function SmartCampusProvider({ children }) {
           return {
             ...parsed,
             smsLogs: parsed.smsLogs || [],
+            studentSkills: Array.isArray(parsed.studentSkills) && parsed.studentSkills.length > 0 ? parsed.studentSkills : INITIAL_STUDENT_SKILLS,
             currentUser: parsed.currentUser || null,
             activeRole: parsed.activeRole || null
           };
@@ -83,7 +85,7 @@ export function SmartCampusProvider({ children }) {
       notifications: [],
       auditLogs: [],
       systemSettings: INITIAL_SYSTEM_SETTINGS,
-      studentSkills: [],
+      studentSkills: INITIAL_STUDENT_SKILLS,
       collegeEvents: [],
       eventInvitations: [],
       eventTeamMembers: [],
@@ -2378,20 +2380,21 @@ export function SmartCampusProvider({ children }) {
       id: "skill-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      approvalStatus: skillData.approvalStatus || "Pending", // 'Pending' | 'Approved' | 'Rejected'
       ...skillData
     };
 
     const audit = logAudit(
       "Added Student Skill",
-      `${newSkill.studentName} added ${newSkill.skill} (${newSkill.skillLevel} - ${newSkill.category})`,
+      `${newSkill.studentName} added ${newSkill.skill} (${newSkill.skillLevel} - ${newSkill.category}) [Status: ${newSkill.approvalStatus}]`,
       "Talent & Skills"
     );
 
-    // Notify HOD and Teachers of department about new skill profile
+    // Notify Teachers of student's department for faculty verification
     const notif = {
       id: "notif-skill-" + Date.now(),
-      title: "New Student Skill Profile Added",
-      message: `${newSkill.studentName} (${newSkill.departmentName}) added ${newSkill.skill} (${newSkill.skillLevel}) to their profile.`,
+      title: "Skill Bucket Verification Request",
+      message: `${newSkill.studentName} (${newSkill.departmentName}) has claimed skill '${newSkill.skill}'. Faculty verification is required before it appears on HOD and Principal placement radar.`,
       timestamp: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) + ", " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       read: false,
       recipientRole: "teacher",
@@ -2412,8 +2415,116 @@ export function SmartCampusProvider({ children }) {
       auditLogs: [audit, ...prev.auditLogs]
     }));
 
-    addToast("Skill Added", `"${newSkill.skill}" has been added to your profile.`, "success");
+    addToast("Skill Added to Bucket", `"${newSkill.skill}" has been submitted for faculty verification.`, "success");
     return newSkill;
+  };
+
+  const approveStudentSkill = (skillId, teacherName = "Faculty Mentor", remarks = "") => {
+    let targetSkill = null;
+
+    setState((prev) => {
+      const updated = (prev.studentSkills || []).map((s) => {
+        if (s.id === skillId) {
+          targetSkill = {
+            ...s,
+            approvalStatus: "Approved",
+            approvedBy: teacherName,
+            approvedAt: new Date().toISOString(),
+            remarks: remarks || "Verified & Approved by Faculty",
+            updatedAt: new Date().toISOString()
+          };
+          return targetSkill;
+        }
+        return s;
+      });
+
+      if (targetSkill) {
+        saveDocToFirestore(FIRESTORE_COLLECTIONS.STUDENT_SKILLS, targetSkill.id, targetSkill).catch(() => {});
+      }
+
+      // Notify the student that their skill is verified & visible to HOD and Principal
+      const notif = {
+        id: "notif-skill-app-" + Date.now(),
+        title: "Skill Verification Approved! 🎉",
+        message: `Prof. ${teacherName} has approved your skill '${targetSkill?.skill || "Skill"}'. It is now officially visible to your HOD, Principal, and visiting industry recruiters!`,
+        timestamp: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) + ", " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        read: false,
+        recipientId: targetSkill?.studentId,
+        recipientRole: "student",
+        deliveryStatus: "Delivered",
+        type: "skill"
+      };
+
+      const audit = logAudit(
+        "Approved Student Skill",
+        `Prof. ${teacherName} approved skill '${targetSkill?.skill}' for ${targetSkill?.studentName}`,
+        "Talent & Skills"
+      );
+
+      return {
+        ...prev,
+        studentSkills: updated,
+        notifications: [notif, ...prev.notifications],
+        auditLogs: [audit, ...prev.auditLogs]
+      };
+    });
+
+    addToast("Skill Approved", `Skill "${targetSkill?.skill || ''}" is now verified & forwarded to HOD & Principal.`, "success");
+    return targetSkill;
+  };
+
+  const rejectStudentSkill = (skillId, teacherName = "Faculty Mentor", rejectionReason = "Insufficient practical verification or credentials") => {
+    let targetSkill = null;
+
+    setState((prev) => {
+      const updated = (prev.studentSkills || []).map((s) => {
+        if (s.id === skillId) {
+          targetSkill = {
+            ...s,
+            approvalStatus: "Rejected",
+            rejectedBy: teacherName,
+            rejectedAt: new Date().toISOString(),
+            rejectionReason: rejectionReason,
+            updatedAt: new Date().toISOString()
+          };
+          return targetSkill;
+        }
+        return s;
+      });
+
+      if (targetSkill) {
+        saveDocToFirestore(FIRESTORE_COLLECTIONS.STUDENT_SKILLS, targetSkill.id, targetSkill).catch(() => {});
+      }
+
+      // Notify the student that the skill was rejected
+      const notif = {
+        id: "notif-skill-rej-" + Date.now(),
+        title: "Skill Verification Update",
+        message: `Your skill '${targetSkill?.skill || "Skill"}' was not approved by Prof. ${teacherName}. Reason: ${rejectionReason}`,
+        timestamp: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) + ", " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        read: false,
+        recipientId: targetSkill?.studentId,
+        recipientRole: "student",
+        deliveryStatus: "Delivered",
+        type: "skill"
+      };
+
+      const audit = logAudit(
+        "Rejected Student Skill",
+        `Prof. ${teacherName} rejected skill '${targetSkill?.skill}' for ${targetSkill?.studentName}. Reason: ${rejectionReason}`,
+        "Talent & Skills"
+      );
+
+      return {
+        ...prev,
+        studentSkills: updated,
+        notifications: [notif, ...prev.notifications],
+        auditLogs: [audit, ...prev.auditLogs]
+      };
+    });
+
+    addToast("Skill Verification Rejected", `Skill "${targetSkill?.skill || ''}" rejected. It will not be shown to HOD or Principal.`, "info");
+    return targetSkill;
   };
 
   const updateStudentSkill = (skillId, updatedData) => {
@@ -3233,6 +3344,8 @@ export function SmartCampusProvider({ children }) {
         getStudentBatchInfo,
         // Talent, Events & Health methods
         addStudentSkill,
+        approveStudentSkill,
+        rejectStudentSkill,
         updateStudentSkill,
         deleteStudentSkill,
         createCollegeEvent,

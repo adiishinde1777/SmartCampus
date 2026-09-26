@@ -62,6 +62,7 @@ export default function PrincipalPlacementSkills() {
   const [gateFilter, setGateFilter] = useState("all"); // 'all' | 'appeared' | 'preparing' | 'any_gate'
   const [deptFilter, setDeptFilter] = useState("all");
   const [minAttendanceFilter, setMinAttendanceFilter] = useState(0); // 0 = no filter, 75 = 75%+
+  const [showSkillMatrix, setShowSkillMatrix] = useState(false); // Toggle cross-department matrix view
 
   // Selected Student Profile Modal
   const [selectedStudentForModal, setSelectedStudentForModal] = useState(null);
@@ -121,8 +122,12 @@ export default function PrincipalPlacementSkills() {
       });
     });
 
+    // STRICT PLACEMENT POLICY: Only faculty-approved skills are visible to Principal & HOD
+    // Pending and Rejected skills are strictly excluded from campus recruitment analytics
+    const approvedSkills = studentSkills.filter((s) => s.approvalStatus === "Approved");
+
     // Populate skill entries
-    studentSkills.forEach((s) => {
+    approvedSkills.forEach((s) => {
       const stuId = s.studentId || "stu-1";
       if (!studentMap.has(stuId)) {
         studentMap.set(stuId, {
@@ -704,21 +709,39 @@ export default function PrincipalPlacementSkills() {
         </div>
 
         {/* 1-CLICK INDUSTRY SKILL & BRANCH BREAKDOWN ANALYTICS CONSOLE */}
-        <div style={{ background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
+        <div style={{ background: "#f8fafc", padding: "18px 20px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", flexWrap: "wrap", gap: "10px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <Sparkles size={16} color="#4f46e5" />
-              <strong style={{ fontSize: "0.9rem", color: "#1e293b" }}>
-                🎯 1-Click Industry Skills & Branch Matrix (कंपनी आल्यावर त्वरित ॲनालिसीस)
+              <Sparkles size={18} color="#4f46e5" />
+              <strong style={{ fontSize: "0.95rem", color: "#1e293b" }}>
+                🏢 Campus Industry Visit & Skill Radar (कंपनी आल्यावर कौशल्य व विभागवार शोध)
               </strong>
             </div>
-            <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
-              Click any skill chip below to instantly filter candidates and see branch-wise distribution
-            </span>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <button
+                onClick={() => setShowSkillMatrix(!showSkillMatrix)}
+                className="btn btn-sm"
+                style={{
+                  background: showSkillMatrix ? "#4f46e5" : "white",
+                  color: showSkillMatrix ? "white" : "#4f46e5",
+                  border: "1px solid #4f46e5",
+                  fontWeight: "700",
+                  fontSize: "0.78rem",
+                  padding: "5px 12px"
+                }}
+              >
+                {showSkillMatrix ? "✕ Close Matrix Table" : "📊 Cross-Department Matrix Table"}
+              </button>
+            </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "10px" }}>
-            {skillAnalytics.slice(0, 10).map((item) => {
+          <div style={{ fontSize: "0.82rem", color: "#64748b", marginBottom: "12px" }}>
+            Select any skill (e.g. <strong>Python</strong>, <strong>Java</strong>, <strong>VLSI</strong>) to see how many verified students have this skill and their exact department distribution.
+          </div>
+
+          {/* Quick Skill Cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "12px" }}>
+            {skillAnalytics.map((item) => {
               const isSelected = selectedTechTag.toLowerCase() === item.skill.toLowerCase();
               return (
                 <div
@@ -731,21 +754,21 @@ export default function PrincipalPlacementSkills() {
                     background: isSelected ? "#eff6ff" : "#ffffff",
                     border: isSelected ? "2px solid #2563eb" : "1px solid #cbd5e1",
                     borderRadius: "10px",
-                    padding: "10px 14px",
+                    padding: "12px 14px",
                     cursor: "pointer",
                     transition: "all 0.15s ease",
-                    boxShadow: isSelected ? "0 4px 12px rgba(37, 99, 235, 0.15)" : "0 1px 3px rgba(0,0,0,0.04)"
+                    boxShadow: isSelected ? "0 4px 14px rgba(37, 99, 235, 0.18)" : "0 1px 3px rgba(0,0,0,0.04)"
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <Code2 size={15} color={isSelected ? "#2563eb" : "#6366f1"} />
-                      <span style={{ fontWeight: "800", fontSize: "0.9rem", color: isSelected ? "#1d4ed8" : "#0f172a" }}>
+                      <Code2 size={16} color={isSelected ? "#2563eb" : "#6366f1"} />
+                      <span style={{ fontWeight: "800", fontSize: "0.92rem", color: isSelected ? "#1d4ed8" : "#0f172a" }}>
                         {item.skill}
                       </span>
                     </div>
-                    <Badge variant={isSelected ? "primary" : "neutral"} style={{ fontWeight: "800", fontSize: "0.75rem" }}>
-                      {item.totalStudents} Students
+                    <Badge variant={isSelected ? "primary" : "neutral"} style={{ fontWeight: "800", fontSize: "0.78rem" }}>
+                      {item.totalStudents} Verified
                     </Badge>
                   </div>
 
@@ -755,10 +778,10 @@ export default function PrincipalPlacementSkills() {
                       <span
                         key={b.name}
                         style={{
-                          fontSize: "0.7rem",
+                          fontSize: "0.72rem",
                           background: isSelected ? "#dbeafe" : "#f1f5f9",
                           color: isSelected ? "#1e40af" : "#475569",
-                          padding: "2px 7px",
+                          padding: "2px 8px",
                           borderRadius: "4px",
                           fontWeight: "600"
                         }}
@@ -771,6 +794,160 @@ export default function PrincipalPlacementSkills() {
               );
             })}
           </div>
+
+          {/* SPOTLIGHT: Specific Selected Skill Department Breakdown (COMPANY CAMPUS VISIT MODE) */}
+          {(() => {
+            const activeItem = skillAnalytics.find(
+              (item) => selectedTechTag.toLowerCase() === item.skill.toLowerCase()
+            );
+
+            if (!activeItem) return null;
+
+            return (
+              <div
+                style={{
+                  background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)",
+                  borderRadius: "14px",
+                  padding: "20px 24px",
+                  marginTop: "16px",
+                  color: "white",
+                  boxShadow: "0 10px 25px -5px rgba(49, 46, 129, 0.4)"
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", borderBottom: "1px solid rgba(255,255,255,0.15)", paddingBottom: "14px", marginBottom: "16px" }}>
+                  <div>
+                    <div style={{ fontSize: "0.74rem", color: "#93c5fd", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      🏢 Campus Placement Spotlight for Visiting Company
+                    </div>
+                    <h3 style={{ fontSize: "1.35rem", fontWeight: "800", color: "white", margin: "4px 0 0 0" }}>
+                      Verified Candidates for: <span style={{ color: "#38bdf8" }}>{activeItem.skill}</span> ({activeItem.totalStudents} Students)
+                    </h3>
+                  </div>
+
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                    <button
+                      onClick={() => handlePrintRoster()}
+                      className="btn btn-sm"
+                      style={{ background: "#10b981", color: "white", fontWeight: "700", border: "none", display: "flex", alignItems: "center", gap: "6px" }}
+                    >
+                      <Printer size={15} /> Print Recruiter Roster
+                    </button>
+                    <button
+                      onClick={() => setSelectedTechTag("All")}
+                      className="btn btn-sm"
+                      style={{ background: "rgba(255,255,255,0.15)", color: "white", border: "1px solid rgba(255,255,255,0.25)" }}
+                    >
+                      Clear Selection
+                    </button>
+                  </div>
+                </div>
+
+                {/* Department-wise Breakdown Cards & Progress Bars */}
+                <div>
+                  <div style={{ fontSize: "0.82rem", fontWeight: "700", color: "#c7d2fe", textTransform: "uppercase", marginBottom: "10px" }}>
+                    🏛️ Department-wise Breakdown (कोणत्या डिपार्टमेंटचे किती विद्यार्थी आहेत):
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "12px" }}>
+                    {Object.values(activeItem.branches).map((br) => {
+                      const pct = Math.round((br.count / activeItem.totalStudents) * 100);
+                      return (
+                        <div
+                          key={br.name}
+                          style={{
+                            background: "rgba(255,255,255,0.08)",
+                            border: "1px solid rgba(255,255,255,0.15)",
+                            borderRadius: "10px",
+                            padding: "14px 16px"
+                          }}
+                        >
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                            <span style={{ fontSize: "0.88rem", fontWeight: "700", color: "white" }}>
+                              {br.name}
+                            </span>
+                            <span style={{ fontSize: "1.2rem", fontWeight: "800", color: "#38bdf8" }}>
+                              {br.count} <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>({pct}%)</span>
+                            </span>
+                          </div>
+                          <div style={{ width: "100%", height: "8px", background: "rgba(255,255,255,0.15)", borderRadius: "4px", overflow: "hidden" }}>
+                            <div style={{ width: `${pct}%`, height: "100%", background: "#38bdf8", borderRadius: "4px" }} />
+                          </div>
+                          <div style={{ fontSize: "0.72rem", color: "#cbd5e1", marginTop: "6px" }}>
+                            {br.count} faculty-approved candidate{br.count > 1 ? "s" : ""}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* CROSS-DEPARTMENT MATRIX TABLE (When Toggled) */}
+          {showSkillMatrix && (
+            <div style={{ marginTop: "16px", background: "white", borderRadius: "10px", border: "1px solid #cbd5e1", overflow: "hidden" }}>
+              <div style={{ padding: "12px 16px", background: "#f1f5f9", borderBottom: "1px solid #cbd5e1", fontWeight: "800", fontSize: "0.9rem", color: "#0f172a" }}>
+                📊 All Skills vs All Departments Cross-Matrix (एकूण कौशल्य व विभाग तुलना)
+              </div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem", textAlign: "left" }}>
+                  <thead>
+                    <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+                      <th style={{ padding: "10px 14px", fontWeight: "800" }}>Skill Name</th>
+                      <th style={{ padding: "10px 14px", fontWeight: "800", textAlign: "center" }}>Total Verified</th>
+                      {departments.map((d) => (
+                        <th key={d.id} style={{ padding: "10px 14px", fontWeight: "800", textAlign: "center" }}>
+                          {d.code || d.name.split(" ")[0]}
+                        </th>
+                      ))}
+                      <th style={{ padding: "10px 14px", fontWeight: "800", textAlign: "center" }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {skillAnalytics.map((sk) => (
+                      <tr key={sk.skill} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                        <td style={{ padding: "10px 14px", fontWeight: "700", color: "#1e293b" }}>
+                          {sk.skill}
+                        </td>
+                        <td style={{ padding: "10px 14px", textAlign: "center", fontWeight: "800", color: "#2563eb" }}>
+                          {sk.totalStudents}
+                        </td>
+                        {departments.map((d) => {
+                          const brMatch = Object.values(sk.branches).find(
+                            (b) => b.id === d.id || b.name.toLowerCase().includes((d.code || d.name).toLowerCase())
+                          );
+                          const count = brMatch ? brMatch.count : 0;
+                          return (
+                            <td key={d.id} style={{ padding: "10px 14px", textAlign: "center" }}>
+                              {count > 0 ? (
+                                <span style={{ background: "#dbeafe", color: "#1e40af", padding: "2px 8px", borderRadius: "10px", fontWeight: "700" }}>
+                                  {count}
+                                </span>
+                              ) : (
+                                <span style={{ color: "#cbd5e1" }}>-</span>
+                              )}
+                            </td>
+                          );
+                        })}
+                        <td style={{ padding: "10px 14px", textAlign: "center" }}>
+                          <button
+                            onClick={() => {
+                              setSelectedTechTag(sk.skill);
+                              setShowSkillMatrix(false);
+                            }}
+                            className="btn btn-sm btn-primary"
+                            style={{ fontSize: "0.72rem", padding: "3px 8px" }}
+                          >
+                            View Students
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Row 2: 1-Click Trending Technology Selector Tags */}

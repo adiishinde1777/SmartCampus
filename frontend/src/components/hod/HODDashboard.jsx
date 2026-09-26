@@ -230,7 +230,7 @@ export default function HODDashboard({ onNavigate }) {
                 Department Talent & Event Volunteers
               </h3>
               <span style={{ background: "rgba(255,255,255,0.2)", padding: "2px 8px", borderRadius: "10px", fontSize: "0.72rem", fontWeight: "700" }}>
-                {new Set((studentSkills || []).map((s) => s.studentId)).size} Skilled Students
+                {new Set((studentSkills || []).filter((s) => s.approvalStatus === "Approved").map((s) => s.studentId)).size} Verified Skilled Students
               </span>
             </div>
             <p style={{ fontSize: "0.86rem", color: "#c7d2fe", marginTop: "3px" }}>

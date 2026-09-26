@@ -385,7 +385,9 @@ export default function StudentSkills() {
       certificateUrl: formData.certificateUrl,
       certificateName: formData.certificateName,
       availableForEvents: formData.availableForEvents,
-      preferredEventType: formData.preferredEventType
+      preferredEventType: formData.preferredEventType,
+      approvalStatus: "Pending", // Must be verified by department teacher
+      submittedAt: new Date().toISOString()
     };
 
     if (editingSkillId) {
@@ -436,14 +438,14 @@ export default function StudentSkills() {
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
             <span style={{ background: "rgba(255,255,255,0.15)", padding: "4px 10px", borderRadius: "20px", fontSize: "0.75rem", fontWeight: "700", letterSpacing: "0.05em" }}>
-              EXTRACURRICULAR & EVENT TALENT HUB
+              CAMPUS TALENT & INDUSTRY PLACEMENT HUB
             </span>
           </div>
           <h2 style={{ fontSize: "1.75rem", fontWeight: "800", color: "white" }}>
-            My Skills & Interests 🌟
+            🎯 Skill Bucket (कौशल्य संच)
           </h2>
           <p style={{ fontSize: "0.9rem", color: "#cbd5e1", marginTop: "4px" }}>
-            Showcase your skills, sports capabilities, cultural talents, and volunteer experience to the college.
+            Submit your core technical skills, programming languages, and industry domains. Your department faculty verifies your claims before they appear to the HOD and Principal for placement drives.
           </p>
         </div>
 
@@ -461,7 +463,7 @@ export default function StudentSkills() {
             }}
           >
             <Plus size={16} />
-            <span>Add Skill</span>
+            <span>Add Skill to Bucket</span>
           </button>
 
           <button
@@ -498,22 +500,22 @@ export default function StudentSkills() {
         </div>
       </div>
 
-      {/* 2. Privacy & Notice Banner */}
+      {/* 2. Verification Workflow Notice Banner */}
       <div
         style={{
-          background: "var(--info-bg)",
-          border: "1px solid var(--info-border)",
+          background: "linear-gradient(90deg, #eff6ff 0%, #f0fdf4 100%)",
+          border: "1px solid #bfdbfe",
           borderRadius: "12px",
-          padding: "14px 20px",
+          padding: "16px 20px",
           display: "flex",
-          alignItems: "center",
+          alignItems: "flex-start",
           gap: "14px",
-          color: "var(--info-text)"
+          color: "#1e3a8a"
         }}
       >
-        <ShieldCheck size={24} style={{ flexShrink: 0 }} />
-        <div style={{ fontSize: "0.86rem", lineHeight: "1.5" }}>
-          <strong>Student Privacy Notice:</strong> Your skills, course certifications, and GATE examination details are visible to college leadership and the Principal for campus placement and recruitment company matching.
+        <ShieldCheck size={26} color="#2563eb" style={{ flexShrink: 0, marginTop: "2px" }} />
+        <div style={{ fontSize: "0.88rem", lineHeight: "1.5" }}>
+          <strong>Faculty Verification Lifecycle:</strong> When you add a skill (e.g. <em>Python, Java, VLSI</em>), it is automatically submitted to your department teacher. Once approved by your teacher, it is prominently showcased to your <strong>HOD</strong> and <strong>Principal</strong> during campus placement drives when visiting industry recruiters request talent. If rejected, it will remain private to you and will not be visible to college leadership.
         </div>
       </div>
 
@@ -717,25 +719,105 @@ export default function StudentSkills() {
                         </div>
                       </div>
 
-                      <span
-                        style={{
-                          padding: "4px 10px",
-                          borderRadius: "12px",
-                          fontSize: "0.75rem",
-                          fontWeight: "700",
-                          background:
-                            skill.skillLevel === "Expert" ? "#fef3c7" :
-                            skill.skillLevel === "Advanced" ? "#dbeafe" :
-                            skill.skillLevel === "Intermediate" ? "#e0e7ff" : "#f1f5f9",
-                          color:
-                            skill.skillLevel === "Expert" ? "#92400e" :
-                            skill.skillLevel === "Advanced" ? "#1e40af" :
-                            skill.skillLevel === "Intermediate" ? "#3730a3" : "#475569"
-                        }}
-                      >
-                        {skill.skillLevel}
-                      </span>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
+                        <span
+                          style={{
+                            padding: "3px 10px",
+                            borderRadius: "12px",
+                            fontSize: "0.75rem",
+                            fontWeight: "700",
+                            background:
+                              skill.skillLevel === "Expert" ? "#fef3c7" :
+                              skill.skillLevel === "Advanced" ? "#dbeafe" :
+                              skill.skillLevel === "Intermediate" ? "#e0e7ff" : "#f1f5f9",
+                            color:
+                              skill.skillLevel === "Expert" ? "#92400e" :
+                              skill.skillLevel === "Advanced" ? "#1e40af" :
+                              skill.skillLevel === "Intermediate" ? "#3730a3" : "#475569"
+                          }}
+                        >
+                          {skill.skillLevel}
+                        </span>
+
+                        {/* Approval Status Badge */}
+                        {skill.approvalStatus === "Approved" ? (
+                          <span
+                            style={{
+                              padding: "3px 8px",
+                              borderRadius: "10px",
+                              fontSize: "0.7rem",
+                              fontWeight: "700",
+                              background: "#d1fae5",
+                              color: "#065f46",
+                              border: "1px solid #10b981",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px"
+                            }}
+                            title={`Verified by ${skill.approvedBy || "Faculty"}`}
+                          >
+                            <CheckCircle2 size={12} color="#059669" /> Verified
+                          </span>
+                        ) : skill.approvalStatus === "Rejected" ? (
+                          <span
+                            style={{
+                              padding: "3px 8px",
+                              borderRadius: "10px",
+                              fontSize: "0.7rem",
+                              fontWeight: "700",
+                              background: "#fee2e2",
+                              color: "#991b1b",
+                              border: "1px solid #ef4444",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px"
+                            }}
+                            title={skill.rejectionReason || "Verification rejected"}
+                          >
+                            <XCircle size={12} color="#dc2626" /> Rejected
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              padding: "3px 8px",
+                              borderRadius: "10px",
+                              fontSize: "0.7rem",
+                              fontWeight: "700",
+                              background: "#fef3c7",
+                              color: "#92400e",
+                              border: "1px solid #f59e0b",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px"
+                            }}
+                            title="Awaiting department teacher verification"
+                          >
+                            <Clock size={12} color="#d97706" /> Pending Review
+                          </span>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Rejection Alert if rejected */}
+                    {skill.approvalStatus === "Rejected" && (
+                      <div style={{ marginTop: "10px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", padding: "8px 12px", fontSize: "0.78rem", color: "#991b1b" }}>
+                        <strong>Faculty Note:</strong> {skill.rejectionReason || "Verification criteria not met. Please edit details and upload certificate proof."}
+                      </div>
+                    )}
+
+                    {/* Approval Attribution if approved */}
+                    {skill.approvalStatus === "Approved" && skill.approvedBy && (
+                      <div style={{ marginTop: "8px", fontSize: "0.72rem", color: "#059669", display: "flex", alignItems: "center", gap: "4px", fontWeight: "600" }}>
+                        <CheckCircle2 size={12} /> Verified by {skill.approvedBy} • Visible to HOD & Principal
+                      </div>
+                    )}
+
+                    {/* Pending Verification Notice */}
+                    {(!skill.approvalStatus || skill.approvalStatus === "Pending") && (
+                      <div style={{ marginTop: "8px", fontSize: "0.72rem", color: "#d97706", display: "flex", alignItems: "center", gap: "4px", fontWeight: "600" }}>
+                        <Clock size={12} /> Sent to department teacher for approval (Not yet visible to HOD/Principal)
+                      </div>
+                    )}
 
                     {/* Experience Level & Narrative */}
                     <div style={{ marginTop: "14px" }}>
