@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartCampus ERP • Project Presentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(18, 24, 38, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent-blue: #3b82f6;
+      --accent-cyan: #06b6d4;
+      --accent-indigo: #6366f1;
+      --accent-purple: #8b5cf6;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      user-select: none;
+    }
+
+    /* Ambient Glow Backgrounds */
+    .bg-glow-1 {
+      position: fixed;
+      top: -20%;
+      left: -10%;
+      width: 60vw;
+      height: 60vw;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(0,0,0,0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bg-glow-2 {
+      position: fixed;
+      bottom: -20%;
+      right: -10%;
+      width: 60vw;
+      height: 60vw;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(0,0,0,0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Presentation Header & Controls */
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      padding: 0 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(9, 13, 22, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+    .brand-badge {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      color: white;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 800;
+    }
+
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-indigo));
+      border: none;
+      color: white;
+    }
+    .btn-primary:hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
+    }
+
+    /* Slide Deck Container */
+    .deck-container {
+      position: relative;
+      height: calc(100vh - 60px);
+      margin-top: 60px;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .slide {
+      position: absolute;
+      width: 90vw;
+      max-width: 1350px;
+      height: 82vh;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 3rem 3.5rem;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      transform: scale(0.95) translateY(20px);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+      overflow-y: auto;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+      pointer-events: auto;
+    }
+
+    /* Slide Typography & Layout */
+    .slide-tag {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-cyan);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .slide-title {
+      font-size: 2.25rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.75rem;
+    }
+    .slide-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+      line-height: 1.5;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+      flex: 1;
+    }
+
+    .feature-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 14px;
+      padding: 1.4rem;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .feature-card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px);
+    }
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: #fff;
+    }
+    .card-desc {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .pill-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    .pill {
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      color: #93c5fd;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .pill.purple {
+      background: rgba(139, 92, 246, 0.12);
+      border-color: rgba(139, 92, 246, 0.25);
+      color: #c4b5fd;
+    }
+    .pill.emerald {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.25);
+      color: #6ee7b7;
+    }
+
+    /* Speaker Notes Panel */
+    .speaker-notes-panel {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90vw;
+      max-width: 1200px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(16px);
+      border-radius: 14px;
+      padding: 1.25rem 1.75rem;
+      display: none;
+      z-index: 200;
+      animation: slideUp 0.3s ease;
+    }
+    .speaker-notes-panel.visible {
+      display: block;
+    }
+    @keyframes slideUp {
+      from { transform: translate(-50%, 40px); opacity: 0; }
+      to { transform: translate(-50%, 0); opacity: 1; }
+    }
+    .notes-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .notes-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .notes-content {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #e2e8f0;
+    }
+    .notes-marathi {
+      margin-top: 0.5rem;
+      padding-top: 0.5rem;
+      border-top: 1px dashed rgba(255, 255, 255, 0.1);
+      color: #fde047;
+      font-size: 0.9rem;
+    }
+
+    /* Progress bar */
+    .progress-bar-container {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      z-index: 150;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple), var(--accent-cyan));
+      transition: width 0.3s ease;
+    }
+
+    /* Print styles for PDF Export */
+    @media print {
+      body {
+        overflow: visible;
+        background: #ffffff !important;
+        color: #0f172a !important;
+      }
+      header, .nav-controls, .speaker-notes-panel, .progress-bar-container, .bg-glow-1, .bg-glow-2 {
+        display: none !important;
+      }
+      .deck-container {
+        height: auto;
+        margin: 0;
+        display: block;
+      }
+      .slide {
+        position: relative;
+        opacity: 1 !important;
+        transform: none !important;
+        width: 100% !important;
+        height: 100vh !important;
+        max-width: none !important;
+        page-break-after: always;
+        break-after: page;
+        border: none !important;
+        box-shadow: none !important;
+        background: #ffffff !important;
+        color: #0f172a !important;
+        padding: 2.5rem !important;
+      }
+      .slide-title {
+        color: #0f172a !important;
+        -webkit-text-fill-color: initial !important;
+      }
+      .feature-card {
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        color: #0f172a !important;
+      }
+      .card-title {
+        color: #0f172a !important;
+      }
+      .card-desc, .slide-subtitle {
+        color: #475569 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-glow-1"></div>
+  <div class="bg-glow-2"></div>
+
+  <!-- Header with Live Controls -->
+  <header>
+    <div class="brand">
+      <span class="brand-badge">ERP v2.4</span>
+      <span>SmartCampus Project Presentation</span>
+    </div>
+    <div class="nav-controls">
+      <span id="slideCounter" style="font-size: 0.85rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-right: 0.5rem;">01 / 15</span>
+      <button class="btn" id="prevBtn" title="Previous Slide (Left Arrow)">◀ Prev</button>
+      <button class="btn btn-primary" id="nextBtn" title="Next Slide (Right Arrow or Space)">Next ▶</button>
+      <button class="btn" id="notesToggleBtn" title="Toggle Speaker Notes (Key: N)">🎙️ Speaker Notes</button>
+      <button class="btn" id="fullscreenBtn" title="Full Screen (Key: F)">⛶ Fullscreen</button>
+      <button class="btn" onclick="window.print()" title="Print / Save as PDF">📄 Export PDF</button>
+    </div>
+  </header>
+
+  <!-- Slide Deck -->
+  <div class="deck-container">
+
+    <!-- SLIDE 1: Title -->
+    <div class="slide active" data-index="1">
+      <div class="slide-tag">✨ Final Year Engineering Capstone Project</div>
+      <h1 class="slide-title">SmartCampus ERP</h1>
+      <p class="slide-subtitle">Next-Generation Unified College Management & Student Intelligence Ecosystem with Automated Multi-Channel Communication and Skill Matrix</p>
+      
+      <div class="content-grid" style="grid-template-columns: 2fr 1fr; align-items: center; margin-top: 1rem;">
+        <div class="feature-card" style="border-left: 4px solid var(--accent-blue); padding: 2rem;">
+          <h3 style="font-size: 1.3rem; margin-bottom: 1rem; color: #fff;">Integrated Institutional Architecture</h3>
+          <p style="color: var(--text-muted); line-height: 1.7; font-size: 1rem;">
+            A centralized, role-based Academic ERP engineered to eliminate institutional silos between Students, Faculty, Department Heads, Principals, Parents, and Administrators. Features automated real-time attendance analytics, medical grievance tracking, dynamic TG mentorship, and placement-driven skill evaluation.
+          </p>
+          <div class="pill-list" style="margin-top: 1.5rem;">
+            <span class="pill">React 18 + Vite</span>
+            <span class="pill purple">Node.js + Express</span>
+            <span class="pill emerald">MySQL Relational DB</span>
+            <span class="pill">Fast2SMS Gateway</span>
+            <span class="pill purple">Role-Based Access Control (RBAC)</span>
+            <span class="pill emerald">AI Academic Assistant</span>
+          </div>
+        </div>
+
+        <div class="feature-card" style="display: flex; flex-direction: column; justify-content: center; text-align: center; padding: 2rem; background: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.2);">
+          <div style="font-size: 3.5rem; margin-bottom: 0.5rem;">🎓</div>
+          <div style="font-size: 1.2rem; font-weight: 800; color: #fff;">6 Stakeholder Portals</div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Admin • Principal • HOD • Teacher • Student • Parent</p>
+          <div style="margin-top: 1.5rem; padding: 0.75rem; background: rgba(0,0,0,0.3); border-radius: 8px; font-size: 0.8rem; color: var(--accent-cyan);">
+            ⚡ 100% Real-time synchronization
+          </div>
+        </div>
+      </div>
+
+      <div class="notes-data" style="display:none;">
+        <strong>Presentation Guidance:</strong> Introduce the project with confidence. State the project name: "SmartCampus ERP". Emphasize that unlike traditional ERPs which only manage basic fees and marks, SmartCampus is a complete ecosystem connecting all 6 college personas with talent intelligence and medical tracking.<br>
+        <span class="marathi-text"><strong>काय बोलायचे (मराठी):</strong> "नमस्कार, आज मी सादर करत आहे 'SmartCampus ERP' - एक Next-Generation College Management System. आपल्या कॉलेजमध्ये विद्यार्थी, शिक्षक, HOD, प्रिन्सिपल आणि पालक यांच्यात जो संवादाचा अभाव असतो, तो दूर करण्यासाठी हे एक युनिफाइड सोल्यूशन आहे."</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 2: Problem Statement -->
+    <div class="slide" data-index="2">
+      <div class="slide-tag">⚠️ The Core Challenge</div>
+      <h2 class="slide-title">Problem Statement & Institutional Bottlenecks</h2>
+      <p class="slide-subtitle">Current educational institutions suffer from fragmented systems, lack of transparency, and operational delays.</p>
+
+      <div class="content-grid">
+        <div class="feature-card">
+          <div class="card-icon" style="background: rgba(244, 63, 94, 0.15); color: var(--accent-rose);">❌</div>
+          <div class="card-title">Paper Logs & Proxy Attendance</div>
+          <div class="card-desc">Attendance registers result in manual proxy marking, delayed monthly calculations, and inability to catch attendance shortage until term-end.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-amber);">❌</div>
+          <div class="card-title">Zero Real-Time Parent Visibility</div>
+          <div class="card-desc">Parents remain completely unaware of bunked lectures, low internal marks, or critical notices until final defaulter lists are physically pinned.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon" style="background: rgba(139, 92, 246, 0.15); color: var(--accent-purple);">❌</div>
+          <div class="card-title">The Hidden Talent Dilemma</div>
+          <div class="card-desc">Student coding achievements, hackathons, and sports skills stay hidden in silos. Faculty cannot identify skilled candidates when competitions or campus drives arrive.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon" style="background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan);">❌</div>
+          <div class="card-title">Inefficient Teacher Guardian (TG) System</div>
+          <div class="card-desc">TG mentorship meetings and student background tracking are handled on loose sheets of paper, making longitudinal student monitoring impossible.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--accent-blue);">❌</div>
+          <div class="card-title">Medical Leave Complications</div>
+          <div class="card-desc">Doctor certificates and sick leave verification are prone to tampering, lost files, and lack of verified communication between doctors, parents, and administration.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon" style="background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald);">❌</div>
+          <div class="card-title">Disconnected Administrative Hierarchy</div>
+          <div class="card-desc">HODs and Principals lack live consolidated dashboards to evaluate daily department performance, student failure risks, and faculty workloads.</div>
+        </div>
+      </div>
+
+      <div class="notes-data" style="display:none;">
+        <strong>Presentation Guidance:</strong> Connect with the evaluators' daily pain points. Highlight that attendance shortage is discovered only at the semester end and that parents complain they were never alerted.<br>
+        <span class="marathi-text"><strong>काय बोलायचे (मराठी):</strong> "सध्याच्या कॉलेज सिस्टिममध्ये सर्वात मोठी अडचण म्हणजे पेपरवर्क आणि माहितीचा अभाव. पालकांना मुलांचे अटेंडन्स किंवा मार्क्स वेळेवर कळत नाहीत. तसेच विद्यार्थ्यांचे कोडिंग, स्पोर्ट्स स्किल्स शिक्षकांपर्यंत पोहोचत नाहीत आणि कागदी फाइल्स गहाळ होतात."</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 3: Proposed Solution -->
+    <div class="slide" data-index="3">
+      <div class="slide-tag">💡 The Innovation</div>
+      <h2 class="slide-title">Our Solution: SmartCampus Ecosystem</h2>
+      <p class="slide-subtitle">A digital-first, cloud-ready single pane of glass empowering all academic stakeholders.</p>
+
+      <div class="content-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="feature-card" style="border-top: 3px solid var(--accent-blue);">
+          <div class="card-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--accent-blue);">⚡</div>
+          <div class="card-title">Instant Automated Attendance</div>
+          <div class="card-desc">Subject-wise, slot-wise attendance logging with instant defaulter cutoff calculation (&lt; 75%) and automatic SMS alerts sent directly to parent mobile numbers.</div>
+        </div>
+
+        <div class="feature-card" style="border-top: 3px solid var(--accent-purple);">
+          <div class="card-icon" style="background: rgba(139, 92, 246, 0.15); color: var(--accent-purple);">🎯</div>
+          <div class="card-title">Talent Matrix & Skill Buckets</div>
+          <div class="card-desc">Students upload GitHub projects, hackathons, and certifications; Teachers verify skills; Principals get placement fitment radar analytics.</div>
+        </div>
+
+        <div class="feature-card" style="border-top: 3px solid var(--accent-emerald);">
+          <div class="card-icon" style="background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald);">🩺</div>
+          <div class="card-title">Parent Medical & Health Portal</div>
+          <div class="card-desc">Parents upload certified doctor letters, emergency contact info, and medical histories. Faculty can directly approve medical attendance condonation.</div>
+        </div>
+
+        <div class="feature-card" style="border-top: 3px solid var(--accent-cyan);">
+          <div class="card-icon" style="background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan);">🤝</div>
+          <div class="card-title">Structured TG Batch Mentorship</div>
+          <div class="card-desc">Every teacher is assigned a dedicated Teacher Guardian (TG) batch of ~20 students with complete academic history, behavioral logs, and meeting tracking.</div>
+        </div>
+
+        <div class="feature-card" style="border-top: 3px solid var(--accent-amber);">
+          <div class="card-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-amber);">📊</div>
+          <div class="card-title">Live Executive Analytics</div>
+          <div class="card-desc">Interactive dashboards for HODs and Principals to view college-wide attendance rates, exam distributions, syllabus progress, and grievance escalations.</div>
+        </div>
+
+        <div class="feature-card" style="border-top: 3px solid var(--accent-rose);">
+          <div class="card-icon" style="background: rgba(244, 63, 94, 0.15); color: var(--accent-rose);">🤖</div>
+          <div class="card-title">Smart AI Academic Companion</div>
+          <div class="card-desc">Built-in AI Assistant enabling students to clarify subject doubts, summarize lecture notes, prepare for exams, and receive guidance round the clock.</div>
+        </div>
+      </div>
+
+      <div class="notes-data" style="display:none;">
+        <strong>Presentation Guidance:</strong> Point out how SmartCampus is structured into clear pillars: Attendance Automation, Skill Matrix, Medical Conduits, TG Mentorship, Analytics, and AI Assistance.<br>
+        <span class="marathi-text"><strong>काय बोलायचे (मराठी):</strong> "आम्ही SmartCampus द्वारे एक असा प्लॅटफॉर्म तयार केला आहे जिथे अटेंडन्स फक्त एका क्लिकवर नोंदवला जातो आणि पालकांना लगेच SMS जातो. याशिवाय विद्यार्थ्यांच्या टॅलेंटसाठी 'स्किल बकेट' आणि आरोग्यासाठी 'मेडिकल व्हेरीफिकेशन' सिस्टीम बनवली आहे."</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 4: Architecture & Tech Stack -->
+    <div class="slide" data-index="4">
+      <div class="slide-tag">⚙️ System Architecture</div>
+      <h2 class="slide-title">End-to-End Technology Stack</h2>
+      <p class="slide-subtitle">Built with a scalable 3-Tier Client-Server Architecture ensuring sub-100ms response times and ACID compliance.</p>
+
+      <div class="content-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="feature-card">
+          <div class="card-title" style="color: var(--accent-cyan); display: flex; align-items: center; gap: 8px;">
+            <span>💻</span> Frontend Layer (Client-Side)
+          </div>
+          <ul style="list-style: none; margin-top: 1rem; color: var(--text-muted); font-size: 0.95rem; line-height: 2;">
+            <li>⚡ <strong>Framework:</strong> React 18 with Vite for blazing fast HMR & bundling</li>
+            <li>🎨 <strong>Styling:</strong> Responsive Glassmorphic UI with CSS Variables & Tokens</li>
+            <li>📊 <strong>Visualizations:</strong> Dynamic charts, Progress Bars & Radial gauges</li>
+            <li>🔐 <strong>State & Context:</strong> SmartCampusContext + LocalStorage persistence</li>
+            <li>📱 <strong>Responsive:</strong> Full desktop drawer + mobile bottom tab bar navigation</li>
+          </ul>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title" style="color: var(--accent-indigo); display: flex; align-items: center; gap: 8px;">
+            <span>🛡️</span> Backend & Data Layer (Server-Side)
+          </div>
+          <ul style="list-style: none; margin-top: 1rem; color: var(--text-muted); font-size: 0.95rem; line-height: 2;">
+            <li>🚀 <strong>Runtime:</strong> Node.js (v18+) with Express.js RESTful API architecture</li>
+            <li>🗄️ <strong>Database:</strong> MySQL Relational Database with connection pooling</li>
+            <li>🔒 <strong>Security:</strong> Parametric SQL queries (SQL Injection immunity) & RBAC</li>
+            <li>📲 <strong>External Integrations:</strong> Fast2SMS API for real-time mobile parent alerts</li>
+            <li>📝 <strong>Audit Engine:</strong> Centralized system event logging for administrative traceability</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="feature-card" style="margin-top: 1.5rem; background: rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.08);">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #a5f3fc; text-align: center; padding: 0.5rem 0;">
+          [React Client] ⟵(JSON / REST API)⟶ [Express Server Controller] ⟵(MySQL Pool / Fast2SMS)⟶ [MySQL DB & SMS Gateway]
+        </div>
+      </div>
+
+      <div class="notes-data" style="display:none;">
+        <strong>Presentation Guidance:</strong> Explain why this tech stack was chosen: Vite provides fast build times and zero lag; MySQL ensures structured integrity with foreign keys for students, teachers, and departments.<br>
+        <span class="marathi-text"><strong>काय बोलायचे (मराठी):</strong> "आपला टेक स्टॅक आधुनिक आणि सुरक्षित आहे. फ्रंटएंडमध्ये React 18 आणि Vite वापरले आहे, जे अत्यंत वेगवान आहे. बॅकएंडमध्ये Node.js आणि Express चा REST API सर्व्हर आहे आणि डेटा सुरक्षित ठेवण्यासाठी MySQL रिलेशनल डेटाबेस वापरला आहे."</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 5: Role-Based Access Control -->
+    <div class="slide" data-index="5">
+      <div class="slide-tag">🔐 Governance & Security</div>
+      <h2 class="slide-title">Granular Role-Based Access Control (RBAC)</h2>
+      <p class="slide-subtitle">Strict permission boundaries tailored to institutional roles ensure complete data privacy and accountability.</p>
+
+      <div class="content-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="feature-card" style="border-left: 3px solid var(--accent-rose);">
+          <div class="card-title" style="font-size: 1rem; color: #fff;">1. Super Admin</div>
+          <div class="card-desc" style="font-size: 0.85rem;">
+            User provisioning, department mapping, academic session management, common curriculum builder, timetable configuration, and system audit trail inspection.
+          </div>
+        </div>
+
+        <div class="feature-card" style="border-left: 3px solid var(--accent-purple);">
+          <div class="card-title" style="font-size: 1rem; color: #fff;">2. Principal / Director</div>
+          <div class="card-desc" style="font-size: 0.85rem;">
+            Campus-wide executive analytics, inter-department attendance comparison, campus placement skill fitment matrix, and institutional performance monitoring.
+          </div>
+        </div>
+
+        <div class="feature-card" style="border-left: 3px solid var(--accent-amber);">
+          <div class="card-title" style="font-size: 1rem; color: #fff;">3. Head of Department (HOD)</div>
+          <div class="card-desc" style="font-size: 0.85rem;">
+            Departmental faculty allocation, student leave approvals, grievance escalations, academic syllabus completion tracking, and exam mark verifications.
+          </div>
+        </div>
+
+        <div class="feature-card" style="border-left: 3px solid var(--accent-blue);">
+          <div class="card-title" style="font-size: 1rem; color: #fff;">4. Faculty / Teacher</div>
+          <div class="card-desc" style="font-size: 0.85rem;">
+            Daily slot attendance marking, assignment evaluations, internal exam score entries, TG Batch counseling, student skill approval, and study material uploads.
+          </div>
+        </div>
+
+        <div class="feature-card" style="border-left: 3px solid var(--accent-cyan);">
+          <div class="card-title" style="font-size: 1rem; color: #fff;">5. Student</div>
+          <div class="card-desc" style="font-size: 0.85rem;">
+            Real-time attendance percentage, timetable, marksheet review, study material access, skill bucket curation, leave applications, and AI assistant interaction.
+          </div>
+        </div>
+
+        <div class="feature-card" style="border-left: 3px solid var(--accent-emerald);">
+          <div class="card-title" style="font-size: 1rem; color: #fff;">6. Parent</div>
+          <div class="card-desc" style="font-size: 0.85rem;">
+            Real-time child attendance alerts, subject-wise marks, pending assignments, health condition declarations, and direct doctor prescription/letter uploads.
+          </div>
+        </div>
+      </div>
+
+      <div class="notes-data" style="display:none;">
+        <strong>Presentation Guidance:</strong> Stress the security aspect: Students cannot edit attendance or marks; parents have view access with medical uploads; HODs oversee teachers; Admin controls systemic infrastructure.<br>
+        <span class="marathi-text"><strong>काय बोलायचे (मराठी):</strong> "आमच्या सिस्टीममध्ये ६ स्वतंत्र रोल्स आहेत. प्रत्येकाचे स्वतःचे स्वतंत्र डॅशबोर्ड आणि अधिकार आहेत. यामुळे डेटाची पूर्ण सुरक्षा राहते आणि अनधिकृत बदल अशक्य होतात."</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 6: Student Life-Cycle Module -->
+    <div class="slide" data-index="6">
+      <div class="slide-tag">🎓 Student Experience</div>
+      <h2 class="slide-title">Comprehensive Student Lifecycle Portal</h2>
+      <p class="slide-subtitle">A modern, intuitive personal dashboard giving learners total visibility into their academic journey.</p>
+
+      <div class="content-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="feature-card">
+          <div class="card-title">📊 Live Attendance Tracker</div>
+          <div class="card-desc">Real-time percentage calculations with dynamic color-coding. Visual warning triggers automatically if attendance falls below the mandatory 75% cutoff threshold.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">📝 Marks & SGPA/CGPA</div>
+          <div class="card-desc">Detailed breakdown of In-Sem, Unit Tests, Practical Viva, and University End-Sem exams with grade conversions and subject-wise scorecards.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">📅 Interactive Timetable</div>
+          <div class="card-desc">Day-wise and slot-wise class schedules showing assigned lecture halls, lab sessions, and direct faculty names with room numbers.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">📚 Study Material & Notes</div>
+          <div class="card-desc">Direct access to PDF notes, presentation slides, reference links, and question banks uploaded directly by respective subject teachers.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">📥 Digital Assignment Submission</div>
+          <div class="card-desc">Track pending assignments, upcoming deadlines, submission status, and teacher remarks with score feedback.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">📢 Grievances & Complaints</div>
+          <div class="card-desc">Transparent grievance logging with ticket tracking. Direct escalation to TG Mentor, HOD, and Principal with resolution status updates.</div>
+        </div>
+      </div>
+
+      <div class="notes-data" style="display:none;">
+        <strong>Presentation Guidance:</strong> Mention how students used to stand in long queues or rely on WhatsApp groups for notes and attendance notices. Now everything is unified on one live screen.<br>
+        <span class="marathi-text"><strong>काय बोलायचे (मराठी):</strong> "विद्यार्थ्यांसाठी हा डॅशबोर्ड अत्यंत फायदेशीर आहे. रोजचे अटेंडन्स, परीक्षेचे वेळापत्रक, विषयनिहाय नोट्स आणि असाइनमेंट्स एका क्लिकवर उपलब्ध होतात. ७५% पेक्षा कमी अटेंडन्स असल्यास स्क्रीनवर लाल रंगाचा अलर्ट येतो."</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 7: Talent Matrix & Skill Bucket -->
+    <div class="slide" data-index="7">
+      <div class="slide-tag">🌟 Flagship Innovation</div>
+      <h2 class="slide-title">Talent Matrix & Student Skill Buckets</h2>
+      <p class="slide-subtitle">Beyond textbook marks: A comprehensive system for tracking technical proficiencies, extracurricular achievements, and verified certifications.</p>
+
+      <div class="content-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="feature-card" style="border-top: 3px solid var(--accent-purple);">
+          <div class="card-title" style="color: var(--accent-purple);">🚀 The Skill Bucket Workflow</div>
+          <ul style="list-style: none; margin-top: 1rem; color: var(--text-muted); font-size: 0.95rem; line-height: 2;">
+            <li>1️⃣ <strong>Skill Claim:</strong> Student inputs skills (e.g., Python, React, IoT, UI/UX, Sports, Public Speaking) along with proof links & GitHub repos.</li>
+            <li>2️⃣ <strong>Faculty Peer Review:</strong> Class Teacher / Domain Expert evaluates proof and approves or requests revision.</li>
+            <li>3️⃣ <strong>Verified Badge:</strong> Approved skills earn verified badges and contribute to the student's holistic profile score.</li>
+          </ul>
+        </div>
+
+        <div class="feature-card" style="border-top: 3px solid var(--accent-blue);">
+          <div class="card-title" style="color: var(--accent-blue);">🔍 Teacher "Talent Finder" Engine</div>
+          <ul style="list-style: none; margin-top: 1rem; color: var(--text-muted); font-size: 0.95rem; line-height: 2;">
+            <li>🎯 <strong>Hackathon Squad Builder:</strong> Faculty can filter students by specific technologies (e.g., "MERN Stack + Flutter") to build winning hackathon teams.</li>
+            <li>🏆 <strong>Event Nominations:</strong> Instant shortlisting of students for collegiate sports, robotics competitions, and cultural festivals.</li>
+            <li>📈 <strong>Placement Ready Index:</strong> Bridges the gap between academic theory and real-world industry requirements.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="feature-card" style="margin-top: 1.5rem; background: rgba(139, 92, 246, 0.08); border-color: rgba(139, 92, 246, 0.2);">
+        <p style="text-align: center; color: #ddd; font-size: 0.95rem;">
+          💡 <strong>Key Differentiator:</strong> Traditional ERPs treat students as mere Roll Numbers. SmartCampus treats students as multi-dimensional talent portfolios.
+        </p>
+      </div>
+
+      <div class="notes-data" style="display:none;">
+        <strong>Presentation Guidance:</strong> This is a major USP. Tell the evaluators that companies looking for React or Python developers don't have to scan 500 paper resumes—teachers and placement officers can filter by skill tags in 2 seconds.<br>
+        <span class="marathi-text"><strong>काय बोलायचे (मराठी):</strong> "हे आमच्या प्रोजेक्टचे सर्वात मोठे वैशिष्ट्य आहे: 'स्किल बकेट'. विद्यार्थी त्यांचे कोडिंग, हॅकाथॉन, आणि स्पोर्ट्सचे सर्टिफिकेट अपलोड करतात. शिक्षक ते पडताळून व्हेरिफाय करतात. यामुळे कॉलेजच्या प्लेसमेंट ऑफिसरला हॅकॅथॉन किंवा जॉब्ससाठी योग्य विद्यार्थी शोधणे सोपे होते."</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 8: Teacher & TG Batch Mentorship -->
+    <div class="slide" data-index="8">
+      <div class="slide-tag">👨‍🏫 Faculty Empowerment</div>
+      <h2 class="slide-title">Teacher Portal & TG Batch Mentorship</h2>
+      <p class="slide-subtitle">Streamlined classroom administration and personalized student guidance in one seamless interface.</p>
+
+      <div class="content-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="feature-card">
+          <div class="card-title">⚡ 30-Second Attendance</div>
+          <div class="card-desc">Batch/Division selector with intuitive Present/Absent toggles. Instant automated calculations update student and parent records in real time.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">🛡️ Dedicated TG Batch System</div>
+          <div class="card-desc">Teacher Guardians are assigned a focused cohort of ~20 students to monitor academic progress, personal counseling sessions, and mental well-being.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">📊 My Class Master View</div>
+          <div class="card-desc">Class teachers view the full roll sheet of 70+ students with combined attendance percentages, active backlogs, and parent contact details.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">✍️ Dynamic Marks Entry</div>
+          <div class="card-desc">Clean spreadsheets-like input for Unit Tests, In-Sem, and Final Practicals with auto-validation preventing entries above maximum marks.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">📂 Study Material Hub</div>
+          <div class="card-desc">Publish lecture presentations, video links, assignment problem statements, and academic circulars to specific divisions with a single click.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">🤝 Leave Request Approvals</div>
+          <div class="card-desc">Review student leave requests with attached reasonings, check past attendance history, and approve or reject with custom feedback remarks.</div>
+        </div>
+      </div>
+
+      <div class="notes-data" style="display:none;">
+        <strong>Presentation Guidance:</strong> Highlight the Teacher Guardian (TG) module. Most colleges have TG books which are rarely updated. In SmartCampus, the TG system is fully digitized with counseling records.<br>
+        <span class="marathi-text"><strong>काय बोलायचे (मराठी):</strong> "शिक्षकांसाठी अटेंडन्स भरणे आता फक्त काही सेकंदांचे काम आहे. तसेच प्रत्येक शिक्षकाला दिलेल्या 'TG बॅच' (Teacher Guardian) च्या विद्यार्थ्यांचा प्रगती अहवाल आणि समुपदेशन पूर्णपणे डिजिटल पद्धतीने साठवले जाते."</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 9: Parent Portal & Medical Health -->
+    <div class="slide" data-index="9">
+      <div class="slide-tag">👨‍👩‍👧 Family & Health</div>
+      <h2 class="slide-title">Parent Portal & Student Medical Health Records</h2>
+      <p class="slide-subtitle">Bridging the home-campus gap with complete transparency and certified health tracking.</p>
+
+      <div class="content-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="feature-card" style="border-top: 3px solid var(--accent-emerald);">
+          <div class="card-title" style="color: var(--accent-emerald);">🩺 Student Medical Records & Health Profile</div>
+          <ul style="list-style: none; margin-top: 1rem; color: var(--text-muted); font-size: 0.95rem; line-height: 2;">
+            <li>🩸 <strong>Emergency Health Data:</strong> Blood group, chronic allergies, medication needs, and emergency medical contacts recorded securely.</li>
+            <li>📄 <strong>Doctor Letters Upload:</strong> Parents can directly upload hospital discharge cards, doctor prescriptions, and medical certificates.</li>
+            <li>⚖️ <strong>Attendance Condonation:</strong> Documented medical proof allows administration to legally condone genuine sick leaves toward attendance thresholds.</li>
+          </ul>
+        </div>
+
+        <div class="feature-card" style="border-top: 3px solid var(--accent-amber);">
+          <div class="card-title" style="color: var(--accent-amber);">📱 Parent Real-Time Academic Tracking</div>
+          <ul style="list-style: none; margin-top: 1rem; color: var(--text-muted); font-size: 0.95rem; line-height: 2;">
+            <li>🔔 <strong>Automated Defaulter Alerts:</strong> Parents receive instant notifications if attendance drops below the 75% university norm.</li>
+            <li>📊 <strong>Test Results & Performance:</strong> Direct access to internal exam marks, eliminating report card tampering or hidden grades.</li>
+            <li>💬 <strong>Direct Faculty Connect:</strong> Find assigned TG mentor and class teacher contact details for scheduled parent-teacher discussions.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="notes-data" style="display:none;">
+        <strong>Presentation Guidance:</strong> Explain how crucial this is during medical emergencies. If a student falls sick on campus, the college immediately knows blood group and allergies, and parents can submit doctor letters digitally.<br>
+        <span class="marathi-text"><strong>काय बोलायचे (मराठी):</strong> "पालकांसाठी हे अत्यंत उपयुक्त पोर्टल आहे. विद्यार्थी आजारी असल्यास पालक घरबसल्या डॉक्टरांचे प्रमाणपत्र अपलोड करू शकतात, ज्यामुळे मेडिकल लीव्ह मंजूर होते. तसेच विद्यार्थ्याचा ब्लड ग्रुप आणि मेडिकल हिस्ट्री इमर्जन्सीमध्ये त्वरित उपलब्ध होते."</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 10: HOD & Department Governance -->
+    <div class="slide" data-index="10">
+      <div class="slide-tag">🏛️ Department Governance</div>
+      <h2 class="slide-title">HOD Portal & Department Administration</h2>
+      <p class="slide-subtitle">Department-level supervision, faculty workload balancing, and student grievance resolution.</p>
+
+      <div class="content-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="feature-card">
+          <div class="card-title">📈 Department Attendance Radar</div>
+          <div class="card-desc">Compare attendance percentages across Year 1, Year 2, Year 3, and Year 4 divisions with automated defaulter lists ready for university submission.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">👨‍🏫 Faculty Workload & Syllabus</div>
+          <div class="card-desc">Monitor total lectures conducted vs planned syllabus benchmarks. Identify subjects lagging behind the academic calendar timeline.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">⚖️ Grievance Escalation Desk</div>
+          <div class="card-desc">Review unresolved student complaints regarding evaluations, infrastructure, or faculty feedback, with power to close tickets with formal remarks.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">🏆 Department Talent Showcase</div>
+          <div class="card-desc">Filter high-performing students across coding, research papers, and sports for inter-collegiate competitions and state nominations.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">📊 Result Analysis & Audit</div>
+          <div class="card-desc">Subject-wise pass percentages, topper lists, and failure distribution metrics to formulate remedial lecture interventions.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">📑 Academic Circulars</div>
+          <div class="card-desc">Broadcast official department circulars, timetable updates, and internal exam guidelines to all faculty and students simultaneously.</div>
+        </div>
+      </div>
+
+      <div class="notes-data" style="display:none;">
+        <strong>Presentation Guidance:</strong> Explain that HODs usually spend hours collecting Excel sheets from teachers. Here, HODs get real-time aggregated charts with zero manual data entry.<br>
+        <span class="marathi-text"><strong>काय बोलायचे (मराठी):</strong> "HODs ना संपूर्ण विभागाचा कारभार पाहण्यासाठी हे पोर्टल मदत करते. कोणत्या विषयाचा सिलॅबस किती पूर्ण झाला, कोणत्या क्लासचे अटेंडन्स कमी आहे, आणि शिक्षकांचे वर्कलोड हे सर्व HOD डॅशबोर्डवर एका नजरेत दिसते."</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 11: Principal & Executive Leadership -->
+    <div class="slide" data-index="11">
+      <div class="slide-tag">👑 Executive Intelligence</div>
+      <h2 class="slide-title">Principal Dashboard & Placement Skill Fitment</h2>
+      <p class="slide-subtitle">Campus-wide KPIs, accreditation readiness, and placement intelligence for institutional leadership.</p>
+
+      <div class="content-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="feature-card" style="border-top: 3px solid var(--accent-cyan);">
+          <div class="card-title" style="color: var(--accent-cyan);">🎯 Placement & Industry Skill Fitment</div>
+          <ul style="list-style: none; margin-top: 1rem; color: var(--text-muted); font-size: 0.95rem; line-height: 2;">
+            <li>📊 <strong>Recruiter Readiness Matrix:</strong> Real-time overview of how many students match industry requirements (Full-Stack, Data Science, AI/ML, Cloud, DevOps).</li>
+            <li>💼 <strong>Placement Drive Projections:</strong> Pre-screen batches for upcoming on-campus recruitment companies based on verified skill buckets.</li>
+            <li>🎓 <strong>Curriculum Gap Analysis:</strong> Highlights technologies in high industry demand vs current student competency levels.</li>
+          </ul>
+        </div>
+
+        <div class="feature-card" style="border-top: 3px solid var(--accent-purple);">
+          <div class="card-title" style="color: var(--accent-purple);">🏛️ Institutional High-Level Metrics</div>
+          <ul style="list-style: none; margin-top: 1rem; color: var(--text-muted); font-size: 0.95rem; line-height: 2;">
+            <li>🏫 <strong>Inter-Department Benchmark:</strong> Compare overall attendance and academic performance across Computer, IT, Mechanical, and Civil departments.</li>
+            <li>📋 <strong>NAAC & NBA Audit Readiness:</strong> Direct digital export of attendance records, continuous evaluation data, and mentor-mentee ratios.</li>
+            <li>⚠️ <strong>Risk Management Radar:</strong> Early identification of institutional drop-out risks and chronic student absenteeism.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="notes-data" style="display:none;">
+        <strong>Presentation Guidance:</strong> The Principal portal brings high-level governance. The Placement Skill Fitment Matrix is unique because it connects academic ERP with Training & Placement (T&P).<br>
+        <span class="marathi-text"><strong>काय बोलायचे (मराठी):</strong> "प्रिन्सिपॉल सरांसाठी संपूर्ण कॉलेजचा ओव्हरव्ह्यू डॅशबोर्ड आहे. यातील सर्वात महत्त्वाचे वैशिष्ट्य म्हणजे 'प्लेसमेंट स्किल फिटमेंट' - ज्याद्वारे कोणत्या कंपनीसाठी किती विद्यार्थी तयार आहेत, हे प्रिन्सिपॉल एका क्लिकवर पाहू शकतात."</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 12: Automated Communication & Security -->
+    <div class="slide" data-index="12">
+      <div class="slide-tag">📡 Communication & Hardening</div>
+      <h2 class="slide-title">SMS Engine, Notifications & System Security</h2>
+      <p class="slide-subtitle">Multi-channel delivery infrastructure and enterprise-grade data security protocols.</p>
+
+      <div class="content-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="feature-card">
+          <div class="card-title" style="color: var(--accent-blue);">📲 Fast2SMS Integration</div>
+          <div class="card-desc">Direct telecom API gateway integration automatically dispatches attendance shortage SMS notices and exam reminders directly to parent mobile numbers without requiring mobile apps.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title" style="color: var(--accent-emerald);">🔔 In-App Unified Bell Alerts</div>
+          <div class="card-desc">Real-time notification drawer categorizing notices into Academic, Exam, Placement, and Emergency feeds with unread badge tracking.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title" style="color: var(--accent-purple);">🛡️ Parametric SQL Security</div>
+          <div class="card-desc">All backend queries leverage prepared statements through MySQL connection pooling, completely neutralizing SQL Injection vulnerabilities.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title" style="color: var(--accent-amber);">📜 Central System Audit Logs</div>
+          <div class="card-desc">Every critical admin action (modifying timetable, user edits, mark submissions) is timestamped and recorded in the audit trail table.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title" style="color: var(--accent-cyan);">🔐 Encrypted Session State</div>
+          <div class="card-desc">Strict session state management with role authorization checks guarding every sensitive API endpoint against privilege escalation.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title" style="color: var(--accent-rose);">⚡ Resilient Offline Fallback</div>
+          <div class="card-desc">Designed with robust graceful degradation; client-side caching ensures dashboard accessibility even in fluctuating campus WiFi networks.</div>
+        </div>
+      </div>
+
+      <div class="notes-data" style="display:none;">
+        <strong>Presentation Guidance:</strong> Point out why SMS is critical: Many parents in rural or semi-urban areas do not constantly check college mobile apps. SMS guarantees 98%+ read rates.<br>
+        <span class="marathi-text"><strong>काय बोलायचे (मराठी):</strong> "पालकांना अलर्ट देण्यासाठी आम्ही Fast2SMS गेटवे इंटिग्रेट केला आहे, जेणेकरून स्मार्टफोन किंवा इंटरनेट नसले तरी पालकांच्या साध्या फोनवर लगेच SMS जातो. तसेच संपूर्ण सिस्टीम SQL Injection आणि सायबर धोक्यांपासून सुरक्षित आहे."</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 13: Live Workflows & Demo Walkthrough -->
+    <div class="slide" data-index="13">
+      <div class="slide-tag">🔄 Seamless Workflows</div>
+      <h2 class="slide-title">Core System Workflows in Action</h2>
+      <p class="slide-subtitle">Demonstrating how multi-stakeholder interactions happen in real time across the platform.</p>
+
+      <div class="content-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="feature-card" style="border-top: 3px solid var(--accent-blue);">
+          <div class="card-title" style="color: var(--accent-blue);">Workflow 1: Attendance & Defaulter</div>
+          <div class="card-desc">
+            1. Teacher opens slot & marks attendance.<br>
+            2. Real-time percentage recomputes.<br>
+            3. If &lt; 75%, trigger warning toast.<br>
+            4. Auto-SMS dispatched to parent.<br>
+            5. HOD dashboard registers new defaulter.
+          </div>
+        </div>
+
+        <div class="feature-card" style="border-top: 3px solid var(--accent-purple);">
+          <div class="card-title" style="color: var(--accent-purple);">Workflow 2: Skill Verification</div>
+          <div class="card-desc">
+            1. Student submits GitHub repo/certificate.<br>
+            2. Appears in Teacher's "Skill Approvals".<br>
+            3. Teacher reviews code/proof & approves.<br>
+            4. Student profile earns verified badge.<br>
+            5. Principal placement radar updates instantly.
+          </div>
+        </div>
+
+        <div class="feature-card" style="border-top: 3px solid var(--accent-emerald);">
+          <div class="card-title" style="color: var(--accent-emerald);">Workflow 3: Medical Sick Leave</div>
+          <div class="card-desc">
+            1. Parent logs into portal.<br>
+            2. Uploads doctor prescription certificate.<br>
+            3. TG Mentor receives medical notification.<br>
+            4. HOD verifies and sanctions leave.<br>
+            5. Student attendance condoned officially.
+          </div>
+        </div>
+      </div>
+
+      <div class="notes-data" style="display:none;">
+        <strong>Presentation Guidance:</strong> Walk the evaluators through these 3 real-world scenarios. It proves that the software is not just static forms, but an interactive, event-driven engine.<br>
+        <span class="marathi-text"><strong>काय बोलायचे (मराठी):</strong> "हे तीन मुख्य वर्कफ्लो आहेत: पहिला, अटेंडन्स मार्क झाल्यावर त्वरित पालकांना SMS जाणे. दुसरा, विद्यार्थ्याचे कौशल्य शिक्षकांनी तपासून प्लेसमेंटमध्ये दिसणे. आणि तिसरा, पालकांनी अपलोड केलेले मेडिकल सर्टिफिकेट तपासून हजेरी मंजूर होणे."</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 14: Future Scope & Roadmap -->
+    <div class="slide" data-index="14">
+      <div class="slide-tag">🚀 Future Vision</div>
+      <h2 class="slide-title">Future Enhancements & Scalability Roadmap</h2>
+      <p class="slide-subtitle">Expanding SmartCampus into an autonomous, AI-driven Smart Institution infrastructure.</p>
+
+      <div class="content-grid" style="grid-template-columns: repeat(2, 1fr);">
+        <div class="feature-card">
+          <div class="card-title">📡 IoT & Biometric Attendance Sync</div>
+          <div class="card-desc">Direct hardware integration with RFID turnstiles and facial recognition biometric cameras at classroom doors for 100% automated contactless attendance.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">🧠 Predictive AI Dropout Warning</div>
+          <div class="card-desc">Machine Learning predictive models trained on past academic scores and attendance trends to alert TG mentors of early drop-out risks before semester exams.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">📱 Native Mobile Applications</div>
+          <div class="card-desc">Cross-platform mobile apps for Android and iOS using React Native with push notifications, offline mode, and camera-based document scanning.</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-title">💳 Integrated Payment Gateway</div>
+          <div class="card-desc">Integration with Razorpay / UPI for instant fee payments, exam fee receipts, library fines, and automated institutional receipt generation.</div>
+        </div>
+      </div>
+
+      <div class="notes-data" style="display:none;">
+        <strong>Presentation Guidance:</strong> Show ambition. Evaluators love seeing a clear roadmap with IoT, Machine Learning, and Mobile apps.<br>
+        <span class="marathi-text"><strong>काय बोलायचे (मराठी):</strong> "भविष्यात आम्ही यात बायोमेट्रिक/फेस रेकग्निशन अटेंडन्स, मशीन लर्निंग आधारित ड्रॉप-आउट प्रेडिक्शन, आणि थेट फी भरण्यासाठी UPI पेमेंट गेटवे जोडणार आहोत."</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 15: Conclusion & Q&A -->
+    <div class="slide" data-index="15">
+      <div class="slide-tag">🎯 Final Verdict</div>
+      <h2 class="slide-title">Conclusion & Project Impact</h2>
+      <p class="slide-subtitle">Transforming traditional colleges into smart, transparent, and data-driven educational ecosystems.</p>
+
+      <div class="content-grid" style="grid-template-columns: 2fr 1fr; align-items: center;">
+        <div class="feature-card" style="border-left: 4px solid var(--accent-emerald); padding: 2rem;">
+          <h3 style="color: #fff; margin-bottom: 1rem;">Summary of Deliverables</h3>
+          <ul style="list-style: none; color: var(--text-muted); line-height: 2; font-size: 0.95rem;">
+            <li>✅ <strong>Zero Paper Waste:</strong> 100% digital transition for attendance, marks, leaves, and grievances.</li>
+            <li>✅ <strong>Total Stakeholder Alignment:</strong> Parents, Teachers, Students, HODs, and Principals on a single platform.</li>
+            <li>✅ <strong>Enhanced Employability:</strong> Talent bucket system connects student capabilities with recruitment needs.</li>
+            <li>✅ <strong>Production-Ready Architecture:</strong> Clean React 18 modular code with Node.js REST API & MySQL.</li>
+          </ul>
+        </div>
+
+        <div class="feature-card" style="text-align: center; padding: 2rem; background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2);">
+          <div style="font-size: 3.5rem; margin-bottom: 0.5rem;">🤝</div>
+          <div style="font-size: 1.3rem; font-weight: 800; color: #fff;">Thank You!</div>
+          <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem;">Questions & Discussion</p>
+          <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--accent-emerald);">
+            Open for Viva & Technical Evaluation
+          </div>
+        </div>
+      </div>
+
+      <div class="notes-data" style="display:none;">
+        <strong>Presentation Guidance:</strong> Conclude with a solid summary statement. Thank the judges and professors, and invite questions.<br>
+        <span class="marathi-text"><strong>काय बोलायचे (मराठी):</strong> "शेवटी एवढेच सांगेन की SmartCampus ERP मुळे कॉलेजमधील कागदी काम पूर्णपणे बंद होते आणि कॉलेजचे सर्व घटक एकाच व्यासपीठावर एकत्र येतात. वेळ दिल्याबद्दल धन्यवाद! आता आपले काही प्रश्न असल्यास मी उत्तरे देण्यास तयार आहे."</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="progress-bar-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <!-- Interactive Floating Speaker Notes Panel -->
+  <div class="speaker-notes-panel" id="speakerNotesPanel">
+    <div class="notes-header">
+      <span class="notes-title">🎙️ Speaker Notes (काय बोलायचे?)</span>
+      <button onclick="toggleSpeakerNotes()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.1rem;">✕</button>
+    </div>
+    <div class="notes-content" id="notesContent"></div>
+    <div class="notes-marathi" id="notesMarathi"></div>
+  </div>
+
+  <script>
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+    let currentSlide = 0;
+
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const slideCounter = document.getElementById('slideCounter');
+    const progressBar = document.getElementById('progressBar');
+    const notesPanel = document.getElementById('speakerNotesPanel');
+    const notesContent = document.getElementById('notesContent');
+    const notesMarathi = document.getElementById('notesMarathi');
+
+    function updateSlide(index) {
+      if (index < 0) index = 0;
+      if (index >= totalSlides) index = totalSlides - 1;
+
+      slides.forEach((s, i) => {
+        s.classList.toggle('active', i === index);
+      });
+
+      currentSlide = index;
+      const displayNum = String(index + 1).padStart(2, '0');
+      const totalDisplay = String(totalSlides).padStart(2, '0');
+      slideCounter.textContent = `${displayNum} / ${totalDisplay}`;
+
+      progressBar.style.width = `${((index + 1) / totalSlides) * 100}%`;
+
+      prevBtn.disabled = index === 0;
+      nextBtn.disabled = index === totalSlides - 1;
+
+      // Update speaker notes
+      const notesData = slides[index].querySelector('.notes-data');
+      if (notesData) {
+        const marathiSpan = notesData.querySelector('.marathi-text');
+        const englishNotes = notesData.innerHTML.split('<span class="marathi-text">')[0];
+        notesContent.innerHTML = englishNotes;
+        notesMarathi.innerHTML = marathiSpan ? marathiSpan.innerHTML : '';
+      }
+    }
+
+    function toggleSpeakerNotes() {
+      notesPanel.classList.toggle('visible');
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          alert(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    // Event Listeners
+    prevBtn.addEventListener('click', () => updateSlide(currentSlide - 1));
+    nextBtn.addEventListener('click', () => updateSlide(currentSlide + 1));
+    document.getElementById('notesToggleBtn').addEventListener('click', toggleSpeakerNotes);
+    document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
+
+    // Keyboard Navigation
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        updateSlide(currentSlide + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        updateSlide(currentSlide - 1);
+      } else if (e.key.toLowerCase() === 'n') {
+        toggleSpeakerNotes();
+      } else if (e.key.toLowerCase() === 'f') {
+        toggleFullscreen();
+      } else if (e.key === 'Home') {
+        updateSlide(0);
+      } else if (e.key === 'End') {
+        updateSlide(totalSlides - 1);
+      }
+    });
+
+    // Initialize
+    updateSlide(0);
+  </script>
+</body>
+</html>
