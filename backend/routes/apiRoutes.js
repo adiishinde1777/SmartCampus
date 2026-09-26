@@ -177,7 +177,7 @@ router.post('/users', async (req, res) => {
         body.phone || null,
         body.prn || null,
         body.dob || null,
-        body.password || body.dob || 'password123',
+        body.password || 'password123',
         body.departmentId || body.department_id || null,
         body.departmentName || body.department_name || null,
         body.semester ? Number(body.semester) : null,
@@ -383,7 +383,7 @@ router.post('/register-student', async (req, res) => {
     const cleanPhone = String(body.phone).trim();
     const cleanDigits = cleanPhone.replace(/\D/g, '').slice(-10);
     const cleanPrn = body.prn ? String(body.prn).trim() : `PRN-${cleanDigits || cleanPhone.slice(-6)}`;
-    const studentPass = body.password ? String(body.password).trim() : (body.dob || 'student123');
+    const studentPass = body.password ? String(body.password).trim() : 'student123';
 
     // Check if Phone or PRN already registered
     const existing = await query(

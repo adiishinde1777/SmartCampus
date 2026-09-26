@@ -89,6 +89,7 @@ export default function TeacherMyClass({ onNavigate }) {
     name: "",
     prn: "",
     dob: "",
+    password: "",
     rollNo: "",
     phone: "",
     email: "",
@@ -200,15 +201,15 @@ export default function TeacherMyClass({ onNavigate }) {
   // Action: Handle Direct Add Student by Teacher
   const handleSaveDirectAdd = (e) => {
     e.preventDefault();
-    if (!newStudentData.name || !newStudentData.prn || !newStudentData.dob) {
-      alert("Name, PRN (Username), and Date of Birth (Password) are required.");
+    if (!newStudentData.name || !newStudentData.prn) {
+      alert("Name and PRN (Username) are required.");
       return;
     }
 
     const payload = {
       ...newStudentData,
       role: "student",
-      password: newStudentData.dob,
+      password: newStudentData.password ? newStudentData.password.trim() : "student123",
       semester: Number(newStudentData.semester)
     };
 
@@ -218,6 +219,7 @@ export default function TeacherMyClass({ onNavigate }) {
       name: "",
       prn: "",
       dob: "",
+      password: "",
       rollNo: "",
       phone: "",
       email: "",
@@ -244,6 +246,7 @@ export default function TeacherMyClass({ onNavigate }) {
       name: stu.name || "",
       prn: stu.prn || "",
       dob: stu.dob || "",
+      password: stu.password || "",
       rollNo: stu.rollNo || "",
       phone: stu.phone || "",
       email: stu.email || "",
@@ -490,7 +493,7 @@ export default function TeacherMyClass({ onNavigate }) {
                 Registered Students & Verification ({filteredStudents.length} Students)
               </div>
               <div className="card-subtitle">
-                View student login credentials (PRN / DOB), parent details, and edit any incorrect information
+                View student login credentials (PRN / Password), parent details, and edit any incorrect information
               </div>
             </div>
 
@@ -864,13 +867,22 @@ export default function TeacherMyClass({ onNavigate }) {
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Date of Birth (Student Password) *</label>
+              <label className="form-label">Date of Birth</label>
               <input
                 type="date"
                 className="form-control"
                 value={newStudentData.dob}
                 onChange={(e) => setNewStudentData({ ...newStudentData, dob: e.target.value })}
-                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Student Password</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Set login password (Default: student123)"
+                value={newStudentData.password}
+                onChange={(e) => setNewStudentData({ ...newStudentData, password: e.target.value })}
               />
             </div>
             <div className="form-group">
@@ -973,14 +985,23 @@ export default function TeacherMyClass({ onNavigate }) {
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Birthdate (Student Password)</label>
+              <label className="form-label">Date of Birth</label>
               <input
                 type="text"
                 className="form-control"
                 placeholder="YYYY-MM-DD"
                 value={editFormData.dob || ""}
                 onChange={(e) => setEditFormData({ ...editFormData, dob: e.target.value })}
-                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Student Password</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Student login password"
+                value={editFormData.password || ""}
+                onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
               />
             </div>
             <div className="form-group">

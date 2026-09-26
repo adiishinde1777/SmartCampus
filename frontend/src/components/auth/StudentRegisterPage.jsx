@@ -27,9 +27,9 @@ import {
   Info,
   Code2,
   Sparkles,
-  Plus,
-  Trash2,
-  Briefcase
+  Briefcase,
+  Eye,
+  EyeOff
 } from "lucide-react";
 
 import { getDepartmentYearDivisions } from "../../utils/departmentUtils";
@@ -108,6 +108,7 @@ export default function StudentRegisterPage({ onBackToLogin }) {
   };
 
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [successData, setSuccessData] = useState(null);
 
@@ -667,28 +668,55 @@ export default function StudentRegisterPage({ onBackToLogin }) {
 
               <div className="form-group">
                 <label className="form-label" style={{ fontWeight: "700" }}>Create Password *</label>
-                <input
-                  type="password"
-                  name="password"
-                  className="form-control"
-                  placeholder="Choose any secure password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                />
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    className="form-control"
+                    placeholder="Choose any secure password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    style={{ paddingRight: "42px" }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: "absolute",
+                      right: "10px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "#64748b",
+                      padding: "4px"
+                    }}
+                    title={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <small style={{ color: "#64748b", fontSize: "0.72rem", marginTop: "4px", display: "block" }}>
+                  💡 This password will be required every time you log in to the Student Portal (DOB is NOT your password).
+                </small>
               </div>
 
               <div className="form-group">
                 <label className="form-label" style={{ fontWeight: "700" }}>Confirm Password *</label>
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  className="form-control"
-                  placeholder="Re-enter password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                />
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    className="form-control"
+                    placeholder="Re-enter password"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    style={{ paddingRight: "42px" }}
+                    required
+                  />
+                </div>
               </div>
 
               <div className="form-group">

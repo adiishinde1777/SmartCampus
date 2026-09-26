@@ -218,14 +218,10 @@ export function AdminUsers() {
       if (stu) {
         payload.studentName = stu.name;
         payload.dob = stu.dob;
-        payload.password = stu.dob;
+        payload.password = payload.password || stu.password || "parent123";
         payload.departmentId = stu.departmentId;
         payload.departmentName = stu.departmentName;
       }
-    }
-
-    if (payload.dob && !payload.password) {
-      payload.password = payload.dob;
     }
 
     updateUser(editingUser.id, payload);
@@ -291,21 +287,21 @@ export function AdminUsers() {
     // Role-specific credential rules
     if (payload.role === "student") {
       payload.prn = payload.rollNo || payload.prn;
-      payload.password = payload.password || payload.dob || "password123";
+      payload.password = payload.password || "password123";
     } else if (payload.role === "parent") {
       if (payload.studentId) {
         const stu = users.find((u) => u.id === payload.studentId);
         if (stu) {
           payload.studentName = stu.name;
           payload.dob = stu.dob;
-          payload.password = payload.password || stu.dob;
+          payload.password = payload.password || stu.password || "parent123";
           payload.departmentId = stu.departmentId;
           payload.departmentName = stu.departmentName;
         }
       }
-      if (!payload.password && payload.dob) payload.password = payload.dob;
+      if (!payload.password) payload.password = "parent123";
     } else if (["teacher", "hod", "principal", "admin"].includes(payload.role)) {
-      payload.password = payload.password || payload.dob || "password123";
+      payload.password = payload.password || "password123";
     }
 
     addUser(payload);
@@ -686,19 +682,19 @@ export function AdminUsers() {
                         {u.role === "student" && (
                           <div>
                             <div><strong>User:</strong> <code style={{ color: "#1d4ed8" }}>{u.rollNo || u.prn || "PRN"}</code></div>
-                            <div><strong>Pass:</strong> <code style={{ color: "#475569" }}>{u.dob || u.password || "DOB"}</code></div>
+                            <div><strong>Pass:</strong> <code style={{ color: "#475569" }}>{u.password || "Set by Student"}</code></div>
                           </div>
                         )}
                         {u.role === "parent" && (
                           <div>
                             <div><strong>User:</strong> <code style={{ color: "#b45309" }}>{u.phone || "Parent Mobile"}</code></div>
-                            <div><strong>Pass:</strong> <code style={{ color: "#475569" }}>{u.dob || u.password || "Student DOB"}</code></div>
+                            <div><strong>Pass:</strong> <code style={{ color: "#475569" }}>{u.password || "Set by Teacher"}</code></div>
                           </div>
                         )}
                         {["teacher", "hod", "principal"].includes(u.role) && (
                           <div>
                             <div><strong>User:</strong> <code style={{ color: "#0f766e" }}>{u.phone || "Mobile"}</code></div>
-                            <div><strong>Pass:</strong> <code style={{ color: "#475569" }}>{u.dob || u.password || "DOB"}</code></div>
+                            <div><strong>Pass:</strong> <code style={{ color: "#475569" }}>{u.password || "Set by Staff"}</code></div>
                           </div>
                         )}
                         {u.role === "admin" && (
@@ -1154,7 +1150,7 @@ export function AdminUsers() {
                           studentId: sId,
                           studentName: targetStudent ? targetStudent.name : "",
                           dob: targetStudent ? targetStudent.dob : editFormData.dob,
-                          password: targetStudent ? targetStudent.dob : editFormData.password,
+                          password: editFormData.password || targetStudent?.password || "parent123",
                           departmentId: targetStudent ? targetStudent.departmentId : editFormData.departmentId,
                           departmentName: targetStudent ? targetStudent.departmentName : editFormData.departmentName
                         });
@@ -1451,17 +1447,13 @@ export function AdminUsers() {
                     className="form-control"
                     value={addFormData.password}
                     onChange={(e) => setAddFormData({ ...addFormData, password: e.target.value })}
-                    placeholder={
-                      addFormData.role === "teacher" || addFormData.role === "hod" || addFormData.role === "principal"
-                        ? "Enter custom password for faculty/HOD (or leave blank to use DOB)"
-                        : "Enter login password (or leave blank to use DOB)"
-                    }
+                    placeholder="Enter account login password (e.g. password123)"
                     style={{ paddingRight: "40px" }}
                   />
                   <Key size={16} color="#94a3b8" style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)" }} />
                 </div>
                 <small style={{ color: "#64748b", fontSize: "0.74rem", marginTop: "4px", display: "block" }}>
-                  💡 Set an explicit password for {addFormData.role.toUpperCase()} login. If blank, DOB or default password will be assigned.
+                  💡 Set an explicit password for {addFormData.role.toUpperCase()} login. Default: password123.
                 </small>
               </div>
 
@@ -1623,7 +1615,7 @@ export function AdminUsers() {
                           studentId: sId,
                           studentName: targetStudent.name,
                           dob: targetStudent.dob || addFormData.dob,
-                          password: targetStudent.dob || addFormData.password,
+                          password: addFormData.password || targetStudent.password || "parent123",
                           departmentId: targetStudent.departmentId,
                           departmentName: targetStudent.departmentName
                         });
@@ -1642,7 +1634,7 @@ export function AdminUsers() {
                   </select>
                   {addFormData.studentId && (
                     <div style={{ marginTop: "6px", fontSize: "0.78rem", color: "#059669", fontWeight: "600" }}>
-                      ✓ Linked to {addFormData.studentName} ({addFormData.departmentName}). Parent password automatically synced to student birthdate ({addFormData.dob || "Provided DOB"}).
+                      ✓ Linked to {addFormData.studentName} ({addFormData.departmentName}).
                     </div>
                   )}
                 </div>

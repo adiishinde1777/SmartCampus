@@ -15,7 +15,10 @@ import {
   Phone,
   UserPlus,
   UserCheck,
-  Code
+  Code,
+  Eye,
+  EyeOff,
+  Lock
 } from "lucide-react";
 
 export default function LoginPage() {
@@ -24,6 +27,7 @@ export default function LoginPage() {
   const [selectedRole, setSelectedRole] = useState("student");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showRegisterPage, setShowRegisterPage] = useState(() => {
@@ -281,22 +285,38 @@ export default function LoginPage() {
             </div>
 
             <div className="form-group">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <label className="form-label" style={{ fontWeight: "700" }}>{fields.passLabel} (Optional)</label>
-                <span style={{ fontSize: "0.72rem", color: "#16a34a", fontWeight: "700" }}>
-                  Direct Login
-                </span>
+              <label className="form-label" style={{ fontWeight: "700" }}>{fields.passLabel} *</label>
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="form-control"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={fields.passPlaceholder}
+                  style={{ padding: "10px 42px 10px 14px" }}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: "absolute",
+                    right: "10px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#64748b",
+                    padding: "4px"
+                  }}
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
-              <input
-                type="password"
-                className="form-control"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password or leave blank for instant mobile sign in"
-                style={{ padding: "10px 14px" }}
-              />
               <small style={{ color: "#64748b", fontSize: "0.74rem", marginTop: "4px", display: "block" }}>
-                💡 Enter your registered mobile number and click sign in to enter the portal.
+                💡 Enter the password you set during registration (DOB is not accepted as password).
               </small>
             </div>
 
@@ -306,7 +326,7 @@ export default function LoginPage() {
               className="btn btn-primary btn-lg"
               style={{ width: "100%", marginTop: "12px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "12px" }}
             >
-              <span>{loading ? "Authenticating..." : "Direct Sign In & Enter Portal"}</span>
+              <span>{loading ? "Authenticating..." : "Sign In & Enter Portal"}</span>
               <ArrowRight size={18} />
             </button>
           </form>

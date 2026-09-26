@@ -294,17 +294,16 @@ export function SmartCampusProvider({ children }) {
 
     const isPasswordValid = (user, enteredPass) => {
       if (!user) return false;
+      const cleanPass = enteredPass ? String(enteredPass).trim() : "";
+      if (!cleanPass) return false;
       if (user.role === "admin") {
-        return enteredPass === "admin123" || user.password === enteredPass;
+        return cleanPass === "admin123" || String(user.password || "").trim() === cleanPass;
       }
       if (user.role === "parent") {
-        return Boolean(user.password && user.password === enteredPass);
+        return Boolean(user.password && String(user.password).trim() === cleanPass);
       }
-      // If user did not provide a password, allow direct mobile login!
-      if (!enteredPass) return true;
-      if (user.password === enteredPass) return true;
-      if (user.dob && (user.dob === enteredPass || user.dob.replace(/\D/g, "") === enteredPass.replace(/\D/g, ""))) return true;
-      return false;
+      // Strictly match the password set by the user (NEVER DOB)
+      return Boolean(user.password && String(user.password).trim() === cleanPass);
     };
 
     const localUser = candidate && isPasswordValid(candidate, pass) ? candidate : null;
@@ -415,7 +414,7 @@ export function SmartCampusProvider({ children }) {
       }
       return {
         success: false,
-        message: "Incorrect Password. Please verify your credentials or enter your Date of Birth."
+        message: "Incorrect Password. Please enter the password you set during registration."
       };
     }
 
@@ -1272,7 +1271,7 @@ export function SmartCampusProvider({ children }) {
     const newUser = {
       id: newId,
       avatar: userData.avatar || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80`,
-      password: userData.password || userData.dob || "password123",
+      password: userData.password || "password123",
       canLogin: true,
       ...userData
     };

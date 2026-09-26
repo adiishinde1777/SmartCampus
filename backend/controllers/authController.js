@@ -157,7 +157,7 @@ export async function login(req, res) {
             (cPhone && cPhone === phoneDigits) ||
             (cachedUser.prn && cachedUser.prn.toLowerCase() === cleanUsername.toLowerCase()) ||
             (cachedUser.email && cachedUser.email.toLowerCase() === cleanUsername.toLowerCase());
-          const matchPass = !cleanPassword || cleanPassword === cachedUser.password || verifyDob(cleanPassword, cachedUser.dob);
+          const matchPass = Boolean(cleanPassword && cleanPassword === cachedUser.password);
           if (matchUser && matchPass) {
             // Auto-persist into MySQL without generating duplicate ID
             const sId = cachedUser.id || ('stu-' + (cPhone || Date.now()));
@@ -188,12 +188,12 @@ export async function login(req, res) {
         });
       }
 
-      // Check student password (optional for direct mobile login)
-      const isPassValid = !cleanPassword || cleanPassword === student.password || verifyDob(cleanPassword, student.dob);
+      // Check student password (must match password set by user)
+      const isPassValid = Boolean(cleanPassword && cleanPassword === student.password);
       if (!isPassValid) {
         return res.status(401).json({
           success: false,
-          message: 'Incorrect Student Password. Please enter your valid password.'
+          message: 'Incorrect Student Password. Please enter the password you set during registration.'
         });
       }
 
@@ -298,11 +298,11 @@ export async function login(req, res) {
         });
       }
 
-      const isDobValid = !cleanPassword || verifyDob(cleanPassword, teacher.dob) || cleanPassword === teacher.password;
-      if (!isDobValid) {
+      const isPassValid = Boolean(cleanPassword && cleanPassword === teacher.password);
+      if (!isPassValid) {
         return res.status(401).json({
           success: false,
-          message: "Incorrect password. Enter your registered password or Date of Birth."
+          message: "Incorrect Faculty Password. Please enter your registered account password."
         });
       }
 
@@ -331,11 +331,11 @@ export async function login(req, res) {
         });
       }
 
-      const isDobValid = !cleanPassword || verifyDob(cleanPassword, hod.dob) || cleanPassword === hod.password;
-      if (!isDobValid) {
+      const isPassValid = Boolean(cleanPassword && cleanPassword === hod.password);
+      if (!isPassValid) {
         return res.status(401).json({
           success: false,
-          message: "Incorrect password. Enter your registered password or Date of Birth."
+          message: "Incorrect HOD Password. Please enter your registered account password."
         });
       }
 
@@ -364,11 +364,11 @@ export async function login(req, res) {
         });
       }
 
-      const isDobValid = !cleanPassword || verifyDob(cleanPassword, principal.dob) || cleanPassword === principal.password;
-      if (!isDobValid) {
+      const isPassValid = Boolean(cleanPassword && cleanPassword === principal.password);
+      if (!isPassValid) {
         return res.status(401).json({
           success: false,
-          message: "Incorrect password. Enter your registered password or Date of Birth."
+          message: "Incorrect Principal Password. Please enter your registered account password."
         });
       }
 
