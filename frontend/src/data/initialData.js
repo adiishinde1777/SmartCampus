@@ -14,8 +14,37 @@ export const CLEAN_BASELINE_ADMIN = {
   isVerified: true
 };
 
+export const ADITYA_SHINDE_STUDENT = {
+  id: "stu-1",
+  role: "student",
+  name: "Aditya Shinde",
+  displayName: "Aditya Shinde",
+  email: "aditya.shinde@campus.edu",
+  phone: "7378535499",
+  prn: "24025331378056",
+  rollNo: "VL3152",
+  dob: "2004-05-15",
+  password: "password123",
+  gender: "Male",
+  bloodGroup: "O+",
+  departmentId: "dept-vlsi",
+  departmentName: "Electronic Engineering (VLSI Design And Technology)",
+  semester: 5,
+  year: "Third Year",
+  division: "A",
+  batch: "TA2",
+  avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+  address: "Rohit Complex Chitegaon tq Paithan Dis. Chh. Sambhajinagar",
+  parentName: "Santosh Shinde",
+  parentPhone: "7378535499",
+  parentEmail: "santosh.shinde@gmail.com",
+  isVerified: true,
+  canLogin: true
+};
+
 export const INITIAL_USERS = [
-  CLEAN_BASELINE_ADMIN
+  CLEAN_BASELINE_ADMIN,
+  ADITYA_SHINDE_STUDENT
 ];
 
 export const DEPARTMENTS = [

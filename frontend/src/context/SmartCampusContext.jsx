@@ -15,46 +15,45 @@ import {
   DEPARTMENTS,
   INITIAL_SYSTEM_SETTINGS,
   VLSI_CLASS_METADATA,
-  getStudentBatchInfo
+  getStudentBatchInfo,
+  CLEAN_BASELINE_ADMIN,
+  ADITYA_SHINDE_STUDENT,
+  INITIAL_USERS
 } from "../data/initialData";
 import { deduplicateUsers } from "../utils/academicSession";
 import { INITIAL_STUDENT_SKILLS } from "../data/talentAndHealthData";
 
 const SmartCampusContext = createContext();
 
-const STORAGE_KEY = "smartcampus_zero_data_v5";
+const STORAGE_KEY = "smartcampus_zero_data_v6";
 
 // Clean old localStorage entries if present
 try {
+  localStorage.removeItem("smartcampus_zero_data_v5");
   localStorage.removeItem("smartcampus_zero_data_v4");
   localStorage.removeItem("smartcampus_zero_data_v3");
   localStorage.removeItem("smart_campus_erp_mysql_clean_v2");
   localStorage.removeItem("smartcampus_state");
 } catch (e) {}
 
-const CLEAN_BASELINE_ADMIN = {
-  id: "adm-1",
-  role: "admin",
-  name: "System Administrator",
-  email: "admin@campus.edu",
-  phone: "7378535499",
-  prn: "admin",
-  dob: "1985-01-01",
-  password: "admin123",
-  designation: "System Administrator",
-  isVerified: true
-};
-
 export function SmartCampusProvider({ children }) {
-  // Clean Zero-Data Initial State: Starts with default Admin and standard departments
+  // Clean Zero-Data Initial State: Starts with default Admin and Aditya Shinde student
   const [state, setState] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed.users) && parsed.users.length > 0) {
+          // Keep only non-students or Aditya Shinde
+          const filteredUsers = parsed.users.filter(
+            (u) => u.role !== "student" || u.id === "stu-1" || (u.phone && (u.phone === "7378535499" || u.phone.endsWith("7378535499")))
+          );
+          if (!filteredUsers.some((u) => u.id === "stu-1")) {
+            filteredUsers.push(ADITYA_SHINDE_STUDENT);
+          }
           return {
             ...parsed,
+            users: filteredUsers,
             smsLogs: parsed.smsLogs || [],
             studentSkills: Array.isArray(parsed.studentSkills) && parsed.studentSkills.length > 0 ? parsed.studentSkills : INITIAL_STUDENT_SKILLS,
             currentUser: parsed.currentUser || null,
@@ -67,7 +66,7 @@ export function SmartCampusProvider({ children }) {
     }
 
     return {
-      users: [CLEAN_BASELINE_ADMIN],
+      users: [CLEAN_BASELINE_ADMIN, ADITYA_SHINDE_STUDENT],
       departments: DEPARTMENTS,
       subjects: [],
       timetables: [],
@@ -118,36 +117,47 @@ export function SmartCampusProvider({ children }) {
               .catch(err => console.warn('[Auto-Sync to MySQL Notice]', err.message));
           }
 
-          setState((prev) => ({
-            ...prev,
-            users: deduplicateUsers([
+          setState((prev) => {
+            const rawIncoming = [
               ...(Array.isArray(d.users) ? d.users : []),
               ...(Array.isArray(prev.users) ? prev.users : [])
-            ]),
-            departments: Array.isArray(d.departments) && d.departments.length > 0 ? d.departments : prev.departments,
-            subjects: Array.isArray(d.subjects) ? d.subjects : prev.subjects,
-            attendanceLogs: Array.isArray(d.attendanceLogs) ? d.attendanceLogs : prev.attendanceLogs,
-            smsLogs: Array.isArray(d.smsLogs) ? d.smsLogs : prev.smsLogs,
-            marks: Array.isArray(d.marks) ? d.marks : prev.marks,
-            assignments: Array.isArray(d.assignments) ? d.assignments : prev.assignments,
-            notices: Array.isArray(d.notices) ? d.notices : prev.notices,
-            leaves: Array.isArray(d.leaves) ? d.leaves : prev.leaves,
-            complaints: Array.isArray(d.complaints) ? d.complaints : prev.complaints,
-            auditLogs: (() => {
-              const incoming = Array.isArray(d.auditLogs) ? d.auditLogs : [];
-              const existing = Array.isArray(prev.auditLogs) ? prev.auditLogs : [];
-              const seenIds = new Set();
-              const merged = [];
-              [...existing, ...incoming].forEach((item) => {
-                if (item && item.id && !seenIds.has(item.id)) {
-                  seenIds.add(item.id);
-                  merged.push(item);
-                }
-              });
-              return merged;
-            })(),
-            systemSettings: { ...prev.systemSettings, ...(d.systemSettings || {}) }
-          }));
+            ];
+            // Filter: All non-students remain; for students, only keep Aditya Shinde
+            const validStudentsOnly = rawIncoming.filter(
+              (u) => u.role !== "student" || u.id === "stu-1" || (u.phone && (u.phone === "7378535499" || u.phone.endsWith("7378535499")))
+            );
+            if (!validStudentsOnly.some((u) => u.id === "stu-1")) {
+              validStudentsOnly.push(ADITYA_SHINDE_STUDENT);
+            }
+
+            return {
+              ...prev,
+              users: deduplicateUsers(validStudentsOnly),
+              departments: Array.isArray(d.departments) && d.departments.length > 0 ? d.departments : prev.departments,
+              subjects: Array.isArray(d.subjects) ? d.subjects : prev.subjects,
+              attendanceLogs: Array.isArray(d.attendanceLogs) ? d.attendanceLogs : prev.attendanceLogs,
+              smsLogs: Array.isArray(d.smsLogs) ? d.smsLogs : prev.smsLogs,
+              marks: Array.isArray(d.marks) ? d.marks : prev.marks,
+              assignments: Array.isArray(d.assignments) ? d.assignments : prev.assignments,
+              notices: Array.isArray(d.notices) ? d.notices : prev.notices,
+              leaves: Array.isArray(d.leaves) ? d.leaves : prev.leaves,
+              complaints: Array.isArray(d.complaints) ? d.complaints : prev.complaints,
+              auditLogs: (() => {
+                const incoming = Array.isArray(d.auditLogs) ? d.auditLogs : [];
+                const existing = Array.isArray(prev.auditLogs) ? prev.auditLogs : [];
+                const seenIds = new Set();
+                const merged = [];
+                [...existing, ...incoming].forEach((item) => {
+                  if (item && item.id && !seenIds.has(item.id)) {
+                    seenIds.add(item.id);
+                    merged.push(item);
+                  }
+                });
+                return merged;
+              })(),
+              systemSettings: { ...prev.systemSettings, ...(d.systemSettings || {}) }
+            };
+          });
         }
       })
       .catch((err) => {
@@ -162,6 +172,9 @@ export function SmartCampusProvider({ children }) {
             const userMap = new Map();
             (prev.users || []).forEach((u) => userMap.set(u.id, u));
             firestoreUsers.forEach((fu) => {
+              if (fu.role === "student" && fu.id !== "stu-1" && fu.phone !== "7378535499" && !String(fu.phone).endsWith("7378535499")) {
+                return; // skip old dummy students
+              }
               const existing = userMap.get(fu.id);
               userMap.set(fu.id, existing ? { ...existing, ...fu } : fu);
             });
@@ -183,6 +196,9 @@ export function SmartCampusProvider({ children }) {
           const userMap = new Map();
           (prev.users || []).forEach((u) => userMap.set(u.id, u));
           liveUsers.forEach((fu) => {
+            if (fu.role === "student" && fu.id !== "stu-1" && fu.phone !== "7378535499" && !String(fu.phone).endsWith("7378535499")) {
+              return; // skip old dummy students
+            }
             const existing = userMap.get(fu.id);
             userMap.set(fu.id, existing ? { ...existing, ...fu } : fu);
           });

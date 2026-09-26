@@ -97,11 +97,11 @@ export default function LoginPage() {
     switch (selectedRole) {
       case "student":
         return {
-          userLabel: "Student Mobile Number / Email ID / PRN",
-          userPlaceholder: "e.g. 9876543210 or student@campus.edu or 24025331378056",
+          userLabel: "Student Mobile Number (Username)",
+          userPlaceholder: "e.g. 7378535499",
           passLabel: "Student Password",
           passPlaceholder: "Enter your password",
-          hint: "Student login: Enter registered Mobile Number, Email ID, or PRN & your Password"
+          hint: "Student login: Enter registered Mobile Number (Username) & your Password"
         };
       case "parent":
         return {
