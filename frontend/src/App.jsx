@@ -92,6 +92,16 @@ function MainApp() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
+  // If path is /presentation or /ppt, redirect to presentation.html
+  if (typeof window !== "undefined" && (
+    window.location.pathname === "/presentation" ||
+    window.location.pathname === "/ppt" ||
+    window.location.pathname.startsWith("/presentation.html")
+  )) {
+    window.location.href = "/presentation.html";
+    return null;
+  }
+
   // If path is /register-student or has registration token, render registration page directly
   const isRegisterRoute = typeof window !== "undefined" && (
     window.location.pathname.includes("register-student") ||
