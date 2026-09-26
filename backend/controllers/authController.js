@@ -184,16 +184,16 @@ export async function login(req, res) {
       if (!student) {
         return res.status(404).json({
           success: false,
-          message: `Student with Mobile/Email/PRN "${cleanUsername}" not found. Please register via New Student Enrollment Form.`
+          message: `Student with Mobile Number "${cleanUsername}" not found. Please register via New Student Enrollment Form.`
         });
       }
 
-      // Check student password (must match password set by user)
+      // Check student password (strictly matches password set by user, never DOB)
       const isPassValid = Boolean(cleanPassword && cleanPassword === student.password);
       if (!isPassValid) {
         return res.status(401).json({
           success: false,
-          message: 'Incorrect Student Password. Please enter the password you set during registration.'
+          message: 'Incorrect Student Password. Please enter the password you set during registration (not DOB).'
         });
       }
 

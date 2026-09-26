@@ -428,9 +428,15 @@ export function SmartCampusProvider({ children }) {
           message: "Incorrect Parent Password. Please enter the password provided by your ward's Class Teacher."
         };
       }
+      if (selectedRole === "student") {
+        return {
+          success: false,
+          message: "Incorrect Password. Please enter the password you set during registration (not DOB)."
+        };
+      }
       return {
         success: false,
-        message: "Incorrect Password. Please enter the password you set during registration."
+        message: "Incorrect Password. Please check your credentials."
       };
     }
 
@@ -444,7 +450,7 @@ export function SmartCampusProvider({ children }) {
     if (selectedRole === "student") {
       return {
         success: false,
-        message: "No registered student found with this PRN / Mobile Number. Please verify your credentials or enroll via Student Enrollment Form."
+        message: "No registered student found with this Mobile Number. Please verify your Mobile Number or enroll via Student Enrollment Form."
       };
     }
     if (selectedRole === "admin") {
