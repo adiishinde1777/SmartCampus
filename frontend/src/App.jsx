@@ -24,6 +24,8 @@ import StudentProfile from "./components/student/StudentProfile";
 import StudentTimetable from "./components/student/StudentTimetable";
 import StudentStudyMaterial from "./components/student/StudentStudyMaterial";
 import StudentSkills from "./components/student/StudentSkills";
+import StudentSkillBucket from "./components/student/StudentSkillBucket";
+import StudentTalentEvents from "./components/student/StudentTalentEvents";
 import StudentFacultyDirectory from "./components/student/StudentFacultyDirectory";
 
 // Teacher Views
@@ -122,7 +124,9 @@ function MainApp() {
       switch (currentView) {
         case "dashboard": return <StudentDashboard onNavigate={setCurrentView} />;
         case "faculty": return <StudentFacultyDirectory onNavigate={setCurrentView} />;
-        case "skills": return <StudentSkills onNavigate={setCurrentView} />;
+        case "skills":
+        case "skill-bucket": return <StudentSkillBucket onNavigate={setCurrentView} />;
+        case "talent": return <StudentTalentEvents onNavigate={setCurrentView} />;
         case "attendance": return <StudentAttendance onNavigate={setCurrentView} />;
         case "marks": return <StudentMarks onNavigate={setCurrentView} />;
         case "assignments": return <StudentAssignments onNavigate={setCurrentView} />;

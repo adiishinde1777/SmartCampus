@@ -48,6 +48,8 @@ const QUICK_TECH_TAGS = [
 
 export default function PrincipalPlacementSkills() {
   const {
+    currentUser,
+    activeRole,
     studentSkills = [],
     users = [],
     departments = [],
@@ -55,12 +57,20 @@ export default function PrincipalPlacementSkills() {
     marks = []
   } = useSmartCampus();
 
+  const isHOD = activeRole === "hod" || currentUser?.role === "hod";
+  const hodDeptId = currentUser?.departmentId || "dept-vlsi";
+  const hodDept = departments.find((d) => d.id === hodDeptId) || {
+    id: hodDeptId,
+    name: currentUser?.departmentName || "Electronic Engineering (VLSI Design And Technology)",
+    code: "VLSI"
+  };
+
   // Search & Filter States
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTechTag, setSelectedTechTag] = useState("All");
   const [courseStatusFilter, setCourseStatusFilter] = useState("all"); // 'all' | 'Completed' | 'Ongoing' | 'Interested'
   const [gateFilter, setGateFilter] = useState("all"); // 'all' | 'appeared' | 'preparing' | 'any_gate'
-  const [deptFilter, setDeptFilter] = useState("all");
+  const [deptFilter, setDeptFilter] = useState(isHOD ? hodDeptId : "all");
   const [minAttendanceFilter, setMinAttendanceFilter] = useState(0); // 0 = no filter, 75 = 75%+
   const [showSkillMatrix, setShowSkillMatrix] = useState(false); // Toggle cross-department matrix view
 
@@ -69,10 +79,10 @@ export default function PrincipalPlacementSkills() {
   // Recruiter Print / Export Modal
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
-  // Filter all student users
+  // Filter all student users (restricted to HOD department if HOD)
   const studentUsers = useMemo(() => {
-    return users.filter((u) => u.role === "student");
-  }, [users]);
+    return users.filter((u) => u.role === "student" && (!isHOD || u.departmentId === hodDeptId));
+  }, [users, isHOD, hodDeptId]);
 
   // Aggregate student profiles with skills, courses, GATE, attendance, and marks
   const consolidatedStudentProfiles = useMemo(() => {
@@ -124,7 +134,9 @@ export default function PrincipalPlacementSkills() {
 
     // STRICT PLACEMENT POLICY: Only faculty-approved skills are visible to Principal & HOD
     // Pending and Rejected skills are strictly excluded from campus recruitment analytics
-    const approvedSkills = studentSkills.filter((s) => s.approvalStatus === "Approved");
+    const approvedSkills = studentSkills.filter(
+      (s) => s.approvalStatus === "Approved" && (!isHOD || s.departmentId === hodDeptId)
+    );
 
     // Populate skill entries
     approvedSkills.forEach((s) => {
@@ -306,14 +318,16 @@ export default function PrincipalPlacementSkills() {
       ];
 
       demoCandidates.forEach((demo) => {
-        if (!studentMap.has(demo.id) && !studentMap.has(demo.name)) {
-          studentMap.set(demo.id, demo);
+        if (!isHOD || demo.departmentId === hodDeptId) {
+          if (!studentMap.has(demo.id) && !studentMap.has(demo.name)) {
+            studentMap.set(demo.id, demo);
+          }
         }
       });
     }
 
     return Array.from(studentMap.values());
-  }, [studentSkills, studentUsers, attendanceLogs, marks]);
+  }, [studentSkills, studentUsers, attendanceLogs, marks, isHOD, hodDeptId]);
 
   // Aggregate Key Executive Metrics
   const totalProfiles = consolidatedStudentProfiles.length;
@@ -428,7 +442,9 @@ export default function PrincipalPlacementSkills() {
       }
 
       // 5. Department Filter
-      if (deptFilter !== "all" && student.departmentId !== deptFilter) {
+      if (isHOD) {
+        if (student.departmentId !== hodDeptId) return false;
+      } else if (deptFilter !== "all" && student.departmentId !== deptFilter) {
         return false;
       }
 
@@ -485,18 +501,20 @@ export default function PrincipalPlacementSkills() {
                 color: "#ffffff"
               }}
             >
-              🚀 RECRUITMENT & TALENT INTELLIGENCE
+              {isHOD ? "🏛️ DEPARTMENT SKILL BUCKET & PLACEMENT RADAR" : "🚀 RECRUITMENT & TALENT INTELLIGENCE"}
             </span>
             <span style={{ fontSize: "0.82rem", color: "#c7d2fe" }}>
-              CSMSS Chh. Shahu College of Engineering
+              {isHOD ? hodDept.name : "CSMSS Chh. Shahu College of Engineering"}
             </span>
           </div>
 
           <h2 style={{ fontSize: "1.85rem", fontWeight: "800", color: "#ffffff", letterSpacing: "-0.5px" }}>
-            Industry Skills & Placement Radar 🎯
+            {isHOD ? `${hodDept.name} • Student Skill Bucket 🎯` : "Industry Skills & Placement Radar 🎯"}
           </h2>
           <p style={{ fontSize: "0.92rem", color: "#e0e7ff", marginTop: "4px", maxWidth: "780px" }}>
-            Real-time candidate search engine for visiting industry HR teams. Instantly filter students by programming language (Python, Java, React, etc.), ongoing/completed certifications, and GATE qualification status.
+            {isHOD
+              ? `Real-time student technical skill bucket for ${hodDept.name}. Shows faculty-approved technical proficiencies, courses, and GATE qualifications for company internships.`
+              : "Real-time candidate search engine for visiting industry HR teams. Instantly filter students by programming language (Python, Java, React, etc.), ongoing/completed certifications, and GATE qualification status across all departments."}
           </p>
         </div>
 
@@ -678,19 +696,39 @@ export default function PrincipalPlacementSkills() {
 
           {/* Department / Branch Dropdown */}
           <div style={{ flex: "1", minWidth: "180px" }}>
-            <select
-              value={deptFilter}
-              onChange={(e) => setDeptFilter(e.target.value)}
-              className="form-control"
-              style={{ height: "44px", borderRadius: "10px", fontSize: "0.85rem" }}
-            >
-              <option value="all">🏛️ All Departments (सर्व शाखा)</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name} ({d.code})
-                </option>
-              ))}
-            </select>
+            {isHOD ? (
+              <div
+                style={{
+                  height: "44px",
+                  borderRadius: "10px",
+                  fontSize: "0.84rem",
+                  background: "#eef2ff",
+                  border: "1px solid #c7d2fe",
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "0 12px",
+                  color: "#3730a3",
+                  fontWeight: "700"
+                }}
+                title="Locked to your department"
+              >
+                🏛️ {hodDept.name}
+              </div>
+            ) : (
+              <select
+                value={deptFilter}
+                onChange={(e) => setDeptFilter(e.target.value)}
+                className="form-control"
+                style={{ height: "44px", borderRadius: "10px", fontSize: "0.85rem" }}
+              >
+                <option value="all">🏛️ All Departments (सर्व शाखा)</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name} ({d.code})
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Minimum Attendance Filter */}

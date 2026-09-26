@@ -402,113 +402,138 @@ export default function StudentDashboard({ onNavigate }) {
         />
       </div>
 
-      {/* Skill Bucket Highlight Card */}
-      {(() => {
-        const approvedCount = mySkills.filter((s) => s.approvalStatus === "Approved").length;
-        const pendingCount = mySkills.filter((s) => s.approvalStatus === "Pending").length;
+      {/* TWO SEPARATE PORTALS: SKILL BUCKET (INTERNSHIP) & SKILLS & TALENT (COLLEGE EVENTS) */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "16px" }}>
+        {/* Card 1: Technical Skill Bucket for Internships */}
+        {(() => {
+          const techSkills = mySkills.filter((s) => s.category === "Technical" || !s.category || s.type === "course" || s.type === "exam");
+          const approvedCount = techSkills.filter((s) => s.approvalStatus === "Approved").length;
+          const pendingCount = techSkills.filter((s) => s.approvalStatus === "Pending").length;
 
-        return (
-          <div
-            className="card"
-            style={{
-              background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)",
-              color: "white",
-              padding: "22px 28px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: "16px",
-              boxShadow: "0 8px 20px -4px rgba(49, 46, 129, 0.3)"
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-              <div
-                style={{
-                  width: "48px",
-                  height: "48px",
-                  borderRadius: "12px",
-                  background: "rgba(255, 255, 255, 0.15)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#fbbf24",
-                  flexShrink: 0
-                }}
-              >
-                <Sparkles size={26} />
-              </div>
+          return (
+            <div
+              className="card"
+              style={{
+                background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)",
+                color: "white",
+                padding: "20px 24px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: "14px",
+                borderRadius: "16px",
+                boxShadow: "0 8px 20px -4px rgba(15, 23, 42, 0.4)"
+              }}
+            >
               <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                  <h3 style={{ fontSize: "1.15rem", fontWeight: "800", color: "white" }}>
-                    🎯 Skill Bucket (कौशल्य संच)
-                  </h3>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(99, 102, 241, 0.25)", color: "#a5b4fc", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Code2 size={22} />
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: "1.05rem", fontWeight: "800", color: "white", margin: 0 }}>
+                        💻 Technical Skill Bucket
+                      </h3>
+                      <div style={{ fontSize: "0.72rem", color: "#94a3b8", fontWeight: "600" }}>
+                        INTERNSHIP & PLACEMENT READINESS
+                      </div>
+                    </div>
+                  </div>
+
                   <span style={{ background: "#10b981", color: "white", borderRadius: "10px", padding: "2px 8px", fontSize: "0.72rem", fontWeight: "800" }}>
                     {approvedCount} Verified
                   </span>
-                  {pendingCount > 0 && (
-                    <span style={{ background: "#f59e0b", color: "#1e1b4b", borderRadius: "10px", padding: "2px 8px", fontSize: "0.72rem", fontWeight: "800" }}>
-                      ⏳ {pendingCount} Pending Verification
-                    </span>
-                  )}
-                  {pendingInvitesCount > 0 && (
+                </div>
+
+                <p style={{ fontSize: "0.82rem", color: "#cbd5e1", margin: "0 0 10px 0", lineHeight: "1.4" }}>
+                  Programming, VLSI, AI/ML, Cloud & Certifications verified by faculty for campus internships & recruitment radar.
+                </p>
+
+                {pendingCount > 0 && (
+                  <span style={{ background: "#f59e0b", color: "#1e1b4b", borderRadius: "8px", padding: "2px 8px", fontSize: "0.72rem", fontWeight: "700" }}>
+                    ⏳ {pendingCount} Pending Faculty Approval
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button
+                  onClick={() => onNavigate("skill-bucket")}
+                  className="btn btn-sm"
+                  style={{ background: "#4f46e5", color: "white", border: "none", fontWeight: "700", flex: 1 }}
+                >
+                  Open Skill Bucket
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Card 2: Skills & Talent for College Events */}
+        {(() => {
+          const eventTalents = mySkills.filter((s) => s.category === "Cultural" || s.category === "Sports" || s.category === "Event & Management" || s.category === "Literary & Anchoring");
+
+          return (
+            <div
+              className="card"
+              style={{
+                background: "linear-gradient(135deg, #4c1d95 0%, #6d28d9 100%)",
+                color: "white",
+                padding: "20px 24px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: "14px",
+                borderRadius: "16px",
+                boxShadow: "0 8px 20px -4px rgba(109, 40, 217, 0.35)"
+              }}
+            >
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(255, 255, 255, 0.2)", color: "#fef08a", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Sparkles size={22} />
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: "1.05rem", fontWeight: "800", color: "white", margin: 0 }}>
+                        🌟 Skills & Talent (कला व क्रीडा)
+                      </h3>
+                      <div style={{ fontSize: "0.72rem", color: "#ddd6fe", fontWeight: "600" }}>
+                        COLLEGE GATHERING & DEPT FUNCTIONS
+                      </div>
+                    </div>
+                  </div>
+
+                  {pendingInvitesCount > 0 ? (
                     <span style={{ background: "#ef4444", color: "white", borderRadius: "10px", padding: "2px 8px", fontSize: "0.72rem", fontWeight: "800" }}>
-                      {pendingInvitesCount} New Invitation{pendingInvitesCount > 1 ? "s" : ""}
+                      {pendingInvitesCount} New Invite{pendingInvitesCount > 1 ? "s" : ""}
+                    </span>
+                  ) : (
+                    <span style={{ background: "rgba(255,255,255,0.2)", color: "white", borderRadius: "10px", padding: "2px 8px", fontSize: "0.72rem", fontWeight: "700" }}>
+                      {eventTalents.length} Registered
                     </span>
                   )}
                 </div>
-                <p style={{ fontSize: "0.86rem", color: "#c7d2fe", marginTop: "3px" }}>
-                  Skills are verified by your department faculty before being presented to HOD & Principal for campus placements.
+
+                <p style={{ fontSize: "0.82rem", color: "#e9d5ff", margin: "0 0 10px 0", lineHeight: "1.4" }}>
+                  Singing, Dance, Drama, Anchoring, Sports & Arts! Teachers & HOD invite you to perform in Annual Gathering & Fest.
                 </p>
-                {mySkills.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "8px" }}>
-                    {mySkills.map((s) => {
-                      const isApp = s.approvalStatus === "Approved";
-                      const isRej = s.approvalStatus === "Rejected";
-                      return (
-                        <span
-                          key={s.id}
-                          style={{
-                            background: isApp ? "rgba(16, 185, 129, 0.25)" : isRej ? "rgba(239, 68, 68, 0.25)" : "rgba(245, 158, 11, 0.25)",
-                            border: `1px solid ${isApp ? "rgba(16, 185, 129, 0.6)" : isRej ? "rgba(239, 68, 68, 0.6)" : "rgba(245, 158, 11, 0.6)"}`,
-                            padding: "2px 8px",
-                            borderRadius: "6px",
-                            fontSize: "0.75rem",
-                            fontWeight: "600",
-                            color: "white",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "4px"
-                          }}
-                        >
-                          {isApp ? "✅" : isRej ? "❌" : "⏳"} {s.skill} ({s.skillLevel})
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
+              </div>
+
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button
+                  onClick={() => onNavigate("talent")}
+                  className="btn btn-sm"
+                  style={{ background: "white", color: "#5b21b6", border: "none", fontWeight: "700", flex: 1 }}
+                >
+                  View Events & Talents
+                </button>
               </div>
             </div>
-
-            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-              <button
-                onClick={() => onNavigate("skills")}
-                className="btn btn-sm"
-                style={{ background: "#4f46e5", color: "white", border: "none", fontWeight: "700" }}
-              >
-                + Add Skill to Bucket
-              </button>
-              <button
-                onClick={() => onNavigate("skills")}
-                className="btn btn-sm"
-                style={{ background: "rgba(255,255,255,0.15)", color: "white", border: "1px solid rgba(255,255,255,0.25)", fontWeight: "600" }}
-              >
-                Open Skill Bucket
-              </button>
-            </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
+      </div>
 
       {/* DEPARTMENT FACULTY & HOD SPOTLIGHT WIDGET */}
       {(() => {

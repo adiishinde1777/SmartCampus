@@ -80,6 +80,12 @@ export default function HODDashboard({ onNavigate }) {
 
   const pendingComplaints = complaints.filter((c) => c.status !== "Resolved");
 
+  const deptStudentIds = new Set(deptStudents.map((s) => s.id));
+  const deptApprovedSkills = (studentSkills || []).filter(
+    (s) => (deptStudentIds.has(s.studentId) || s.departmentId === dept.id) && s.approvalStatus === "Approved"
+  );
+  const deptVerifiedStudentCount = new Set(deptApprovedSkills.map((s) => s.studentId)).size;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       {/* Header Banner */}
@@ -225,34 +231,34 @@ export default function HODDashboard({ onNavigate }) {
             <Sparkles size={24} />
           </div>
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <h3 style={{ fontSize: "1.15rem", fontWeight: "800", color: "white" }}>
-                Department Talent & Event Volunteers
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+              <h3 style={{ fontSize: "1.15rem", fontWeight: "800", color: "white", margin: 0 }}>
+                {dept.name} • Student Skill Bucket & Talent
               </h3>
               <span style={{ background: "rgba(255,255,255,0.2)", padding: "2px 8px", borderRadius: "10px", fontSize: "0.72rem", fontWeight: "700" }}>
-                {new Set((studentSkills || []).filter((s) => s.approvalStatus === "Approved").map((s) => s.studentId)).size} Verified Skilled Students
+                {deptVerifiedStudentCount} Verified Skilled Students ({dept.code || "Dept"})
               </span>
             </div>
             <p style={{ fontSize: "0.86rem", color: "#c7d2fe", marginTop: "3px" }}>
-              Track student cultural, sports & technical participation. Review pending health documents.
+              Only showing your department's students. Track technical skills for internships & cultural talents for events.
             </p>
           </div>
         </div>
 
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
           <button
-            onClick={() => onNavigate("department-talent")}
+            onClick={() => onNavigate("placement-skills")}
             className="btn btn-sm"
-            style={{ background: "#ffffff", color: "#312e81", fontWeight: "700", border: "none" }}
+            style={{ background: "#4f46e5", color: "white", fontWeight: "700", border: "none" }}
           >
-            View Dept Talent
+            Dept Skill Bucket (Internship)
           </button>
           <button
             onClick={() => onNavigate("department-talent")}
             className="btn btn-sm"
-            style={{ background: "rgba(255,255,255,0.18)", color: "white", border: "1px solid rgba(255,255,255,0.3)" }}
+            style={{ background: "#ffffff", color: "#312e81", fontWeight: "700", border: "none" }}
           >
-            Health Verification Desk
+            Dept Talent & Events
           </button>
         </div>
       </div>

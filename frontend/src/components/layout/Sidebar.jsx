@@ -28,6 +28,7 @@ import {
   Library,
   Briefcase,
   CheckCircle2,
+  Code2,
   X
 } from "lucide-react";
 
@@ -40,6 +41,7 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
     complaints,
     leaves,
     studentSkills = [],
+    eventInvitations = [],
     getTeacherResponsibilities
   } = useSmartCampus();
 
@@ -55,6 +57,10 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
     (s) => s.approvalStatus === "Pending" && (!currentUser?.departmentId || s.departmentId === currentUser?.departmentId || s.departmentId === "dept-vlsi")
   ).length;
 
+  const pendingInvitesCount = (eventInvitations || []).filter(
+    (i) => i.studentId === currentUser?.id && i.status === "Invited"
+  ).length;
+
   // Resolve dynamic teacher responsibilities
   const teacherResp = activeRole === "teacher" && getTeacherResponsibilities
     ? getTeacherResponsibilities(currentUser?.id)
@@ -67,7 +73,8 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
         return [
           { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
           { id: "faculty", label: "Department Faculty & HOD", icon: Users, highlight: true },
-          { id: "skills", label: "Skill Bucket", icon: Sparkles, highlight: true },
+          { id: "skill-bucket", label: "Skill Bucket (Internship)", icon: Code2, highlight: true },
+          { id: "talent", label: "Skills & Talent (Events)", icon: Sparkles, highlight: true, badge: pendingInvitesCount },
           { id: "attendance", label: "Attendance", icon: CalendarCheck },
           { id: "marks", label: "Marks & Grades", icon: Award },
           { id: "assignments", label: "Assignments", icon: BookOpen },
@@ -139,7 +146,7 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
       case "hod":
         return [
           { id: "dashboard", label: "HOD Dashboard", icon: LayoutDashboard },
-          { id: "placement-skills", label: "Industry & Placement Radar", icon: Briefcase, highlight: true },
+          { id: "placement-skills", label: "Dept Skill Bucket (Internship)", icon: Briefcase, highlight: true },
           { id: "department-talent", label: "Dept Talent & Events", icon: Sparkles, highlight: true },
           { id: "students", label: "Dept Students", icon: Users },
           { id: "faculty", label: "Faculty Tracking", icon: GraduationCap },
