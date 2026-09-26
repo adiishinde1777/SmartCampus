@@ -54,31 +54,6 @@ export default function TopNavbar({ currentView, onNavigate, onToggleMobile, onO
           <span> ACCESS</span>
         </div>
 
-        {/* Project PPT Link */}
-        <a
-          href="/presentation.html"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "5px",
-            padding: "4px 10px",
-            background: "linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.15))",
-            border: "1px solid rgba(168, 85, 247, 0.35)",
-            borderRadius: "20px",
-            fontSize: "0.75rem",
-            fontWeight: "700",
-            color: "#7c3aed",
-            textDecoration: "none",
-            cursor: "pointer",
-            transition: "all 0.2s"
-          }}
-          title="Open Interactive PPT Presentation"
-        >
-          <span>📽️ PPT Deck</span>
-        </a>
-
         {/* Notification Bell */}
         <button
           className="notification-bell-btn"

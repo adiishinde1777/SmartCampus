@@ -223,39 +223,6 @@ export default function LoginPage() {
               <span>Staff Register</span>
             </button>
           </div>
-
-          {/* Project Presentation PPT Deck Link */}
-          <div className="enroll-prompt-card" style={{ background: "rgba(14, 165, 233, 0.15)", borderColor: "rgba(56, 189, 248, 0.35)", marginTop: "12px" }}>
-            <div>
-              <div style={{ fontWeight: "700", fontSize: "0.95rem", color: "#bae6fd" }}>
-                📽️ SmartCampus Project Presentation
-              </div>
-              <div style={{ fontSize: "0.8rem", color: "#7dd3fc", marginTop: "2px" }}>
-                Interactive 15-slide comprehensive deck with speaker notes & viva answers
-              </div>
-            </div>
-            <a
-              href="/presentation.html"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-sm"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                whiteSpace: "nowrap",
-                background: "linear-gradient(135deg, #0284c7, #2563eb)",
-                borderColor: "#0284c7",
-                color: "white",
-                textDecoration: "none",
-                fontWeight: "700",
-                padding: "8px 14px",
-                borderRadius: "8px"
-              }}
-            >
-              <span>View PPT ▶</span>
-            </a>
-          </div>
         </div>
 
         {/* Right Authentication Card */}
