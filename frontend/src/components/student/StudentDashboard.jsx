@@ -20,7 +20,8 @@ import {
   Layers,
   GraduationCap,
   Building2,
-  Users
+  Users,
+  Code2
 } from "lucide-react";
 import { StatCard, Badge } from "../common/UIPrimitives";
 import { getAcademicSession, getStudentClassTitle, getTimeBasedGreeting } from "../../utils/academicSession";
