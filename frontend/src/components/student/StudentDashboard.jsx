@@ -404,7 +404,7 @@ export default function StudentDashboard({ onNavigate }) {
       </div>
 
       {/* TWO SEPARATE PORTALS: SKILL BUCKET (INTERNSHIP) & SKILLS & TALENT (COLLEGE EVENTS) */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "16px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
         {/* Card 1: Technical Skill Bucket for Internships */}
         {(() => {
           const techSkills = mySkills.filter((s) => s.category === "Technical" || !s.category || s.type === "course" || s.type === "exam");

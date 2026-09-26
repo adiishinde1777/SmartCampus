@@ -411,7 +411,7 @@ export default function TeacherSkillApprovals({ onNavigate }) {
           </p>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: "18px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "18px" }}>
           {filteredSkills.map((sk) => {
             const isPending = sk.approvalStatus === "Pending";
             const isApproved = sk.approvalStatus === "Approved";

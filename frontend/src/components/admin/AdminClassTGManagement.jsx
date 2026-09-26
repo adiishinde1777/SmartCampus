@@ -303,7 +303,7 @@ export default function AdminClassTGManagement() {
 
       {/* Main Tab Content */}
       {activeTab === "classes" ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))", gap: "20px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
           {filteredAssignments.length === 0 ? (
             <div className="card" style={{ gridColumn: "1 / -1", textAlign: "center", padding: "48px 20px" }}>
               <Users size={48} style={{ opacity: 0.3, margin: "0 auto 12px" }} />
