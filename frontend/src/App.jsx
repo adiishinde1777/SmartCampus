@@ -45,6 +45,7 @@ import TeacherProfile from "./components/teacher/TeacherProfile";
 import TeacherMyClass from "./components/teacher/TeacherMyClass";
 import TeacherMyTGBatch from "./components/teacher/TeacherMyTGBatch";
 import TeacherStudyMaterial from "./components/teacher/TeacherStudyMaterial";
+import TeacherAIAssistant from "./components/teacher/TeacherAIAssistant";
 
 // Parent Views
 import ParentDashboard from "./components/parent/ParentDashboard";
@@ -171,6 +172,7 @@ function MainApp() {
         case "assignments": return <TeacherAssignments onNavigate={setCurrentView} />;
         case "notices": return <TeacherNotices onNavigate={setCurrentView} />;
         case "direct-messages": return <FacultyQueryChat onNavigate={setCurrentView} />;
+        case "ai-assistant": return <TeacherAIAssistant onNavigate={setCurrentView} />;
         case "leaves": return <TeacherLeaveRequests onNavigate={setCurrentView} />;
         case "performance": return <TeacherPerformance onNavigate={setCurrentView} />;
         case "reports": return <TeacherReports onNavigate={setCurrentView} />;
