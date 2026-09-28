@@ -102,11 +102,15 @@ export default function StudentFacultyDirectory({ onNavigate }) {
   });
 
   const handleContactFaculty = (name, phone) => {
-    addToast(
-      "Faculty Contact Details",
-      `Connecting to ${name} (${phone || "Office Desk"}). Official query logged.`,
-      "info"
-    );
+    if (onNavigate) {
+      onNavigate("faculty-chat");
+    } else {
+      addToast(
+        "Faculty Query Portal",
+        `Opening personal query channel with ${name}.`,
+        "info"
+      );
+    }
   };
 
   return (

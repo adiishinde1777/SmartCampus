@@ -55,6 +55,7 @@ export function SmartCampusProvider({ children }) {
             ...parsed,
             users: filteredUsers,
             smsLogs: parsed.smsLogs || [],
+            directMessages: Array.isArray(parsed.directMessages) ? parsed.directMessages : [],
             studentSkills: Array.isArray(parsed.studentSkills) && parsed.studentSkills.length > 0 ? parsed.studentSkills : INITIAL_STUDENT_SKILLS,
             currentUser: parsed.currentUser || null,
             activeRole: parsed.activeRole || null
@@ -75,6 +76,7 @@ export function SmartCampusProvider({ children }) {
       attendance: {},
       attendanceLogs: [],
       smsLogs: [],
+      directMessages: [],
       marks: [],
       assignments: [],
       notices: [],
@@ -1026,23 +1028,31 @@ export function SmartCampusProvider({ children }) {
   };
 
   // ==========================================
-  // NOTICES ENGINE
+  // NOTICES ENGINE & URGENT FLASH NOTICES
   // ==========================================
   const createNotice = (noticeData) => {
+    const isFlash = Boolean(noticeData.isFlashMessage);
+    const durationHours = Number(noticeData.flashDurationHours) || 24;
+    const flashExpiresAt = noticeData.flashExpiresAt || new Date(Date.now() + durationHours * 3600 * 1000).toISOString();
+
     const newNotice = {
       id: "not-" + Date.now(),
       title: noticeData.title,
       category: noticeData.category || "General",
-      priority: noticeData.priority || "General",
+      priority: noticeData.priority || (isFlash ? "Urgent" : "General"),
       department: noticeData.department || "All Departments",
       author: state.currentUser ? `${state.currentUser.name} (${state.currentUser.role.toUpperCase()})` : "Dean Office",
+      authorRole: state.currentUser?.role || "admin",
       publishDate: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
       expiryDate: noticeData.expiryDate || "2026-10-15",
       content: noticeData.content,
-      important: noticeData.priority === "Urgent" || Boolean(noticeData.important)
+      important: isFlash || noticeData.priority === "Urgent" || Boolean(noticeData.important),
+      isFlashMessage: isFlash,
+      flashDurationHours: durationHours,
+      flashExpiresAt: flashExpiresAt
     };
 
-    const audit = logAudit("Published Notice", `Notice "${noticeData.title}" (${noticeData.category})`, "Notices");
+    const audit = logAudit("Published Notice", `Notice "${noticeData.title}" (${noticeData.category}${isFlash ? " - FLASH NOTICE" : ""})`, "Notices");
 
     // Persist notice to MySQL database
     api.createNotice({
@@ -1059,13 +1069,81 @@ export function SmartCampusProvider({ children }) {
       console.warn('[Firestore Notice Sync Warning]', err.message)
     );
 
+    const newNotifications = [...(state.notifications || [])];
+    if (isFlash) {
+      newNotifications.unshift({
+        id: "notif-flash-" + Date.now(),
+        title: `🚨 Urgent Flash Notice: ${newNotice.title}`,
+        message: `${newNotice.content.substring(0, 120)}... (Valid for ${durationHours} hours)`,
+        type: "urgent",
+        timestamp: new Date().toISOString(),
+        read: false,
+        isFlash: true
+      });
+    }
+
     setState((prev) => ({
       ...prev,
       notices: [newNotice, ...prev.notices],
+      notifications: newNotifications,
       auditLogs: [audit, ...prev.auditLogs]
     }));
 
-    addToast("Notice Published", `Circular "${noticeData.title}" posted to active board.`, "success");
+    addToast(
+      isFlash ? "Urgent Flash Notice Active!" : "Notice Published",
+      `Circular "${noticeData.title}" is now live${isFlash ? ` for ${durationHours} hours on Student Portal banner` : ""}.`,
+      isFlash ? "warning" : "success"
+    );
+  };
+
+  const getActiveFlashNotices = () => {
+    const now = new Date();
+    return (state.notices || []).filter(
+      (n) => n.isFlashMessage && (!n.flashExpiresAt || new Date(n.flashExpiresAt) > now)
+    );
+  };
+
+  // ==========================================
+  // DIRECT QUERY & FACULTY MESSAGING ENGINE
+  // ==========================================
+  const sendDirectMessage = ({ recipientId, recipientName, recipientRole, message, subject = "Academic Query", category = "Academic Guidance" }) => {
+    if (!state.currentUser) return null;
+    const newMsg = {
+      id: "msg-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6),
+      senderId: state.currentUser.id,
+      senderName: state.currentUser.name,
+      senderRole: state.currentUser.role,
+      senderAvatar: state.currentUser.avatar || "",
+      recipientId,
+      recipientName,
+      recipientRole,
+      subject: subject?.trim() || "Query",
+      message: message?.trim(),
+      category: category || "General Query",
+      timestamp: new Date().toISOString(),
+      read: false
+    };
+
+    setState((prev) => ({
+      ...prev,
+      directMessages: [...(prev.directMessages || []), newMsg]
+    }));
+
+    addToast("Query Sent", `Your message was delivered to ${recipientName}.`, "success");
+    return newMsg;
+  };
+
+  const markMessagesAsRead = (otherUserId) => {
+    if (!state.currentUser) return;
+    setState((prev) => ({
+      ...prev,
+      directMessages: (prev.directMessages || []).map((m) => {
+        if (m.recipientId === state.currentUser.id && m.senderId === otherUserId && !m.read) {
+          return { ...m, read: true };
+        }
+        return m;
+      })
+    }));
   };
 
   // ==========================================
@@ -3290,6 +3368,7 @@ export function SmartCampusProvider({ children }) {
         marks: Array.isArray(state.marks) ? state.marks : [],
         assignments: Array.isArray(state.assignments) ? state.assignments : [],
         notices: Array.isArray(state.notices) ? state.notices : [],
+        directMessages: Array.isArray(state.directMessages) ? state.directMessages : [],
         exams: Array.isArray(state.exams) ? state.exams : [],
         leaves: Array.isArray(state.leaves) ? state.leaves : [],
         complaints: Array.isArray(state.complaints) ? state.complaints : [],
@@ -3316,6 +3395,9 @@ export function SmartCampusProvider({ children }) {
         updateStudentAssignmentStatus,
         flagPlagiarizedAssignment,
         createNotice,
+        getActiveFlashNotices,
+        sendDirectMessage,
+        markMessagesAsRead,
         applyLeave,
         updateLeaveStatus,
         raiseComplaint,

@@ -29,6 +29,7 @@ import {
   Briefcase,
   CheckCircle2,
   Code2,
+  MessageSquare,
   X
 } from "lucide-react";
 
@@ -73,6 +74,7 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
         return [
           { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
           { id: "faculty", label: "Department Faculty & HOD", icon: Users, highlight: true },
+          { id: "faculty-chat", label: "Faculty Query Chat", icon: MessageSquare, highlight: true },
           { id: "skill-bucket", label: "Skill Bucket (Internship)", icon: Code2, highlight: true },
           { id: "talent", label: "Skills & Talent (Events)", icon: Sparkles, highlight: true, badge: pendingInvitesCount },
           { id: "attendance", label: "Attendance", icon: CalendarCheck },
@@ -121,6 +123,7 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
           { id: "teacher-study-material", label: "Study Material", icon: Library, highlight: true },
           { id: "assignments", label: "Assignments", icon: BookOpen },
           { id: "notices", label: "Class Notices", icon: Bell },
+          { id: "direct-messages", label: "Messages & Queries", icon: MessageSquare, highlight: true },
           { id: "leaves", label: "Leave Requests", icon: Clock, badge: pendingLeavesCount },
           { id: "performance", label: "Student Performance", icon: Activity },
           { id: "reports", label: "Reports & Exports", icon: FileSpreadsheet },
@@ -155,6 +158,7 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
           { id: "assignments", label: "Assignments Monitor", icon: BookOpen },
           { id: "complaints", label: "Complaints Tracker", icon: AlertOctagon, badge: pendingComplaintsCount },
           { id: "notices", label: "Publish Notices", icon: Bell },
+          { id: "direct-messages", label: "Messages & Queries", icon: MessageSquare, highlight: true },
           { id: "analytics", label: "Dept Analytics", icon: BarChart3 },
           { id: "reports", label: "Dept Reports", icon: FileSpreadsheet },
           { id: "profile", label: "Profile", icon: User }
@@ -169,6 +173,7 @@ export default function Sidebar({ currentView, setCurrentView, isMobileOpen, set
           { id: "academic-analytics", label: "Academic Analytics", icon: TrendingUp },
           { id: "complaints", label: "College Complaints", icon: AlertOctagon },
           { id: "notices", label: "College Circulars", icon: Bell },
+          { id: "direct-messages", label: "Messages & Queries", icon: MessageSquare, highlight: true },
           { id: "reports", label: "Executive Reports", icon: FileSpreadsheet },
           { id: "drilldown", label: "College Drill-Down", icon: Layers },
           { id: "profile", label: "Profile", icon: User }

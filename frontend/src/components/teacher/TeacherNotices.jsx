@@ -6,7 +6,8 @@ import {
   Calendar,
   AlertTriangle,
   Send,
-  FileText
+  FileText,
+  Zap
 } from "lucide-react";
 import { Badge, Modal } from "../common/UIPrimitives";
 
@@ -19,20 +20,28 @@ export default function TeacherNotices() {
   const [priority, setPriority] = useState("General");
   const [content, setContent] = useState("");
   const [expiryDate, setExpiryDate] = useState("2026-09-30");
+  const [isFlashMessage, setIsFlashMessage] = useState(false);
+  const [flashDurationHours, setFlashDurationHours] = useState(24);
+
+  const canPublishFlash = currentUser?.role === "hod" || currentUser?.role === "principal" || currentUser?.role === "admin";
 
   const handleSubmit = (e) => {
     e.preventDefault();
     createNotice({
       title,
       category,
-      priority,
+      priority: isFlashMessage ? "Urgent" : priority,
       content,
       expiryDate,
-      department: currentUser?.departmentName || "Computer Science Engineering (CSE)"
+      department: currentUser?.departmentName || "All Departments",
+      isFlashMessage,
+      flashDurationHours: Number(flashDurationHours)
     });
     setIsModalOpen(false);
     setTitle("");
     setContent("");
+    setIsFlashMessage(false);
+    setFlashDurationHours(24);
   };
 
   return (
@@ -58,35 +67,113 @@ export default function TeacherNotices() {
 
       {/* Notices Feed */}
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        {notices.map((n) => (
-          <div key={n.id} className="card">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <Badge variant={n.priority === "Urgent" ? "danger" : "purple"}>{n.category}</Badge>
-                {n.important && <Badge variant="danger">High Priority</Badge>}
+        {notices.map((n) => {
+          const isFlashActive = n.isFlashMessage && (!n.flashExpiresAt || new Date(n.flashExpiresAt) > new Date());
+          return (
+            <div
+              key={n.id}
+              className="card"
+              style={{
+                borderLeft: isFlashActive ? "5px solid #e11d48" : (n.important ? "5px solid #ef4444" : "5px solid var(--primary-600)"),
+                background: isFlashActive ? "#fff1f2" : (n.important ? "#fffdfd" : "white")
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px", flexWrap: "wrap", gap: "8px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  <Badge variant={n.priority === "Urgent" ? "danger" : "purple"}>{n.category}</Badge>
+                  {n.important && <Badge variant="danger">High Priority</Badge>}
+                  {isFlashActive && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "#e11d48", color: "white", padding: "2px 8px", borderRadius: "12px", fontSize: "0.72rem", fontWeight: "800", animation: "pulse 2s infinite" }}>
+                      <Zap size={12} fill="white" /> FLASH NOTICE ({n.flashDurationHours || 24}h ACTIVE)
+                    </span>
+                  )}
+                </div>
+                <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>Published: {n.publishDate}</span>
               </div>
-              <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>Published: {n.publishDate}</span>
-            </div>
 
-            <h3 style={{ fontSize: "1.15rem", fontWeight: "700", marginBottom: "6px" }}>{n.title}</h3>
-            <p style={{ fontSize: "0.88rem", color: "var(--text-muted)", lineHeight: 1.5, marginBottom: "12px" }}>
-              {n.content}
-            </p>
+              <h3 style={{ fontSize: "1.15rem", fontWeight: "700", marginBottom: "6px", color: isFlashActive ? "#9f1239" : "var(--text-main)" }}>
+                {isFlashActive && "🚨 "}{n.title}
+              </h3>
+              <p style={{ fontSize: "0.88rem", color: isFlashActive ? "#881337" : "var(--text-muted)", lineHeight: 1.5, marginBottom: "12px" }}>
+                {n.content}
+              </p>
 
-            <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", borderTop: "1px solid var(--border-subtle)", paddingTop: "10px" }}>
-              Author: <strong>{n.author}</strong> • Dept: {n.department}
+              <div style={{ fontSize: "0.78rem", color: isFlashActive ? "#be123c" : "var(--text-muted)", borderTop: "1px solid var(--border-subtle)", paddingTop: "10px", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+                <span>Author: <strong>{n.author}</strong> • Dept: {n.department}</span>
+                {isFlashActive && n.flashExpiresAt && (
+                  <span style={{ fontWeight: "700", color: "#e11d48" }}>
+                    ⏳ Auto-Expires: {new Date(n.flashExpiresAt).toLocaleString()}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Publish Notice Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Publish Class / Subject Notice"
+        title="Publish Class / Department Circular"
       >
         <form onSubmit={handleSubmit}>
+          {/* Flash Message Option for HOD / Principal */}
+          {canPublishFlash && (
+            <div style={{
+              background: isFlashMessage ? "#fff1f2" : "#f8fafc",
+              border: isFlashMessage ? "1.5px solid #f43f5e" : "1px solid #e2e8f0",
+              borderRadius: "10px",
+              padding: "14px",
+              marginBottom: "16px",
+              transition: "all 0.2s ease"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontWeight: "700", color: isFlashMessage ? "#be123c" : "#1e293b", fontSize: "0.9rem" }}>
+                  <input
+                    type="checkbox"
+                    checked={isFlashMessage}
+                    onChange={(e) => setIsFlashMessage(e.target.checked)}
+                    style={{ width: "18px", height: "18px", accentColor: "#e11d48", cursor: "pointer" }}
+                  />
+                  <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <Zap size={16} color={isFlashMessage ? "#e11d48" : "#64748b"} />
+                    ⚡ Publish as Urgent Flash Message (Student Top Alert Banner)
+                  </span>
+                </label>
+                {isFlashMessage && (
+                  <span style={{ fontSize: "0.72rem", background: "#ffe4e6", color: "#e11d48", padding: "2px 8px", borderRadius: "12px", fontWeight: "700" }}>
+                    High Priority Ticker Active
+                  </span>
+                )}
+              </div>
+
+              {isFlashMessage && (
+                <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px dashed #fecdd3" }}>
+                  <label className="form-label" style={{ fontSize: "0.82rem", color: "#9f1239", fontWeight: "700" }}>
+                    Display Flash Duration (विद्यार्थ्यांना किती वेळ Flash दिसावे)
+                  </label>
+                  <select
+                    className="form-control"
+                    value={flashDurationHours}
+                    onChange={(e) => setFlashDurationHours(Number(e.target.value))}
+                    style={{ borderColor: "#fda4af", fontWeight: "600" }}
+                  >
+                    <option value={24}>24 Hours (Standard 1 Day • 24 तास)</option>
+                    <option value={12}>12 Hours (Half Day • 12 तास)</option>
+                    <option value={6}>6 Hours (Immediate Alert • 6 तास)</option>
+                    <option value={48}>48 Hours (2 Days • 48 तास)</option>
+                    <option value={72}>72 Hours (3 Days • 72 तास)</option>
+                    <option value={168}>7 Days (1 Week • 1 आठवडा)</option>
+                  </select>
+                  <p style={{ fontSize: "0.76rem", color: "#e11d48", marginTop: "6px", lineHeight: 1.4 }}>
+                    🔔 ही नोटीस विद्यार्थ्यांच्या डॅशबोर्डवर सर्वात वरती ठळक <strong>Flash Notice</strong> म्हणून सतत लुकलुकेल आणि ठरवलेल्या मुदतीनंतर आपोआप बंद होईल.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="form-group">
             <label className="form-label">Notice Title</label>
             <input

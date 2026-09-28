@@ -24,6 +24,7 @@ import {
   Code2
 } from "lucide-react";
 import { StatCard, Badge } from "../common/UIPrimitives";
+import FlashNoticeBanner from "../common/FlashNoticeBanner";
 import { getAcademicSession, getStudentClassTitle, getTimeBasedGreeting } from "../../utils/academicSession";
 import { getEffectiveHOD } from "../../utils/departmentUtils";
 
@@ -211,6 +212,9 @@ export default function StudentDashboard({ onNavigate }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      {/* Real-time Flash Notice Ticker (Published by HOD / Principal) */}
+      <FlashNoticeBanner notices={notices} onNavigate={onNavigate} />
+
       {/* Welcome Banner */}
       <div
         style={{

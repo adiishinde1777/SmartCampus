@@ -8,6 +8,7 @@ import TopNavbar from "./components/layout/TopNavbar";
 import NotificationDrawer from "./components/layout/NotificationDrawer";
 import MobileBottomNav from "./components/layout/MobileBottomNav";
 import LoginPage from "./components/auth/LoginPage";
+import FacultyQueryChat from "./components/common/FacultyQueryChat";
 
 // Student Views
 import StudentDashboard from "./components/student/StudentDashboard";
@@ -148,7 +149,8 @@ function MainApp() {
         case "complaints": return <StudentComplaints onNavigate={setCurrentView} />;
         case "performance": return <StudentPerformance onNavigate={setCurrentView} />;
         case "notifications": return <UnifiedNotifications onNavigate={setCurrentView} />;
-        case "ai-assistant": return <StudentDashboard onNavigate={setCurrentView} />;
+        case "faculty-chat": return <FacultyQueryChat onNavigate={setCurrentView} />;
+        case "ai-assistant": return <StudentAIAssistant onNavigate={setCurrentView} />;
         case "profile": return <StudentProfile onNavigate={setCurrentView} />;
         default: return <StudentDashboard onNavigate={setCurrentView} />;
       }
@@ -168,6 +170,7 @@ function MainApp() {
         case "marks": return <TeacherMarks onNavigate={setCurrentView} />;
         case "assignments": return <TeacherAssignments onNavigate={setCurrentView} />;
         case "notices": return <TeacherNotices onNavigate={setCurrentView} />;
+        case "direct-messages": return <FacultyQueryChat onNavigate={setCurrentView} />;
         case "leaves": return <TeacherLeaveRequests onNavigate={setCurrentView} />;
         case "performance": return <TeacherPerformance onNavigate={setCurrentView} />;
         case "reports": return <TeacherReports onNavigate={setCurrentView} />;
@@ -207,6 +210,7 @@ function MainApp() {
         case "assignments": return <TeacherAssignments onNavigate={setCurrentView} />;
         case "complaints": return <HODComplaints onNavigate={setCurrentView} />;
         case "notices": return <TeacherNotices onNavigate={setCurrentView} />;
+        case "direct-messages": return <FacultyQueryChat onNavigate={setCurrentView} />;
         case "analytics": return <HODAnalytics onNavigate={setCurrentView} />;
         case "reports": return <HODReports onNavigate={setCurrentView} />;
         case "notifications": return <UnifiedNotifications onNavigate={setCurrentView} />;
@@ -225,7 +229,8 @@ function MainApp() {
         case "attendance-analytics": return <PrincipalAttendanceAnalytics onNavigate={setCurrentView} />;
         case "academic-analytics": return <PrincipalAcademicAnalytics onNavigate={setCurrentView} />;
         case "complaints": return <HODComplaints onNavigate={setCurrentView} />;
-        case "notices": return <StudentNotices onNavigate={setCurrentView} />;
+        case "notices": return <TeacherNotices onNavigate={setCurrentView} />;
+        case "direct-messages": return <FacultyQueryChat onNavigate={setCurrentView} />;
         case "reports": return <TeacherReports onNavigate={setCurrentView} />;
         case "drilldown": return <PrincipalCollegeOverview onNavigate={setCurrentView} />;
         case "notifications": return <UnifiedNotifications onNavigate={setCurrentView} />;
@@ -247,6 +252,7 @@ function MainApp() {
         case "timetable": return <AdminTimetable onNavigate={setCurrentView} />;
         case "threshold": return <AdminAttendanceThreshold onNavigate={setCurrentView} />;
         case "notices": return <TeacherNotices onNavigate={setCurrentView} />;
+        case "direct-messages": return <FacultyQueryChat onNavigate={setCurrentView} />;
         case "complaints": return <HODComplaints onNavigate={setCurrentView} />;
         case "audit-logs": return <AdminAuditLogs onNavigate={setCurrentView} />;
         case "settings": return <AdminAttendanceThreshold onNavigate={setCurrentView} />;

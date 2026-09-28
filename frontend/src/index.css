@@ -1956,6 +1956,26 @@ html, body {
   width: 100%;
 }
 
+/* Flash Notice Urgent Banner Animations */
+@keyframes flashGlowPulse {
+  0% {
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset 0 0 10px rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.8), inset 0 0 20px rgba(239, 68, 68, 0.4);
+    border-color: #f87171;
+  }
+  100% {
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset 0 0 10px rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+  }
+}
+
+.flash-notice-container {
+  animation: flashGlowPulse 2.4s ease-in-out infinite;
+}
+
 
 
 

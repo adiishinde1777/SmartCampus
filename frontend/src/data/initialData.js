@@ -77,6 +77,7 @@ export const INITIAL_COMPLAINTS = [];
 export const INITIAL_STUDY_MATERIAL = [];
 export const INITIAL_NOTIFICATIONS = [];
 export const INITIAL_AUDIT_LOGS = [];
+export const INITIAL_DIRECT_MESSAGES = [];
 
 export const INITIAL_SYSTEM_SETTINGS = {
   attendanceThreshold: 75,
