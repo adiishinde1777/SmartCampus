@@ -339,7 +339,7 @@ export default function LoginPage() {
 
       </div>
 
-      {/* DEVELOPED BY ADITYA SHINDE BRANDING BADGE (PAGE FOOTER / DOWN MADHE) */}
+      {/* DEVELOPED BY Sagar Susundre BRANDING BADGE (PAGE FOOTER / DOWN MADHE) */}
       <div className="login-page-footer">
         <div className="dev-badge-card">
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -364,13 +364,13 @@ export default function LoginPage() {
                 SYSTEM ARCHITECT & DEVELOPER
               </div>
               <div style={{ fontSize: "1.05rem", fontWeight: "800", color: "white", letterSpacing: "0.01em" }}>
-                Developed by Aditya Shinde
+                Developed by Sagar Susundre
               </div>
             </div>
           </div>
 
           <a
-            href="tel:7378535499"
+            href="tel:8830157631"
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -387,7 +387,7 @@ export default function LoginPage() {
             }}
           >
             <Phone size={16} color="#2563eb" />
-            <span>Contact: 7378535499</span>
+            <span>Contact: 8830157631</span>
           </a>
         </div>
 
