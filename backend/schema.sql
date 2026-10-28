@@ -239,6 +239,7 @@ INSERT IGNORE INTO users (
 
 -- 2. Baseline Departments
 INSERT IGNORE INTO departments (id, name, code) VALUES
+  ('dept-ece', 'Electronics & Computer Engineering', 'ECE'),
   ('dept-vlsi', 'Electronic Engineering (VLSI Design And Technology)', 'VLSI'),
   ('dept-cs', 'Computer Science and Engineering', 'CSE'),
   ('dept-mech', 'Mechanical Engineering', 'MECH'),
@@ -251,3 +252,5 @@ INSERT IGNORE INTO system_settings (setting_key, setting_value) VALUES
   ('collegeName', 'CSMSS Chh. Shahu College of Engineering'),
   ('academicYear', '2026-27'),
   ('currentSemester', '5');
+
+SELECT*FROM departments;

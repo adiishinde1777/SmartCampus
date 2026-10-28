@@ -29,6 +29,7 @@ import {
   Sparkles,
   Briefcase,
   Eye,
+  Plus,
   EyeOff
 } from "lucide-react";
 
@@ -37,6 +38,7 @@ import { getDepartmentYearDivisions } from "../../utils/departmentUtils";
 export default function StudentRegisterPage({ onBackToLogin }) {
   const { departments, addUser, addRegisteredUsers, addStudentSkill } = useSmartCampus();
 
+  console.log("Departments received:", departments);
   const defaultDept = departments[0] || { id: "dept-vlsi", code: "VLSI", name: "Electronic Engineering (VLSI Design And Technology)", divisions: ["A"] };
   const initialYearDivs = getDepartmentYearDivisions(defaultDept, "1st Year");
 
