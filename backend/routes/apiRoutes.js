@@ -1,5 +1,5 @@
 import express from 'express';
-import { query } from '../db.js';
+import { query, checkConnection } from '../db.js';
 import { dispatchAbsenceAlerts, sendSmsNotification } from '../services/smsService.js';
 
 const router = express.Router();
@@ -9,8 +9,12 @@ const router = express.Router();
 // ==========================================
 router.get('/health', async (req, res) => {
   try {
-    const result = await query('SELECT 1 as isLive');
-    res.json({ status: 'ok', mysql: result[0]?.isLive === 1 ? 'connected' : 'disconnected' });
+    const connInfo = await checkConnection();
+    res.json({
+      status: 'ok',
+      mysql: connInfo.connected ? 'connected' : 'disconnected',
+      details: connInfo
+    });
   } catch (err) {
     res.status(500).json({ status: 'error', message: err.message });
   }

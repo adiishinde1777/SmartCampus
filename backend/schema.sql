@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS departments (
   id VARCHAR(64) PRIMARY KEY,
   name VARCHAR(150) NOT NULL,
   code VARCHAR(30) NOT NULL,
+  divisions VARCHAR(255) DEFAULT 'A',
+  hod VARCHAR(150) DEFAULT 'Dr. Shrikant Honade',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -252,5 +254,3 @@ INSERT IGNORE INTO system_settings (setting_key, setting_value) VALUES
   ('collegeName', 'CSMSS Chh. Shahu College of Engineering'),
   ('academicYear', '2026-27'),
   ('currentSemester', '5');
-
-SELECT*FROM departments;

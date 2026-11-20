@@ -16,8 +16,10 @@ const dbConfig = {
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'smartcampus_db',
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: 15,
   queueLimit: 0,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 10000,
   multipleStatements: true
 };
 
@@ -99,6 +101,9 @@ export async function initDatabase() {
 
     // 2. Initialize application connection pool
     pool = mysql.createPool(dbConfig);
+    pool.on('error', (err) => {
+      console.error('[MySQL Pool Error]', err.message);
+    });
 
     // 3. Execute schema initialization
     const schemaPath = path.join(__dirname, 'schema.sql');
@@ -121,7 +126,38 @@ export async function initDatabase() {
   }
 }
 
+export async function checkConnection() {
+  try {
+    if (!pool) {
+      await initDatabase();
+    }
+    if (!pool) {
+      return { connected: false, message: 'MySQL pool could not be initialized' };
+    }
+    const [rows] = await pool.query('SELECT 1 as isLive, DATABASE() as db, VERSION() as version');
+    return {
+      connected: true,
+      isLive: rows[0]?.isLive === 1,
+      database: rows[0]?.db || dbConfig.database,
+      version: rows[0]?.version,
+      host: dbConfig.host,
+      port: dbConfig.port
+    };
+  } catch (err) {
+    return {
+      connected: false,
+      error: err.message,
+      host: dbConfig.host,
+      port: dbConfig.port
+    };
+  }
+}
+
 export async function query(sql, params = []) {
+  if (!pool) {
+    await initDatabase();
+  }
+
   if (pool) {
     try {
       const [results] = await pool.query(sql, params);
@@ -255,5 +291,6 @@ export function getPool() {
 export default {
   initDatabase,
   query,
-  getPool
+  getPool,
+  checkConnection
 };
